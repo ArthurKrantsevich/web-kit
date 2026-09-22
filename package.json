@@ -1,6 +1,7 @@
 {
   "name": "web-kit",
   "private": true,
+  "license": "MIT",
   "packageManager": "pnpm@12.5.1",
   "engines": { "node": ">=22" },
   "scripts": {
