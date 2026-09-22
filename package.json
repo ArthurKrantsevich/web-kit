@@ -1,0 +1,13 @@
+{
+  "name": "web-kit",
+  "private": true,
+  "packageManager": "pnpm@12.5.1",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "turbo run build",
+    "check": "turbo run check"
+  },
+  "devDependencies": {
+    "turbo": "2.11.3"
+  }
+}
