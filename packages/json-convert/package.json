@@ -52,6 +52,7 @@
     "@web-kit/json-core": "workspace:*"
   },
   "devDependencies": {
+    "@types/node": "^26.6.2",
     "yaml": "^2.9.1"
   }
 }

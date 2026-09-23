@@ -264,6 +264,9 @@ importers:
         specifier: '>=18'
         version: 19.3.0
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
