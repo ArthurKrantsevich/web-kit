@@ -29,6 +29,17 @@ describe("toCsv", () => {
     expect(toCsv('[{"n":12345678901234567890,"z":null}]')).toEqual(ok("n,z\r\n12345678901234567890,\r\n"));
   });
 
+  it("keeps rows whose cells are all empty", () => {
+    const json = '[{"a":1},{"a":null},{"a":""}]';
+    expect(toCsv(json)).toEqual(ok('a\r\n1\r\n""\r\n""\r\n'));
+    const back = toCsv(json);
+    expect(back.ok && fromCsv(back.value)).toEqual(ok('[\n  {\n    "a": "1"\n  },\n  {\n    "a": ""\n  },\n  {\n    "a": ""\n  }\n]'));
+  });
+
+  it("refuses objects that have no fields at all", () => {
+    expect(toCsv("[{}]")).toEqual({ ok: false, error: { message: "CSV needs at least one column; all objects are empty", path: "$" } });
+  });
+
   it("explains what it needs", () => {
     expect(toCsv('{"a":1}')).toEqual({ ok: false, error: { message: "CSV needs an array of objects", path: "$" } });
     expect(toCsv('[{"a":1},2]')).toEqual({ ok: false, error: { message: "CSV needs an array of objects", path: "$[1]" } });
@@ -66,6 +77,7 @@ describe("fromCsv", () => {
     expect(fromCsv('a\nx"y\n')).toEqual({ ok: false, error: { message: "Unexpected quote inside an unquoted field", line: 2 } });
     expect(fromCsv('a\n"x"y\n')).toEqual({ ok: false, error: { message: "Unexpected character after a closing quote", line: 2 } });
     expect(fromCsv("a,a\n1,2")).toEqual({ ok: false, error: { message: 'Duplicate column name "a"', line: 1 } });
+    expect(fromCsv('a\r"x\ry"\r"b')).toEqual({ ok: false, error: { message: "Unterminated quoted field", line: 4 } });
   });
 
   it("round-trips flat JSON through toCsv", () => {

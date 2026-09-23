@@ -9,6 +9,10 @@ const CASES = [
   '{"true":"no","k: v":"# not a comment","":" padded ","multi":"line\\nbreak","num":"1e3","date":"2024-01-01","emoji":"😀","dash":"- x","nested":[[1,2],[]],"tab":"a\\tb","tilde":"~","quote":"\\"q\\""}',
   '[{"a":[{"b":1}]},[[]]]',
   '"\\u2028 \\u007f \\ufeff \\u0085"',
+  '"..."',
+  '"... x"',
+  '"---"',
+  '{"k":"--- a","=":"=","<<":{"a":1}}',
   "0.5",
   "true",
   "null",
@@ -31,6 +35,20 @@ describe("toYaml", () => {
   it("keeps big numbers exactly", () => {
     expect(toYaml('{"num":12345678901234567890}')).toEqual({ ok: true, value: "num: 12345678901234567890\n" });
     expect(toYaml('{"n":1}')).toEqual({ ok: true, value: '"n": 1\n' });
+  });
+
+  it("quotes merge keys and document markers", () => {
+    expect(toYaml('{"<<":{"a":1}}')).toEqual({ ok: true, value: '"<<":\n  a: 1\n' });
+    expect(toYaml('"..."')).toEqual({ ok: true, value: '"..."\n' });
+  });
+
+  it("writes very long keys in explicit form", () => {
+    const key = "k".repeat(1100);
+    for (const value of ["1", '{"a":1}']) {
+      const input = `{"${key}":${value}}`;
+      const result = toYaml(input);
+      expect(result.ok && parse(result.value)).toEqual(JSON.parse(input));
+    }
   });
 
   it("refuses duplicate keys", () => {

@@ -31,7 +31,19 @@ describe("toXml", () => {
   });
 
   it("turns any key into a valid element name", () => {
-    expect(["1st", "a b", "xmlns", "", "é", "a-b.c"].map(xmlName)).toEqual(["_1st", "a_b", "_xmlns", "_", "é", "a-b.c"]);
+    expect(["1st", "a b", "xmlns", "", "é", "a-b.c", "µs", "x²", "ns:tag", "हिन्दी", "·a"].map(xmlName)).toEqual([
+      "_1st",
+      "a_b",
+      "_xmlns",
+      "_",
+      "é",
+      "a-b.c",
+      "_s",
+      "x_",
+      "ns_tag",
+      "हिन्दी",
+      "_·a",
+    ]);
     const result = toXml('{"1st":1,"a b":2,"xmlns":3,"":4,"é":5}');
     expect(result.ok && wellFormed(result.value)).toBe(true);
   });
@@ -42,6 +54,11 @@ describe("toXml", () => {
       value: '<?xml version="1.0" encoding="UTF-8"?>\n<list>\n  <item>1</item>\n  <item>2</item>\n</list>\n',
     });
     expect(toXml('"x"')).toEqual({ ok: true, value: '<?xml version="1.0" encoding="UTF-8"?>\n<root>x</root>\n' });
+  });
+
+  it("keeps carriage returns in text", () => {
+    const result = toXml('{"a":"l1\\r\\nl2"}');
+    expect(result.ok && result.value).toContain("<a>l1&#13;\nl2</a>");
   });
 
   it("rejects an invalid root name", () => {

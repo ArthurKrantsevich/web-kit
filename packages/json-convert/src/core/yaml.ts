@@ -2,7 +2,12 @@ import type { JsonNode, JsonPath } from "@web-kit/json-core";
 import { fail, parseInput, run } from "./common";
 import type { ConvertResult } from "./types";
 
-const RESERVED = /^(?:true|false|null|yes|no|on|off|y|n|~)$/i;
+// YAML 1.1 and 1.2 literals, the merge key and the "value" key; parsers may read these as something else.
+const RESERVED = /^(?:true|false|null|yes|no|on|off|y|n|~|<<|=)$/i;
+// Document markers at the start of a line end or start a YAML document.
+const DOCUMENT_MARKER = /^(?:---|\.\.\.)/;
+// Implicit keys longer than this are invalid YAML.
+const MAX_IMPLICIT_KEY = 1024;
 const NUMBER_LIKE = /^[-+.]?\d|^[-+]?\.(?:inf|nan)$/i;
 const INDICATOR = /^[-?:,[\]{}#&*!|>'"%@`]/;
 const UNSAFE =
@@ -15,6 +20,7 @@ export function yamlString(value: string): string {
     value !== "" &&
     value.trim() === value &&
     !RESERVED.test(value) &&
+    !DOCUMENT_MARKER.test(value) &&
     !NUMBER_LIKE.test(value) &&
     !INDICATOR.test(value) &&
     !UNSAFE.test(value);
@@ -50,10 +56,14 @@ function block(node: JsonNode, indent: string, path: JsonPath): string[] {
       const key = member.key.value;
       if (seen.has(key)) fail(`YAML does not allow duplicate key "${key}"`, [...path, key]);
       seen.add(key);
+      const keyText = yamlString(key);
+      // Long keys need the explicit "? key" form.
+      const head = keyText.length > MAX_IMPLICIT_KEY ? [`${indent}? ${keyText}`, `${indent}:`] : [`${indent}${keyText}:`];
       if (isBlock(member.value)) {
-        lines.push(`${indent}${yamlString(key)}:`, ...block(member.value, `${indent}  `, [...path, key]));
+        lines.push(...head, ...block(member.value, `${indent}  `, [...path, key]));
       } else {
-        lines.push(`${indent}${yamlString(key)}: ${scalar(member.value)}`);
+        const last = head.pop()!;
+        lines.push(...head, `${last} ${scalar(member.value)}`);
       }
     }
   } else if (node.type === "array") {

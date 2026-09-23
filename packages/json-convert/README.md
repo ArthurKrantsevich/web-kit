@@ -20,6 +20,11 @@ How the results are checked in tests: YAML is parsed back with an independent YA
 
 JSON → XML is one-way: XML has no arrays or types.
 
+Good to know:
+
+- YAML output follows YAML 1.2 and keeps number spelling. Older YAML 1.1 parsers (for example PyYAML) read numbers like `1e5` as strings.
+- CSV cells are written exactly as the data says. Cells that start with `=`, `+`, `-` or `@` can be treated as formulas by spreadsheet apps; clean them before opening untrusted data in a spreadsheet.
+
 ```tsx
 import { JsonConvert } from "@web-kit/json-convert";
 import "@web-kit/json-convert/styles.css";

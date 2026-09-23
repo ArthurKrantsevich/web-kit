@@ -8,6 +8,14 @@ export interface ToTypeScriptOptions {
 }
 
 const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+// Names that cannot be used for a declared type.
+const RESERVED_TYPE_NAMES = new Set([
+  "any", "bigint", "boolean", "never", "null", "number", "object", "string", "symbol", "undefined", "unknown", "void",
+  "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete", "do", "else", "enum", "export",
+  "extends", "false", "finally", "for", "function", "if", "import", "in", "instanceof", "new", "return", "super", "switch",
+  "this", "throw", "true", "try", "typeof", "var", "while", "with", "implements", "interface", "let", "package", "private",
+  "protected", "public", "static", "yield", "await", "type",
+]);
 const PRIMITIVE_ORDER = ["string", "number", "boolean", "null"] as const;
 
 function pascal(key: string): string {
@@ -29,7 +37,7 @@ function singular(name: string): string {
 /** JSON → TypeScript interfaces inferred from the data. Keys seen in only some objects become optional. */
 export function toTypeScript(input: string, options: ToTypeScriptOptions = {}): ConvertResult {
   const rootName = options.rootName ?? "Root";
-  if (!IDENTIFIER.test(rootName)) {
+  if (!IDENTIFIER.test(rootName) || RESERVED_TYPE_NAMES.has(rootName)) {
     return { ok: false, error: { message: `"${rootName}" is not a valid TypeScript type name` } };
   }
   const parsed = parseInput(input);
@@ -49,7 +57,8 @@ export function toTypeScript(input: string, options: ToTypeScriptOptions = {}): 
       return name;
     };
 
-    const interfaceFor = (object: ObjectShape, hint: string): string => {
+    // `fixedName` is used for the root: it always gets the requested name.
+    const interfaceFor = (object: ObjectShape, hint: string, fixedName?: string): string => {
       const slot = declarations.length;
       declarations.push(null);
       const lines = [...object.fields].map(([key, field]) => {
@@ -59,8 +68,8 @@ export function toTypeScript(input: string, options: ToTypeScriptOptions = {}): 
       });
       const body = lines.join("\n");
       const existing = nameByBody.get(body);
-      if (existing) return existing;
-      const name = allocate(hint);
+      if (existing && !fixedName) return existing;
+      const name = fixedName ?? allocate(hint);
       nameByBody.set(body, name);
       declarations[slot] = `export interface ${name} {\n${body}${body ? "\n" : ""}}`;
       return name;
@@ -78,10 +87,10 @@ export function toTypeScript(input: string, options: ToTypeScriptOptions = {}): 
     };
 
     const isPlainObject = shape.object !== null && shape.array === null && shape.primitives.size === 0;
+    used.add(rootName);
     if (isPlainObject) {
-      interfaceFor(shape.object!, rootName);
+      interfaceFor(shape.object!, rootName, rootName);
     } else {
-      used.add(rootName);
       declarations.push(null);
       declarations[0] = `export type ${rootName} = ${typeOf(shape, rootName)};`;
     }

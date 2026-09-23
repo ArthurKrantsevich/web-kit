@@ -72,8 +72,15 @@ export function toCsv(input: string, options: ToCsvOptions = {}): ConvertResult 
       }
       return row;
     });
+    if (columns.length === 0) fail("CSV needs at least one column; all objects are empty", []);
     const lines = [columns, ...rows.map((row) => columns.map((column) => row.get(column) ?? ""))];
-    return `${lines.map((cells) => cells.map((cell) => csvCell(cell, delimiter)).join(delimiter)).join("\r\n")}\r\n`;
+    const writeLine = (cells: string[]): string => {
+      const written = cells.map((cell) => csvCell(cell, delimiter));
+      // A line of only empty cells would read back as a blank line and be skipped; quote the first cell.
+      if (!written.some((cell) => cell !== "")) written[0] = '""';
+      return written.join(delimiter);
+    };
+    return `${lines.map(writeLine).join("\r\n")}\r\n`;
   });
 }
 
@@ -119,7 +126,8 @@ function parseCsv(text: string, delimiter: string): CsvRow[] {
           i++;
           break;
         }
-        if (q === "\n") line++;
+        // Count CRLF, LF and a lone CR as one line break, the same as outside quotes.
+        if (q === "\n" || (q === "\r" && text[i + 1] !== "\n")) line++;
         field += q;
         i++;
       }

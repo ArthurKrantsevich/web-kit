@@ -68,6 +68,22 @@ describe("toTypeScript", () => {
     expect(compile(`${result.value}\nconst data: Root = { "id": 1 };\n`)).toContain("name");
   });
 
+  it("always gives the root the requested name", () => {
+    expect(toTypeScript('{"root":{"a":1}}')).toEqual({
+      ok: true,
+      value: "export interface Root {\n  root: Root2;\n}\n\nexport interface Root2 {\n  a: number;\n}\n",
+    });
+  });
+
+  it("rejects reserved words and built-in type names", () => {
+    for (const name of ["string", "class", "unknown"]) {
+      expect(toTypeScript("1", { rootName: name })).toEqual({
+        ok: false,
+        error: { message: `"${name}" is not a valid TypeScript type name` },
+      });
+    }
+  });
+
   it("rejects a type name that is not an identifier", () => {
     expect(toTypeScript("1", { rootName: "my type" })).toEqual({
       ok: false,
