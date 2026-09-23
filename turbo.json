@@ -2,12 +2,41 @@
   "$schema": "https://turborepo.com/schema.json",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["out/**", "dist/**", ".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "out/**",
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
-    "typecheck": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["^build"] },
-    "check": { "dependsOn": ["build"] },
-    "e2e": { "dependsOn": ["build"] }
+    "typecheck": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "test": {
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "check": {
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "e2e": {
+      "dependsOn": [
+        "build"
+      ]
+    },
+    "@web-kit/dashboard#typecheck": {
+      "dependsOn": [
+        "^build",
+        "build"
+      ]
+    }
   }
 }

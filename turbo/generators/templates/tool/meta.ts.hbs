@@ -2,8 +2,8 @@ import type { ToolMeta } from "../../registry";
 
 export const meta: ToolMeta = {
   id: "{{ id }}",
-  title: "{{ title }}",
-  description: "{{ description }}",
+  title: {{{ json title }}},
+  description: {{{ json description }}},
   category: "{{ category }}",
   tags: ["{{ id }}"],
   pkg: "@web-kit/{{ id }}",
@@ -17,7 +17,7 @@ export function Page() {
     {
       name: "{{ camelCase id }}",
       signature: "{{ camelCase id }}(input: string): Result<string>",
-      description: "{{ description }}",
+      description: {{{ json description }}},
     },
     {
       name: "{{ pascalCase id }}",

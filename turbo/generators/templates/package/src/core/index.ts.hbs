@@ -1,6 +1,6 @@
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
-/** {{ description }} Replace this placeholder logic. */
+/** {{{ description }}} Replace this placeholder logic. */
 export function {{ camelCase id }}(input: string): Result<string> {
   if (input.trim() === "") return { ok: false, error: "Input is empty" };
   return { ok: true, value: input.trim() };

@@ -3,6 +3,9 @@ import type { PlopTypes } from "@turbo/gen";
 const KEBAB = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
 export default function generator(plop: PlopTypes.NodePlopAPI): void {
+  // `{{{ json value }}}` writes a safe JS/JSON string literal; plain `{{ }}` would HTML-escape `&` and quotes.
+  plop.setHelper("json", (value: unknown) => JSON.stringify(value));
+
   plop.setGenerator("utility", {
     description: "Add a utility: an npm package plus its dashboard page",
     prompts: [
