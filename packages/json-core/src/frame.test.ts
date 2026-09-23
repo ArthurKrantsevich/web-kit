@@ -30,4 +30,15 @@ describe("codeFrame", () => {
     expect(line).toContain("…");
     expect(caret!.indexOf("^")).toBe(line!.indexOf("x"));
   });
+
+  it("puts the caret under the right character after an emoji", () => {
+    expect(frameFor('["😀", x]')).toBe('> 1 | ["😀", x]\n    |       ^');
+  });
+
+  it("never splits an emoji at the edge of the window", () => {
+    const lone = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+    for (const prefix of ["", "a"]) {
+      expect(lone.test(frameFor(`["${prefix}${"😀".repeat(100)}", x]`))).toBe(false);
+    }
+  });
 });

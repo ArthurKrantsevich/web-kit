@@ -60,4 +60,8 @@ describe("validateJson", () => {
   it("ignores a leading BOM", () => {
     expect(validateJson("﻿{}")).toBeNull();
   });
+
+  it("counts columns in characters, not UTF-16 units", () => {
+    expect(validateJson('["😀", x]')).toEqual({ message: "Unexpected character 'x'", offset: 7, line: 1, column: 7 });
+  });
 });

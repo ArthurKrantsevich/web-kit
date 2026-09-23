@@ -27,6 +27,7 @@ export function stripBom(text: string): string {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
+/** 1-based line and column of a UTF-16 offset; the column counts Unicode code points. */
 export function lineColumn(text: string, offset: number): { line: number; column: number } {
   let line = 1;
   let lineStart = 0;
@@ -36,7 +37,16 @@ export function lineColumn(text: string, offset: number): { line: number; column
       lineStart = i + 1;
     }
   }
-  return { line, column: offset - lineStart + 1 };
+  let column = 1;
+  for (let i = lineStart; i < offset && i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    if (code >= 0xd800 && code <= 0xdbff && i + 1 < offset) {
+      const next = text.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) i++;
+    }
+    column++;
+  }
+  return { line, column };
 }
 
 /** Parses JSON into a lossless AST. Never throws on bad input. */

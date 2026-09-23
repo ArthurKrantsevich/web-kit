@@ -34,7 +34,8 @@ interface Edit {
 type Rule = (text: string, error: JsonError) => Edit | null;
 
 const REPAIR_MAX_STEPS = 50;
-const VALUE_START = /["\-0-9{[tfn]/;
+const VALUE_START = /["\-0-9{[]/;
+const LITERAL_WORDS = ["true", "false", "null"] as const;
 const IDENT_START = /[A-Za-z_$]/;
 const IDENT = /[A-Za-z0-9_$]*/y;
 const PY_LITERAL = /(True|False|None)(?![A-Za-z0-9_$])/y;
@@ -76,7 +77,9 @@ const trailingComma: Rule = (text, { offset }) => {
 const missingComma: Rule = (text, { offset, message }) => {
   if (!message.startsWith("Expected ',' or")) return null;
   const ch = text[offset];
-  if (ch === undefined || !VALUE_START.test(ch)) return null;
+  if (ch === undefined) return null;
+  const startsValue = VALUE_START.test(ch) || LITERAL_WORDS.some((word) => text.startsWith(word, offset));
+  if (!startsValue) return null;
   const at = prevNonWs(text, offset) + 1;
   return { rule: "missing-comma", description: "Insert missing comma", start: at, end: at, insert: "," };
 };

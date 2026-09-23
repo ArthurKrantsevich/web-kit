@@ -69,6 +69,11 @@ describe("suggestFixes", () => {
   it("strips a BOM before fixing", () => {
     expect(firstFix("﻿[1,]").text).toBe("[1]");
   });
+
+  it("inserts a comma before a literal but not before any word", () => {
+    expect(firstFix("[1 true]").text).toBe("[1, true]");
+    expect(suggestFixes('{"a": 1 foo}')).toEqual([]);
+  });
 });
 
 describe("repairJson", () => {
