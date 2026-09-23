@@ -86,14 +86,40 @@ describe("JsonTree", () => {
     render(<JsonTree {...props(JSON.stringify(Array.from({ length: 20 }, () => Array.from({ length: 500 }, (_, i) => i))))} />);
     fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
     expect(screen.getByRole("status").textContent).toBe(
-      "Expanded as much as fits in 5,000 rows. Expand the rest one by one.",
+      "Expanded as much as fits in 5,000 rows. 11 containers stay collapsed; expand them one by one.",
     );
     expect(items().length).toBeLessThanOrEqual(5000);
     fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
     expect(items()).toEqual(["[20]"]);
   });
 
-  it("resets when the data changes", () => {
+  it("keeps expansion and selection when the data is edited", () => {
+    const { rerender } = render(<JsonTree {...props(SRC, { initialDepth: Infinity })} />);
+    fireEvent.click(screen.getByRole("treeitem", { name: 'name: "Bob"' }));
+    rerender(<JsonTree {...props(SRC.replace("Bob", "Bobby"), { initialDepth: Infinity })} />);
+    expect(selected()).toBe('name: "Bobby"');
+    expect(screen.getByLabelText("Selected path").textContent).toBe("$.users[1].name");
+  });
+
+  it("gives screen readers the real size of paged lists and skips empty containers", () => {
+    render(<JsonTree {...props('{"list":' + JSON.stringify(Array.from({ length: 1200 }, (_, i) => i)) + ',"empty":{}}')} />);
+    const first = screen.getByRole("treeitem", { name: "0: 0" });
+    expect([first.getAttribute("aria-posinset"), first.getAttribute("aria-setsize")]).toEqual(["1", "1200"]);
+    expect(screen.getByRole("treeitem", { name: "empty: {0}" }).hasAttribute("aria-expanded")).toBe(false);
+  });
+
+  it("scrolls the selected row into view only while the tree has focus", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    const { rerender } = render(<JsonTree {...props()} />);
+    rerender(<JsonTree {...props()} />);
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    screen.getByRole("tree").focus();
+    key("ArrowDown");
+    expect(scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to the root when the selected path disappears", () => {
     const { rerender } = render(<JsonTree {...props()} />);
     key("End");
     rerender(<JsonTree {...props("[1, 2]")} />);

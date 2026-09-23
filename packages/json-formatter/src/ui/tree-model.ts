@@ -1,18 +1,35 @@
-import type { JsonNode } from "@web-kit/json-core";
+import { formatPath, type JsonNode } from "@web-kit/json-core";
 
 /** Children shown per click on a large container. */
 export const CHILD_PAGE = 500;
 /** "Expand all" never shows more rows than this. */
 export const EXPAND_ALL_LIMIT = 5000;
 
-export type RowId = number | string;
-
+/**
+ * Rows are identified by their JSON path (`$`, `$.users[0]`), so expansion and selection
+ * survive edits that keep the path. Paging rows use `<parent path>#more`.
+ */
 export type TreeRow =
-  | { kind: "node"; id: number; node: JsonNode; label: string | number | null; depth: number; parentId: number | null }
-  | { kind: "more"; id: string; parentId: number; depth: number; remaining: number };
+  | {
+      kind: "node";
+      id: string;
+      node: JsonNode;
+      label: string | number | null;
+      depth: number;
+      parentId: string | null;
+      /** 1-based position among siblings, and the sibling count (for aria-posinset / aria-setsize). */
+      position: number;
+      siblings: number;
+    }
+  | { kind: "more"; id: string; parentId: string; depth: number; remaining: number };
 
 export function isContainer(node: JsonNode): boolean {
   return node.type === "object" || node.type === "array";
+}
+
+/** A container that can actually be expanded: `{}` and `[]` cannot. */
+export function hasChildren(node: JsonNode): boolean {
+  return (node.type === "object" && node.members.length > 0) || (node.type === "array" && node.items.length > 0);
 }
 
 function childrenOf(node: JsonNode): { label: string | number; node: JsonNode }[] {
@@ -21,45 +38,67 @@ function childrenOf(node: JsonNode): { label: string | number; node: JsonNode }[
   return [];
 }
 
-/** Rows currently on screen. Node ids are `node.start`, unique for value nodes. */
+function childId(parentId: string, label: string | number): string {
+  return parentId + formatPath([label]).slice(1);
+}
+
+/** Rows currently on screen. */
 export function visibleRows(
   root: JsonNode,
-  expanded: ReadonlySet<number>,
-  shown: ReadonlyMap<number, number> = new Map(),
+  expanded: ReadonlySet<string>,
+  shown: ReadonlyMap<string, number> = new Map(),
 ): TreeRow[] {
   const rows: TreeRow[] = [];
-  const walk = (node: JsonNode, label: string | number | null, depth: number, parentId: number | null): void => {
-    rows.push({ kind: "node", id: node.start, node, label, depth, parentId });
-    if (!isContainer(node) || !expanded.has(node.start)) return;
+  const walk = (
+    node: JsonNode,
+    label: string | number | null,
+    id: string,
+    depth: number,
+    parentId: string | null,
+    position: number,
+    siblings: number,
+  ): void => {
+    rows.push({ kind: "node", id, node, label, depth, parentId, position, siblings });
+    if (!hasChildren(node) || !expanded.has(id)) return;
     const children = childrenOf(node);
-    const limit = shown.get(node.start) ?? CHILD_PAGE;
-    for (const child of children.slice(0, limit)) walk(child.node, child.label, depth + 1, node.start);
+    const limit = shown.get(id) ?? CHILD_PAGE;
+    children.slice(0, limit).forEach((child, index) => {
+      walk(child.node, child.label, childId(id, child.label), depth + 1, id, index + 1, children.length);
+    });
     if (children.length > limit) {
-      rows.push({ kind: "more", id: `more-${node.start}`, parentId: node.start, depth: depth + 1, remaining: children.length - limit });
+      rows.push({ kind: "more", id: `${id}#more`, parentId: id, depth: depth + 1, remaining: children.length - limit });
     }
   };
-  walk(root, null, 0, null);
+  walk(root, null, "$", 0, null, 1, 1);
   return rows;
 }
 
-/** Expands containers level by level down to `maxDepth` while the visible rows stay within `budget`. */
+/**
+ * Expands containers level by level down to `maxDepth` while the visible rows stay within `budget`.
+ * `collapsed` counts the visible containers left collapsed because the budget ran out.
+ */
 export function expandBreadthFirst(
   root: JsonNode,
   maxDepth: number,
   budget: number = EXPAND_ALL_LIMIT,
-): { expanded: Set<number>; complete: boolean } {
-  const expanded = new Set<number>();
-  const queue: { node: JsonNode; depth: number }[] = [{ node: root, depth: 0 }];
+): { expanded: Set<string>; collapsed: number } {
+  const expanded = new Set<string>();
+  const queue: { node: JsonNode; id: string; depth: number }[] = [{ node: root, id: "$", depth: 0 }];
   let rows = 1;
   for (let head = 0; head < queue.length; head++) {
-    const { node, depth } = queue[head]!;
-    if (!isContainer(node) || depth >= maxDepth) continue;
+    const { node, id, depth } = queue[head]!;
+    if (!hasChildren(node) || depth >= maxDepth) continue;
     const children = childrenOf(node);
     const added = Math.min(children.length, CHILD_PAGE) + (children.length > CHILD_PAGE ? 1 : 0);
-    if (rows + added > budget) return { expanded, complete: false };
-    expanded.add(node.start);
+    if (rows + added > budget) {
+      const collapsed = queue.slice(head).filter((item) => hasChildren(item.node) && item.depth < maxDepth).length;
+      return { expanded, collapsed };
+    }
+    expanded.add(id);
     rows += added;
-    for (const child of children.slice(0, CHILD_PAGE)) queue.push({ node: child.node, depth: depth + 1 });
+    for (const child of children.slice(0, CHILD_PAGE)) {
+      queue.push({ node: child.node, id: childId(id, child.label), depth: depth + 1 });
+    }
   }
-  return { expanded, complete: true };
+  return { expanded, collapsed: 0 };
 }
