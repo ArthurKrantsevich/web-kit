@@ -77,6 +77,15 @@ describe("JsonFormatter", () => {
     expect(screen.getByText("Fix the error to see the tree.")).toBeTruthy();
   });
 
+  it("keeps the tree and its selection while typing", () => {
+    render(<JsonFormatter />);
+    type('{"a": 1, "b": 2}');
+    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "b: 2" }));
+    type('{"a": 1, "b": 23}');
+    expect(screen.getByRole("treeitem", { selected: true }).getAttribute("aria-label")).toBe("b: 23");
+  });
+
   it("applies a suggested fix", () => {
     render(<JsonFormatter />);
     type("[1,2,]");

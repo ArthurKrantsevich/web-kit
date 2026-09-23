@@ -1,4 +1,4 @@
-import { getStats, parseJson, type JsonNode, type JsonStats } from "@web-kit/json-core";
+import { getStats, parseJson, stripBom, type JsonNode, type JsonStats } from "@web-kit/json-core";
 import { useDeferredValue, useMemo, useState } from "react";
 import { formatJson, minifyJson, repairJson, suggestFixes, type Indent, type JsonFix, type Result } from "../core/index";
 
@@ -29,8 +29,12 @@ export interface UseJsonFormatter {
   repair: { value: string; changes: string[] } | null;
   view: JsonOutputView;
   setView: (value: JsonOutputView) => void;
-  /** AST of the input while it is valid (null while updating or invalid). */
+  /** AST of the input while it is valid. While a new parse is pending, the previous tree is kept. */
   tree: JsonNode | null;
+  /** Text the tree was parsed from (without BOM); may lag the input while `treeFresh` is false. */
+  treeSource: string;
+  /** True when `tree` matches the current input, so its offsets can be used to select text in the input. */
+  treeFresh: boolean;
   stats: JsonStats | null;
 }
 
@@ -63,14 +67,34 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
   const fixes = fresh ? deferredFixes : [];
   const repair = fresh ? deferredRepair : null;
 
-  const isValid = result !== null && result.ok;
   const deferredAst = useMemo(() => {
-    if (!isValid) return null;
+    if (deferredInput.trim() === "") return null;
     const parsed = parseJson(deferredInput);
-    return parsed.ok ? { root: parsed.value, stats: getStats(parsed.value, deferredInput) } : null;
-  }, [isValid, deferredInput]);
-  const tree = fresh ? (deferredAst?.root ?? null) : null;
-  const stats = fresh ? (deferredAst?.stats ?? null) : null;
+    return parsed.ok
+      ? { root: parsed.value, stats: getStats(parsed.value, deferredInput), source: stripBom(deferredInput) }
+      : null;
+  }, [deferredInput]);
+  // Keep the last good tree on screen while the next one is computed, so it does not blink or lose its state.
+  const [kept, setKept] = useState(deferredAst);
+  if (deferredAst !== null && deferredAst !== kept) setKept(deferredAst);
+  const isValid = result !== null && result.ok;
+  const shown = isValid ? (fresh ? deferredAst : kept) : null;
 
-  return { input, setInput, indent, setIndent, mode, setMode, result, fixes, repair, view, setView, tree, stats };
+  return {
+    input,
+    setInput,
+    indent,
+    setIndent,
+    mode,
+    setMode,
+    result,
+    fixes,
+    repair,
+    view,
+    setView,
+    tree: shown?.root ?? null,
+    treeSource: shown?.source ?? "",
+    treeFresh: fresh && shown !== null && shown === deferredAst,
+    stats: shown?.stats ?? null,
+  };
 }

@@ -1,4 +1,4 @@
-import { useId, useRef, type ReactElement } from "react";
+import { useDeferredValue, useId, useRef, type ReactElement } from "react";
 import { codeFrame, type Indent, type JsonError } from "../core/index";
 import { HighlightedJson } from "./HighlightedJson";
 import { JsonStats } from "./JsonStats";
@@ -26,13 +26,15 @@ const hasBom = (text: string): boolean => text.charCodeAt(0) === 0xfeff;
 
 /** Ready-made JSON formatter UI. Import "@web-kit/json-formatter/styles.css" once for the default look. */
 export function JsonFormatter(props: JsonFormatterProps): ReactElement {
-  const { input, setInput, indent, setIndent, mode, setMode, view, setView, result, fixes, repair, tree, stats } =
+  const { input, setInput, indent, setIndent, mode, setMode, view, setView, result, fixes, repair, tree, treeSource, treeFresh, stats } =
     useJsonFormatter(props);
   const [copyLabel, copy] = useCopy();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
   const output = result?.ok ? result.value : "";
   const error = result && !result.ok ? result.error : null;
+  // Highlighting a large output is slower than typing; let it lag behind the input.
+  const highlighted = useDeferredValue(output);
   const shift = hasBom(input) ? 1 : 0;
 
   /** Selects `start..end`, given as offsets in the text without a BOM, in the input field. */
@@ -138,9 +140,9 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         </div>
       </div>
       {view === "text" ? (
-        <HighlightedJson text={output} aria-label="Output" />
+        <HighlightedJson text={highlighted} aria-label="Output" />
       ) : tree ? (
-        <JsonTree root={tree} source={shift ? input.slice(1) : input} onShowInInput={selectInInput} />
+        <JsonTree root={tree} source={treeSource} onShowInInput={treeFresh ? selectInInput : undefined} />
       ) : (
         <p className="wk-json__placeholder">
           {error ? "Fix the error to see the tree." : input.trim() === "" ? "Enter JSON to see the tree." : "Updating…"}

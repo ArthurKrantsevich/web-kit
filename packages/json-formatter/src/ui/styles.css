@@ -147,7 +147,7 @@
 .wk-code__line::before {
   content: counter(wk-line);
   display: inline-block;
-  min-width: 3ch;
+  min-width: var(--wk-gutter, 3ch);
   margin-right: 1.5ch;
   text-align: right;
   color: var(--wk-muted, #5b6270);
@@ -197,6 +197,7 @@
   cursor: default;
 }
 .wk-tree__row[aria-selected="true"] {
+  background: rgba(79, 70, 229, 0.14);
   background: color-mix(in srgb, var(--wk-accent, #4f46e5) 14%, transparent);
 }
 .wk-tree__toggle {

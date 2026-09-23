@@ -1,5 +1,5 @@
 import { tokenizeJson, type JsonTokenType } from "@web-kit/json-core";
-import { Fragment, useMemo, type ReactElement } from "react";
+import { Fragment, useMemo, type CSSProperties, type ReactElement } from "react";
 
 /** Above this many characters the text is shown without highlighting. */
 export const HIGHLIGHT_LIMIT = 200_000;
@@ -39,7 +39,12 @@ export function HighlightedJson(props: HighlightedJsonProps): ReactElement {
   const { text } = props;
   const lines = useMemo(() => (text.length > HIGHLIGHT_LIMIT ? null : toLines(text)), [text]);
   return (
-    <pre className={["wk-code", props.className].filter(Boolean).join(" ")} aria-label={props["aria-label"]} tabIndex={0}>
+    <pre
+      className={["wk-code", props.className].filter(Boolean).join(" ")}
+      aria-label={props["aria-label"]}
+      tabIndex={0}
+      style={lines === null ? undefined : ({ "--wk-gutter": `${Math.max(3, String(lines.length).length)}ch` } as CSSProperties)}
+    >
       {lines === null
         ? text
         : lines.map((line, index) => (

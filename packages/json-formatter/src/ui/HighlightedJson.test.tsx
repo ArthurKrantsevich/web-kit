@@ -17,6 +17,12 @@ describe("HighlightedJson", () => {
     expect(pre.querySelector(".wk-syntax-string")!.textContent).toBe('"x"');
   });
 
+  it("sizes the line-number gutter to the number of lines", () => {
+    const text = JSON.stringify(Array.from({ length: 998 }, (_, i) => i), null, 2);
+    const { container } = render(<HighlightedJson text={text} />);
+    expect(container.querySelector("pre")!.style.getPropertyValue("--wk-gutter")).toBe("4ch");
+  });
+
   it("falls back to plain text above the limit", () => {
     const text = JSON.stringify("x".repeat(HIGHLIGHT_LIMIT));
     const { container } = render(<HighlightedJson text={text} />);

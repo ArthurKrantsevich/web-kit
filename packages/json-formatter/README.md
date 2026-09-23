@@ -56,8 +56,7 @@ In React Server Components, import functions from `/core`: the main entry is a c
 `JsonFormatter` has a Text | Tree switch and a stats line. The pieces are also exported on their own:
 
 ```tsx
-import { parseJson, getStats } from "@web-kit/json-core";
-import { JsonTree, HighlightedJson, JsonStats } from "@web-kit/json-formatter";
+import { parseJson, getStats, JsonTree, HighlightedJson, JsonStats } from "@web-kit/json-formatter";
 
 const parsed = parseJson(text);
 if (parsed.ok) {
