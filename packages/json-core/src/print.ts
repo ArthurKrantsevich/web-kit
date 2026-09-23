@@ -65,7 +65,8 @@ function sortMembers(members: JsonMember[]): JsonMember[] {
   return [...members].sort((a, b) => compareCodePoints(a.key.value, b.key.value));
 }
 
-function compareCodePoints(a: string, b: string): number {
+/** Orders strings by Unicode code point (not UTF-16 unit), so the order is the same everywhere. */
+export function compareCodePoints(a: string, b: string): number {
   const left = a[Symbol.iterator]();
   const right = b[Symbol.iterator]();
   for (;;) {

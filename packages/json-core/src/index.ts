@@ -24,3 +24,5 @@ export { stringEnd, tokenizeJson, type JsonToken, type JsonTokenType } from "./t
 export { stripBom } from "./validate";
 export { escapeJson, unescapeJson, type Unescaped } from "./escape";
 export { inferShape, mergeShapes, type ObjectShape, type Primitive, type TypeShape } from "./shape";
+export { queryJson, searchJson, type QueryError, type QueryMatch, type QueryResult } from "./query";
+export { compareCodePoints } from "./print";
