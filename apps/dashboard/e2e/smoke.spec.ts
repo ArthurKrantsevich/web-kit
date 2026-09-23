@@ -85,3 +85,15 @@ test("tree view shows the path of a node and stats", async ({ page }) => {
   await expect(page.getByLabel("Selected path")).toHaveText("$.hello");
   await expect(page.getByText(/· 3 numbers ·/)).toBeVisible();
 });
+
+test("sort keys and unescape in the formatter", async ({ page }) => {
+  await page.goto("tools/json-formatter/");
+  const input = page.getByLabel("Input", { exact: true });
+  const output = page.getByLabel("Output", { exact: true });
+  await input.fill('{"b":1,"a":2}');
+  await page.getByLabel("Sort keys").check();
+  await expect.poll(() => output.textContent()).toBe('{\n  "a": 2,\n  "b": 1\n}');
+  await page.getByRole("button", { name: "Unescape" }).click();
+  await input.fill('"{\\"x\\":true}"');
+  await expect.poll(() => output.textContent()).toBe('{\n  "x": true\n}');
+});

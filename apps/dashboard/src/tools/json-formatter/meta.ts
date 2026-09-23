@@ -3,7 +3,7 @@ import type { ToolMeta } from "../../registry";
 export const meta: ToolMeta = {
   id: "json-formatter",
   title: "JSON Formatter",
-  description: "Format, minify and validate JSON. Tree view, highlighting, stats, exact error positions and verified fixes.",
+  description: "Format, minify, sort, escape and validate JSON. Tree view, highlighting, stats, exact errors and verified fixes.",
   category: "data",
   tags: ["json", "format", "minify", "validate", "pretty print"],
   pkg: "@web-kit/json-formatter",
@@ -74,6 +74,16 @@ if (result.ok) console.log(result.value);`,
       name: "JsonStats",
       signature: "<JsonStats stats={getStats(node, text)} />",
       description: "One line: size, keys, depth and counts by type.",
+    },
+    {
+      name: "printJson",
+      signature: "printJson(node, { indent?, minify?, sortKeys? }): string",
+      description: "Prints a parsed tree; sortKeys sorts recursively by code point and keeps numbers exact.",
+    },
+    {
+      name: "escapeJson / unescapeJson",
+      signature: "escapeJson(text): string · unescapeJson(input): Result<{ text, isJson, wrapped }>",
+      description: "Text ⇄ JSON string literal. Unescape accepts unquoted escaped JSON only if it decodes to valid JSON.",
     },
   ],
 };
