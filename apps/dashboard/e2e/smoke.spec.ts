@@ -104,3 +104,11 @@ test("json-convert turns JSON into TypeScript", async ({ page }) => {
   await expect(page.getByLabel("Output", { exact: true })).toContainText("export interface Root {");
   await expect(page.getByLabel("Output", { exact: true })).toContainText("email: string | null;");
 });
+
+test("JSONPath in the tree selects the match", async ({ page }) => {
+  await page.goto("tools/json-formatter/");
+  await page.getByRole("button", { name: "Tree" }).click();
+  await page.getByLabel("Search or JSONPath").fill("$.list[?@ > 1]");
+  await expect(page.getByText("1 of 2")).toBeVisible();
+  await expect(page.getByLabel("Selected path")).toHaveText("$.list[1]");
+});

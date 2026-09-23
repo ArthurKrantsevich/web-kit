@@ -85,5 +85,10 @@ if (result.ok) console.log(result.value);`,
       signature: "escapeJson(text): string · unescapeJson(input): Result<{ text, isJson, wrapped }>",
       description: "Text ⇄ JSON string literal. Unescape accepts unquoted escaped JSON only if it decodes to valid JSON.",
     },
+    {
+      name: "queryJson / searchJson",
+      signature: "queryJson(node, '$..price'): { ok, value: [{ path, node }] } · searchJson(node, text)",
+      description: "JSONPath (RFC 9535 subset) with exact number comparison, and case-insensitive search. Also in the tree's query bar.",
+    },
   ],
 };
