@@ -10,6 +10,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@web-kit/json-convert": "workspace:*",
     "@web-kit/json-formatter": "workspace:*",
     "@web-kit/tokens": "workspace:*",
     "next": "^16.3.5",

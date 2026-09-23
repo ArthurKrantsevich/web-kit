@@ -1,0 +1,57 @@
+{
+  "name": "@web-kit/json-convert",
+  "version": "0.0.0",
+  "description": "Convert JSON to YAML, CSV, XML and TypeScript, and CSV to JSON. Every result is checked.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArthurKrantsevich/web-kit.git",
+    "directory": "packages/json-convert"
+  },
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "build": "tsdown && cp src/ui/styles.css dist/styles.css",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "core",
+      "path": "dist/core.js",
+      "limit": "2 kB"
+    }
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@web-kit/json-core": "workspace:*"
+  },
+  "devDependencies": {
+    "yaml": "^2.9.1"
+  }
+}

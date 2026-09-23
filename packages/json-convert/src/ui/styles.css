@@ -1,0 +1,19 @@
+.wk-tool {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--wk-fg, #111318);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+}
+.wk-tool textarea {
+  min-height: 8rem;
+  padding: 0.75rem;
+  border: 1px solid var(--wk-border, #dfe1e6);
+  border-radius: var(--wk-radius, 10px);
+  background: var(--wk-surface, #ffffff);
+  color: inherit;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+}
+.wk-tool [role="alert"] {
+  margin: 0;
+  color: var(--wk-danger, #c62828);
+}

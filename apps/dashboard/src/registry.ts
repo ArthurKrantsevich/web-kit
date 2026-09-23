@@ -1,5 +1,6 @@
 import { meta as jsonFormatter } from "./tools/json-formatter/meta";
 // generator:meta-imports
+import { meta as jsonConvert } from "./tools/json-convert/meta";
 
 export type Category = "data" | "generators" | "media";
 
@@ -26,6 +27,7 @@ export interface ToolMeta {
 export const tools: ToolMeta[] = [
   jsonFormatter,
   // generator:metas
+  jsonConvert,
 ];
 
 export function getTool(id: string): ToolMeta | undefined {

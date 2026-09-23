@@ -220,6 +220,9 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@web-kit/json-convert':
+        specifier: workspace:*
+        version: link:../../packages/json-convert
       '@web-kit/json-formatter':
         specifier: workspace:*
         version: link:../../packages/json-formatter
@@ -251,6 +254,19 @@ importers:
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
+
+  packages/json-convert:
+    dependencies:
+      '@web-kit/json-core':
+        specifier: workspace:*
+        version: link:../json-core
+      react:
+        specifier: '>=18'
+        version: 19.3.0
+    devDependencies:
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
   packages/json-core: {}
 
