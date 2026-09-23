@@ -22,3 +22,4 @@ export { getStats, utf8Length, type JsonStats } from "./stats";
 export { compareNumbers, isMultipleOf } from "./numbers";
 export { stringEnd, tokenizeJson, type JsonToken, type JsonTokenType } from "./tokens";
 export { stripBom } from "./validate";
+export { escapeJson, unescapeJson, type Unescaped } from "./escape";
