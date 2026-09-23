@@ -1,19 +1,70 @@
-.wk-tool {
+.wk-convert {
   display: grid;
   gap: 0.5rem;
   color: var(--wk-fg, #111318);
   font-family: var(--wk-font-sans, system-ui, sans-serif);
 }
-.wk-tool textarea {
-  min-height: 8rem;
+.wk-convert__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.wk-convert__toolbar select,
+.wk-convert__toolbar input:not([type="checkbox"]),
+.wk-convert__copy {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--wk-border, #dfe1e6);
+  border-radius: var(--wk-radius, 10px);
+  background: var(--wk-surface, #ffffff);
+  color: inherit;
+  font: inherit;
+}
+.wk-convert__copy {
+  margin-left: auto;
+  cursor: pointer;
+}
+.wk-convert__copy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.wk-convert__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.wk-convert__label,
+.wk-convert__note {
+  font-size: 0.875rem;
+  color: var(--wk-muted, #5b6270);
+}
+.wk-convert__note {
+  margin: 0;
+}
+.wk-convert__area,
+.wk-convert__output {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 12rem;
+  margin: 0;
   padding: 0.75rem;
   border: 1px solid var(--wk-border, #dfe1e6);
   border-radius: var(--wk-radius, 10px);
   background: var(--wk-surface, #ffffff);
   color: inherit;
   font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
-.wk-tool [role="alert"] {
+.wk-convert__output {
+  max-height: 32rem;
+  overflow: auto;
+  white-space: pre;
+}
+.wk-convert__error {
   margin: 0;
   color: var(--wk-danger, #c62828);
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
 }
