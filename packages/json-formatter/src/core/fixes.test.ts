@@ -37,6 +37,22 @@ describe("suggestFixes", () => {
     }
   });
 
+  it("does not close a string that probably lost its quote earlier", () => {
+    for (const input of ['{"name": "Bob}', '["a", "b]', '["a, b', '{\n  "a": "x",\n  "b": "y\n}']) {
+      expect(suggestFixes(input)).toEqual([]);
+      expect(repairJson(input).ok).toBe(false);
+    }
+  });
+
+  it("escapes a line break only when that makes the string end where it should", () => {
+    expect(suggestFixes('{"a": "y\n, "b": 1}')).toEqual([]);
+    expect(repairJson('["a\nb\nc"]')).toEqual({
+      ok: true,
+      value: '["a\\nb\\nc"]',
+      changes: ["Escape line break in string", "Escape line break in string"],
+    });
+  });
+
   it("returns nothing for valid JSON", () => {
     expect(suggestFixes('{"a":1}')).toEqual([]);
   });

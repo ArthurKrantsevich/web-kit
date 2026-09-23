@@ -27,6 +27,8 @@ interface Edit {
   start: number;
   end: number;
   insert: string;
+  /** Stricter acceptance than the default "parser gets past the edit". */
+  accept?: (next: JsonError | null) => boolean;
 }
 
 type Rule = (text: string, error: JsonError) => Edit | null;
@@ -38,6 +40,8 @@ const IDENT = /[A-Za-z0-9_$]*/y;
 const PY_LITERAL = /(True|False|None)(?![A-Za-z0-9_$])/y;
 const PY_MAP: Record<string, string> = { True: "true", False: "false", None: "null" };
 const SMART_QUOTES = "“”„‟";
+/** Inside an unclosed string these usually mean the closing quote went missing earlier. */
+const STRUCTURE_IN_STRING = /[}\],\n\r]/;
 const CONTROL_ESCAPES: Record<string, string> = { "\n": "\\n", "\r": "\\r", "\t": "\\t" };
 
 function prevNonWs(text: string, from: number): number {
@@ -156,23 +160,31 @@ const controlCharacter: Rule = (text, { offset, message }) => {
   const ch = text[offset]!;
   const insert = CONTROL_ESCAPES[ch] ?? `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`;
   const description = ch === "\n" ? "Escape line break in string" : "Escape control character in string";
-  return { rule: "control-character", description, start: offset, end: offset + 1, insert };
+  // Only when the string then ends cleanly (or hits another raw control character in the same string);
+  // otherwise the string most likely lost its closing quote and escaping would swallow what follows.
+  const accept = (next: JsonError | null): boolean => next === null || next.message === "Control character in string";
+  return { rule: "control-character", description, start: offset, end: offset + 1, insert, accept };
 };
 
 const missingClosers: Rule = (text, { message }) => {
   if (message !== "Unexpected end of input" && message !== "Unterminated string") return null;
   const stack: string[] = [];
   let inString = false;
+  let stringStart = 0;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i]!;
     if (inString) {
       if (ch === "\\") i++;
       else if (ch === '"') inString = false;
-    } else if (ch === '"') inString = true;
+    } else if (ch === '"') {
+      inString = true;
+      stringStart = i;
+    }
     else if (ch === "{") stack.push("}");
     else if (ch === "[") stack.push("]");
     else if (ch === "}" || ch === "]") stack.pop();
   }
+  if (inString && STRUCTURE_IN_STRING.test(text.slice(stringStart + 1))) return null;
   const quote = inString ? '"' : "";
   const closers = stack.reverse().join("");
   if (quote === "" && closers === "") return null;
@@ -215,7 +227,8 @@ export function suggestFixes(input: string): JsonFix[] {
     const edit = rule(text, error);
     if (!edit) continue;
     const fixed = text.slice(0, edit.start) + edit.insert + text.slice(edit.end);
-    if (!helps(fixed, edit.start + edit.insert.length)) continue;
+    const accepted = edit.accept ? edit.accept(validateJson(fixed)) : helps(fixed, edit.start + edit.insert.length);
+    if (!accepted) continue;
     if (fixes.some((fix) => fix.text === fixed)) continue;
     fixes.push({ rule: edit.rule, description: edit.description, text: fixed });
   }
