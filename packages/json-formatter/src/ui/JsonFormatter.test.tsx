@@ -44,6 +44,13 @@ describe("JsonFormatter", () => {
     expect([inputArea().selectionStart, inputArea().selectionEnd]).toEqual([6, 7]);
   });
 
+  it("selects a whole emoji when the error is on it", () => {
+    render(<JsonFormatter />);
+    type("[😀]");
+    fireEvent.click(screen.getByRole("button", { name: "Show in input" }));
+    expect([inputArea().selectionStart, inputArea().selectionEnd]).toEqual([1, 3]);
+  });
+
   it("applies a suggested fix", () => {
     render(<JsonFormatter />);
     type("[1,2,]");

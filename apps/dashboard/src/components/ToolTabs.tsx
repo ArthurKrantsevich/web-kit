@@ -15,6 +15,8 @@ export function ToolTabs({ tool }: { tool: ToolMeta }) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    // Leave browser shortcuts such as Alt+← (Back) alone.
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
     const index = TABS.indexOf(active);
     const last = TABS.length - 1;
     const next =

@@ -68,6 +68,9 @@ test("tabs switch with the keyboard", async ({ page }) => {
   await page.keyboard.press("ArrowRight");
   await expect(demo).toBeFocused();
 
+  await page.keyboard.press("Alt+ArrowRight");
+  await expect(demo).toHaveAttribute("aria-selected", "true");
+
   await page.keyboard.press("End");
   await page.keyboard.press("Home");
   await expect(demo).toHaveAttribute("aria-selected", "true");

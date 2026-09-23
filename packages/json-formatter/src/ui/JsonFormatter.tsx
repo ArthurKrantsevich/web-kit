@@ -52,7 +52,8 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
     // Error offsets ignore a leading BOM; the textarea still contains it.
     const at = error.offset + (input.charCodeAt(0) === 0xfeff ? 1 : 0);
     area.focus();
-    area.setSelectionRange(at, Math.min(at + 1, input.length));
+    const width = (input.codePointAt(at) ?? 0) > 0xffff ? 2 : 1;
+    area.setSelectionRange(at, Math.min(at + width, input.length));
   }
 
   return (

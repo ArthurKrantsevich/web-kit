@@ -64,4 +64,8 @@ describe("validateJson", () => {
   it("counts columns in characters, not UTF-16 units", () => {
     expect(validateJson('["😀", x]')).toEqual({ message: "Unexpected character 'x'", offset: 7, line: 1, column: 7 });
   });
+
+  it("names a whole emoji in the message, not half of it", () => {
+    expect(validateJson("[😀]")).toEqual({ message: "Unexpected character '😀'", offset: 1, line: 1, column: 2 });
+  });
 });

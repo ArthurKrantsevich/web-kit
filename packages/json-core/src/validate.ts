@@ -104,7 +104,7 @@ function scan(text: string, build: boolean): JsonNode | null {
         return literal === null ? { type: "null", start, end: i } : { type: "boolean", start, end: i, value: literal };
       }
     }
-    return fail(atEnd() ? "Unexpected end of input" : `Unexpected character '${ch}'`);
+    return fail(atEnd() ? "Unexpected end of input" : `Unexpected character '${String.fromCodePoint(text.codePointAt(i)!)}'`);
   }
 
   function object(depth: number): JsonNode | null {
@@ -165,6 +165,7 @@ function scan(text: string, build: boolean): JsonNode | null {
 
   function string(): JsonStringNode | null {
     const start = i;
+    let escaped = false;
     i++;
     while (i < text.length) {
       const ch = text[i]!;
@@ -172,10 +173,12 @@ function scan(text: string, build: boolean): JsonNode | null {
         i++;
         if (!build) return null;
         const raw = text.slice(start, i);
-        // Safe: `raw` has just been checked against the JSON string grammar.
-        return { type: "string", start, end: i, raw, value: JSON.parse(raw) as string };
+        // Safe: `raw` has just been checked against the JSON string grammar. Without escapes it is its own value.
+        const value = escaped ? (JSON.parse(raw) as string) : raw.slice(1, -1);
+        return { type: "string", start, end: i, raw, value };
       }
       if (ch === "\\") {
+        escaped = true;
         const esc = text[i + 1];
         if (esc === "u") {
           HEX4.lastIndex = i + 2;
