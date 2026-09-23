@@ -26,8 +26,27 @@ const hasBom = (text: string): boolean => text.charCodeAt(0) === 0xfeff;
 
 /** Ready-made JSON formatter UI. Import "@web-kit/json-formatter/styles.css" once for the default look. */
 export function JsonFormatter(props: JsonFormatterProps): ReactElement {
-  const { input, setInput, indent, setIndent, mode, setMode, view, setView, result, fixes, repair, tree, treeSource, treeFresh, stats } =
-    useJsonFormatter(props);
+  const {
+    input,
+    setInput,
+    indent,
+    setIndent,
+    mode,
+    setMode,
+    view,
+    setView,
+    sortKeys,
+    setSortKeys,
+    note,
+    result,
+    fixes,
+    repair,
+    tree,
+    treeSource,
+    treeFresh,
+    stats,
+  } = useJsonFormatter(props);
+  const jsonMode = mode === "format" || mode === "minify";
   const [copyLabel, copy] = useCopy();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
@@ -73,6 +92,16 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         <button type="button" className="wk-json__button" aria-pressed={mode === "minify"} onClick={() => setMode("minify")}>
           Minify
         </button>
+        <button type="button" className="wk-json__button" aria-pressed={mode === "escape"} onClick={() => setMode("escape")}>
+          Escape
+        </button>
+        <button type="button" className="wk-json__button" aria-pressed={mode === "unescape"} onClick={() => setMode("unescape")}>
+          Unescape
+        </button>
+        <label className="wk-json__check">
+          <input type="checkbox" checked={sortKeys} disabled={!jsonMode} onChange={(e) => setSortKeys(e.target.checked)} />
+          Sort keys
+        </label>
         <label className="wk-json__indent" htmlFor={`${id}-indent`}>
           Indent
         </label>
@@ -80,7 +109,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
           id={`${id}-indent`}
           className="wk-json__select"
           value={indentToValue(indent)}
-          disabled={mode === "minify"}
+          disabled={mode === "minify" || mode === "escape"}
           onChange={(e) => setIndent(valueToIndent(e.target.value))}
         >
           <option value="2">2 spaces</option>
@@ -91,6 +120,8 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
           {copyLabel}
         </button>
       </div>
+
+      {note && <p className="wk-json__note">{note}</p>}
 
       {error && (
         <div className="wk-json__problem">
@@ -145,7 +176,13 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         <JsonTree root={tree} source={treeSource} onShowInInput={treeFresh ? selectInInput : undefined} />
       ) : (
         <p className="wk-json__placeholder">
-          {error ? "Fix the error to see the tree." : input.trim() === "" ? "Enter JSON to see the tree." : "Updating…"}
+          {!jsonMode
+            ? "The tree is available in Format and Minify modes."
+            : error
+              ? "Fix the error to see the tree."
+              : input.trim() === ""
+                ? "Enter JSON to see the tree."
+                : "Updating…"}
         </p>
       )}
       {stats && <JsonStats stats={stats} />}

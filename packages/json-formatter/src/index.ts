@@ -2,7 +2,17 @@
 
 export * from "./core/index";
 // Needed to use JsonTree and JsonStats on their own.
-export { getStats, parseJson, type JsonNode, type JsonStats as JsonStatsData } from "@web-kit/json-core";
+export {
+  escapeJson,
+  getStats,
+  parseJson,
+  printJson,
+  unescapeJson,
+  type JsonNode,
+  type JsonStats as JsonStatsData,
+  type PrintOptions,
+  type Unescaped,
+} from "@web-kit/json-core";
 export {
   useJsonFormatter,
   type JsonFormatterMode,

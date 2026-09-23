@@ -226,3 +226,15 @@
   font-family: var(--wk-font-mono, ui-monospace, monospace);
   font-size: 0.875rem;
 }
+.wk-json__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  color: var(--wk-muted, #5b6270);
+}
+.wk-json__note {
+  margin: 0;
+  color: var(--wk-muted, #5b6270);
+  font-size: 0.875rem;
+}

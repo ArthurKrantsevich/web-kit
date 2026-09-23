@@ -86,6 +86,67 @@ describe("JsonFormatter", () => {
     expect(screen.getByRole("treeitem", { selected: true }).getAttribute("aria-label")).toBe("b: 23");
   });
 
+  it("sorts keys without touching numbers", () => {
+    render(<JsonFormatter />);
+    type('{"b":12345678901234567890,"a":{"d":2,"c":3}}');
+    fireEvent.click(screen.getByLabelText("Sort keys"));
+    expect(output()).toBe('{\n  "a": {\n    "c": 3,\n    "d": 2\n  },\n  "b": 12345678901234567890\n}');
+    fireEvent.click(screen.getByRole("button", { name: "Minify" }));
+    expect(output()).toBe('{"a":{"c":3,"d":2},"b":12345678901234567890}');
+  });
+
+  it("escapes any text, even invalid JSON, without an error box", () => {
+    render(<JsonFormatter />);
+    type('say "hi" [1,');
+    fireEvent.click(screen.getByRole("button", { name: "Escape" }));
+    expect(output()).toBe('"say \\"hi\\" [1,"');
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Suggested fixes" })).toBeNull();
+    expect((screen.getByLabelText("Sort keys") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("unescapes a string that contains JSON and formats it", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    type('"{\\"a\\":[1]}"');
+    expect(output()).toBe('{\n  "a": [\n    1\n  ]\n}');
+    expect(screen.getByText("The string contains JSON; shown formatted.")).toBeTruthy();
+  });
+
+  it("unescapes plain text and says it is not JSON", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    type('"hello\\nworld"');
+    expect(output()).toBe("hello\nworld");
+    expect(screen.getByText("The string is not JSON; shown as plain text.")).toBeTruthy();
+  });
+
+  it("reads escaped JSON without quotes and says so", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    type('{\\"a\\":1}');
+    expect(output()).toBe('{\n  "a": 1\n}');
+    expect(screen.getByText("No surrounding quotes: read the input as the inside of a JSON string.")).toBeTruthy();
+  });
+
+  it("explains what Unescape needs and offers no fixes", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    type('{"a":1,}');
+    expect(screen.getByRole("status").textContent).toBe("Line 1, column 8: Expected a double-quoted property name");
+    expect(screen.queryByRole("list", { name: "Suggested fixes" })).toBeNull();
+    type('{"a":1}');
+    expect(screen.getByRole("status").textContent).toBe("Line 1, column 1: Unescape needs a JSON string literal");
+  });
+
+  it("explains that the tree needs Format or Minify", () => {
+    render(<JsonFormatter />);
+    type('{"a":1}');
+    fireEvent.click(screen.getByRole("button", { name: "Escape" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
+    expect(screen.getByText("The tree is available in Format and Minify modes.")).toBeTruthy();
+  });
+
   it("applies a suggested fix", () => {
     render(<JsonFormatter />);
     type("[1,2,]");

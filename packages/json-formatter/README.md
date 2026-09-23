@@ -51,6 +51,19 @@ const { input, setInput, mode, setMode, indent, setIndent, result } = useJsonFor
 
 In React Server Components, import functions from `/core`: the main entry is a client module.
 
+## Sort keys, Escape, Unescape
+
+- **Sort keys** (Format and Minify): recursive, by code point, stable for duplicate keys; numbers and strings keep their exact spelling.
+- **Escape**: any text → a JSON string literal, ready to paste into code or config.
+- **Unescape**: a JSON string → its text. If the text is JSON, it is shown formatted. Escaped JSON pasted without the outer quotes (`{\"a\":1}`) is accepted only when it decodes to valid JSON, and the UI says so.
+
+```ts
+import { escapeJson, unescapeJson, parseJson, printJson } from "@web-kit/json-formatter";
+
+escapeJson('{"a":1}'); // "{\"a\":1}"
+unescapeJson('"{\\"a\\":1}"'); // { ok: true, value: { text: '{"a":1}', isJson: true, wrapped: false } }
+```
+
 ## Tree, highlighting and stats
 
 `JsonFormatter` has a Text | Tree switch and a stats line. The pieces are also exported on their own:
