@@ -1,4 +1,5 @@
 import type { Indent, Result } from "./types";
+import { stringEnd } from "./tokens";
 import { isJsonWhitespace, stripBom, validateJson } from "./validate";
 
 export interface FormatOptions {
@@ -71,14 +72,4 @@ function reformat(text: string, unit: string): string {
     }
   }
   return out;
-}
-
-function stringEnd(text: string, start: number): number {
-  let i = start + 1;
-  while (i < text.length) {
-    if (text[i] === "\\") i += 2;
-    else if (text[i] === '"') return i + 1;
-    else i++;
-  }
-  return i;
 }
