@@ -1,14 +1,14 @@
-import { useEffect, useId, useRef, useState, type ReactElement } from "react";
+import { useId, useRef, type ReactElement } from "react";
 import { codeFrame, type Indent, type JsonError } from "../core/index";
+import { HighlightedJson } from "./HighlightedJson";
+import { JsonStats } from "./JsonStats";
+import { JsonTree } from "./JsonTree";
+import { useCopy } from "./useCopy";
 import { useJsonFormatter, type UseJsonFormatterOptions } from "./useJsonFormatter";
 
 export interface JsonFormatterProps extends UseJsonFormatterOptions {
   className?: string;
 }
-
-type CopyState = "idle" | "copied" | "failed";
-
-const COPY_LABEL: Record<CopyState, string> = { idle: "Copy", copied: "Copied", failed: "Copy failed" };
 
 export function formatJsonError(error: JsonError): string {
   return `Line ${error.line}, column ${error.column}: ${error.message}`;
@@ -22,38 +22,31 @@ function valueToIndent(value: string): Indent {
   return value === "tab" ? "\t" : value === "4" ? 4 : 2;
 }
 
+const hasBom = (text: string): boolean => text.charCodeAt(0) === 0xfeff;
+
 /** Ready-made JSON formatter UI. Import "@web-kit/json-formatter/styles.css" once for the default look. */
 export function JsonFormatter(props: JsonFormatterProps): ReactElement {
-  const { input, setInput, indent, setIndent, mode, setMode, result, fixes, repair } = useJsonFormatter(props);
-  const [copy, setCopy] = useState<CopyState>("idle");
+  const { input, setInput, indent, setIndent, mode, setMode, view, setView, result, fixes, repair, tree, stats } =
+    useJsonFormatter(props);
+  const [copyLabel, copy] = useCopy();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
   const output = result?.ok ? result.value : "";
   const error = result && !result.ok ? result.error : null;
+  const shift = hasBom(input) ? 1 : 0;
 
-  useEffect(() => {
-    if (copy === "idle") return;
-    const timer = setTimeout(() => setCopy("idle"), 1500);
-    return () => clearTimeout(timer);
-  }, [copy]);
-
-  async function copyOutput(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(output);
-      setCopy("copied");
-    } catch {
-      setCopy("failed");
-    }
+  /** Selects `start..end`, given as offsets in the text without a BOM, in the input field. */
+  function selectInInput(start: number, end: number): void {
+    const area = inputRef.current;
+    if (!area) return;
+    area.focus();
+    area.setSelectionRange(start + shift, Math.min(end + shift, input.length));
   }
 
   function showError(): void {
-    const area = inputRef.current;
-    if (!area || !error) return;
-    // Error offsets ignore a leading BOM; the textarea still contains it.
-    const at = error.offset + (input.charCodeAt(0) === 0xfeff ? 1 : 0);
-    area.focus();
-    const width = (input.codePointAt(at) ?? 0) > 0xffff ? 2 : 1;
-    area.setSelectionRange(at, Math.min(at + width, input.length));
+    if (!error) return;
+    const width = (input.codePointAt(error.offset + shift) ?? 0) > 0xffff ? 2 : 1;
+    selectInInput(error.offset, error.offset + width);
   }
 
   return (
@@ -92,8 +85,8 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
           <option value="4">4 spaces</option>
           <option value="tab">Tab</option>
         </select>
-        <button type="button" className="wk-json__button wk-json__copy" disabled={output === ""} onClick={copyOutput}>
-          {COPY_LABEL[copy]}
+        <button type="button" className="wk-json__button wk-json__copy" disabled={output === ""} onClick={() => copy(output)}>
+          {copyLabel}
         </button>
       </div>
 
@@ -133,10 +126,27 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         </div>
       )}
 
-      <label className="wk-json__label" htmlFor={`${id}-output`}>
-        Output
-      </label>
-      <textarea id={`${id}-output`} className="wk-json__area" value={output} readOnly spellCheck={false} />
+      <div className="wk-json__output-head">
+        <span className="wk-json__label">Output</span>
+        <div className="wk-json__views" role="group" aria-label="Output view">
+          <button type="button" className="wk-json__button" aria-pressed={view === "text"} onClick={() => setView("text")}>
+            Text
+          </button>
+          <button type="button" className="wk-json__button" aria-pressed={view === "tree"} onClick={() => setView("tree")}>
+            Tree
+          </button>
+        </div>
+      </div>
+      {view === "text" ? (
+        <HighlightedJson text={output} aria-label="Output" />
+      ) : tree ? (
+        <JsonTree root={tree} source={shift ? input.slice(1) : input} onShowInInput={selectInInput} />
+      ) : (
+        <p className="wk-json__placeholder">
+          {error ? "Fix the error to see the tree." : input.trim() === "" ? "Enter JSON to see the tree." : "Updating…"}
+        </p>
+      )}
+      {stats && <JsonStats stats={stats} />}
     </div>
   );
 }

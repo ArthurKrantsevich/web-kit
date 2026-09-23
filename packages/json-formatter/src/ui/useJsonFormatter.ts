@@ -1,3 +1,4 @@
+import { getStats, parseJson, type JsonNode, type JsonStats } from "@web-kit/json-core";
 import { useDeferredValue, useMemo, useState } from "react";
 import { formatJson, minifyJson, repairJson, suggestFixes, type Indent, type JsonFix, type Result } from "../core/index";
 
@@ -5,6 +6,8 @@ import { formatJson, minifyJson, repairJson, suggestFixes, type Indent, type Jso
 const REPAIR_INPUT_LIMIT = 10_000;
 
 export type JsonFormatterMode = "format" | "minify";
+
+export type JsonOutputView = "text" | "tree";
 
 export interface UseJsonFormatterOptions {
   initialInput?: string;
@@ -24,6 +27,11 @@ export interface UseJsonFormatter {
   fixes: JsonFix[];
   /** Verified full repair; only when it needs 2+ changes and ends in valid JSON. */
   repair: { value: string; changes: string[] } | null;
+  view: JsonOutputView;
+  setView: (value: JsonOutputView) => void;
+  /** AST of the input while it is valid (null while updating or invalid). */
+  tree: JsonNode | null;
+  stats: JsonStats | null;
 }
 
 /** Headless state for a JSON formatter: bring your own markup. */
@@ -31,6 +39,7 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
   const [input, setInput] = useState(options.initialInput ?? "");
   const [indent, setIndent] = useState<Indent>(options.initialIndent ?? 2);
   const [mode, setMode] = useState<JsonFormatterMode>("format");
+  const [view, setView] = useState<JsonOutputView>("text");
 
   const result = useMemo(() => {
     if (input.trim() === "") return null;
@@ -54,5 +63,14 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
   const fixes = fresh ? deferredFixes : [];
   const repair = fresh ? deferredRepair : null;
 
-  return { input, setInput, indent, setIndent, mode, setMode, result, fixes, repair };
+  const isValid = result !== null && result.ok;
+  const deferredAst = useMemo(() => {
+    if (!isValid) return null;
+    const parsed = parseJson(deferredInput);
+    return parsed.ok ? { root: parsed.value, stats: getStats(parsed.value, deferredInput) } : null;
+  }, [isValid, deferredInput]);
+  const tree = fresh ? (deferredAst?.root ?? null) : null;
+  const stats = fresh ? (deferredAst?.stats ?? null) : null;
+
+  return { input, setInput, indent, setIndent, mode, setMode, result, fixes, repair, view, setView, tree, stats };
 }

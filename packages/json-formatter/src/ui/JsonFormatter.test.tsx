@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 const inputArea = () => screen.getByLabelText("Input") as HTMLTextAreaElement;
-const output = () => (screen.getByLabelText("Output") as HTMLTextAreaElement).value;
+const output = () => screen.getByLabelText("Output").textContent;
 const type = (value: string) => fireEvent.change(inputArea(), { target: { value } });
 
 function mockClipboard(writeText: (text: string) => Promise<void>) {
@@ -49,6 +49,32 @@ describe("JsonFormatter", () => {
     type("[😀]");
     fireEvent.click(screen.getByRole("button", { name: "Show in input" }));
     expect([inputArea().selectionStart, inputArea().selectionEnd]).toEqual([1, 3]);
+  });
+
+  it("switches to a tree and shows stats", () => {
+    render(<JsonFormatter />);
+    type('{"a":[1,2]}');
+    expect(screen.getByText(/· 2 numbers ·/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
+    expect(screen.getAllByRole("treeitem").map((item) => item.textContent)).toEqual(["{1}", "a: [2]", "0: 1", "1: 2"]);
+    fireEvent.click(screen.getByRole("button", { name: "Text" }));
+    expect(output()).toBe('{\n  "a": [\n    1,\n    2\n  ]\n}');
+  });
+
+  it("selects a tree node in the input, even after a BOM", () => {
+    render(<JsonFormatter />);
+    type('﻿{"a": 12}');
+    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
+    fireEvent.click(screen.getByRole("treeitem", { name: "a: 12" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show in input" }));
+    expect([inputArea().selectionStart, inputArea().selectionEnd]).toEqual([7, 9]);
+  });
+
+  it("asks to fix the error before showing a tree", () => {
+    render(<JsonFormatter />);
+    type("[1,");
+    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
+    expect(screen.getByText("Fix the error to see the tree.")).toBeTruthy();
   });
 
   it("applies a suggested fix", () => {

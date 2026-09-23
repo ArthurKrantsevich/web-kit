@@ -51,6 +51,24 @@ const { input, setInput, mode, setMode, indent, setIndent, result } = useJsonFor
 
 In React Server Components, import functions from `/core`: the main entry is a client module.
 
+## Tree, highlighting and stats
+
+`JsonFormatter` has a Text | Tree switch and a stats line. The pieces are also exported on their own:
+
+```tsx
+import { parseJson, getStats } from "@web-kit/json-core";
+import { JsonTree, HighlightedJson, JsonStats } from "@web-kit/json-formatter";
+
+const parsed = parseJson(text);
+if (parsed.ok) {
+  <JsonTree root={parsed.value} source={text} />;
+  <JsonStats stats={getStats(parsed.value, text)} />;
+}
+<HighlightedJson text={formatted} />;
+```
+
+The tree is keyboard accessible (arrows, Home/End, Enter), shows the path of the selected node, copies paths and values, pages large arrays by 500, and stops "Expand all" at 5 000 rows. Syntax colors: `--wk-syntax-key`, `--wk-syntax-string`, `--wk-syntax-number`, `--wk-syntax-literal`, `--wk-syntax-punct`.
+
 ## Theming
 
 The default styles use CSS variables: `--wk-fg`, `--wk-muted`, `--wk-surface`, `--wk-border`, `--wk-accent`, `--wk-accent-fg`, `--wk-danger`, `--wk-radius`, `--wk-font-sans`, `--wk-font-mono`.

@@ -11,6 +11,11 @@
   --wk-radius: 10px;
   --wk-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --wk-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --wk-syntax-key: #7c3aed;
+  --wk-syntax-string: #047857;
+  --wk-syntax-number: #b45309;
+  --wk-syntax-literal: #2563eb;
+  --wk-syntax-punct: #5b6270;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -22,5 +27,10 @@
     --wk-accent: #818cf8;
     --wk-accent-fg: #0f1115;
     --wk-danger: #ef5350;
+    --wk-syntax-key: #c4b5fd;
+    --wk-syntax-string: #6ee7b7;
+    --wk-syntax-number: #fcd34d;
+    --wk-syntax-literal: #93c5fd;
+    --wk-syntax-punct: #9aa1ad;
   }
 }
