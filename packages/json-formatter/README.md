@@ -81,6 +81,17 @@ if (parsed.ok) {
 
 The tree is keyboard accessible (arrows, Home/End, Enter), shows the path of the selected node, copies paths and values, pages large arrays by 500, and stops "Expand all" at 5 000 rows. Syntax colors: `--wk-syntax-key`, `--wk-syntax-string`, `--wk-syntax-number`, `--wk-syntax-literal`, `--wk-syntax-punct`.
 
+## Search and JSONPath
+
+The tree has a query bar. Plain text searches keys and values (case-insensitive). Text that starts with `$` is a JSONPath query (RFC 9535 subset): `$..price`, `$.store.book[?@.price < 10].title`, `$[-1]`, `$[0:10:2]`, `$..book[?@.isbn && @.price > 20]`. Numbers compare exactly. Function extensions such as `length()` are not supported and say so.
+
+```ts
+import { parseJson, queryJson } from "@web-kit/json-formatter";
+
+const parsed = parseJson(text);
+if (parsed.ok) queryJson(parsed.value, "$..author"); // { ok: true, value: [{ path, node }, …] }
+```
+
 ## Theming
 
 The default styles use CSS variables: `--wk-fg`, `--wk-muted`, `--wk-surface`, `--wk-border`, `--wk-accent`, `--wk-accent-fg`, `--wk-danger`, `--wk-radius`, `--wk-font-sans`, `--wk-font-mono`.

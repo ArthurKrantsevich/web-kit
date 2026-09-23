@@ -1,5 +1,23 @@
-import { formatPath, pathOf, type JsonNode } from "@web-kit/json-core";
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
+import {
+  formatJson,
+  formatPath,
+  pathOf,
+  queryJson,
+  searchJson,
+  type JsonNode,
+  type JsonPath,
+  type QueryMatch,
+} from "@web-kit/json-core";
+import {
+  useDeferredValue,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactElement,
+} from "react";
 import { CHILD_PAGE, EXPAND_ALL_LIMIT, expandBreadthFirst, hasChildren, visibleRows, type TreeRow } from "./tree-model";
 import { useCopy } from "./useCopy";
 
@@ -15,6 +33,8 @@ export interface JsonTreeProps {
   expandAllLimit?: number;
   /** Children shown per step in large containers. Default 500. */
   pageSize?: number;
+  /** Show the search / JSONPath bar. Default true. */
+  searchable?: boolean;
   className?: string;
 }
 
@@ -27,6 +47,23 @@ interface TreeState {
 }
 
 type NodeRow = Extract<TreeRow, { kind: "node" }>;
+
+interface Found {
+  mode: "none" | "search" | "path";
+  matches: QueryMatch[];
+  error: string | null;
+}
+
+/** Text starting with `$` is JSONPath; anything else is a case-insensitive search. */
+function findMatches(root: JsonNode, query: string): Found {
+  const text = query.trim();
+  if (text === "") return { mode: "none", matches: [], error: null };
+  if (!text.startsWith("$")) return { mode: "search", matches: searchJson(root, text), error: null };
+  const result = queryJson(root, text);
+  return result.ok
+    ? { mode: "path", matches: result.value, error: null }
+    : { mode: "path", matches: [], error: `Column ${result.error.column}: ${result.error.message}` };
+}
 
 function limitNote(limit: number, collapsed: number): string {
   const what = collapsed === 1 ? "1 container stays" : `${collapsed.toLocaleString("en-US")} containers stay`;
@@ -78,6 +115,18 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
     note: null,
   }));
   const [pathLabel, copyPath] = useCopy("Copy path");
+  const [resultsLabel, copyResults] = useCopy("Copy results");
+  const [query, setQuery] = useState("");
+  const [current, setCurrent] = useState(0);
+  const deferredQuery = useDeferredValue(query);
+  const found = useMemo(() => findMatches(root, deferredQuery), [root, deferredQuery]);
+  const matchIds = useMemo(() => new Set(found.matches.map((match) => formatPath(match.path))), [found]);
+  // New matches start at the first one.
+  const [seenFound, setSeenFound] = useState(found);
+  if (seenFound !== found) {
+    setSeenFound(found);
+    setCurrent(0);
+  }
   const [valueLabel, copyValue] = useCopy("Copy value");
 
   const rows = useMemo(
@@ -101,6 +150,55 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
   }, [baseId, selectedRow.id]);
 
   const update = (patch: Partial<TreeState>): void => setState((s) => ({ ...s, ...patch }));
+
+  /** Expands the ancestors of `path`, opens the pages that hold it, and selects it. */
+  function reveal(path: JsonPath): void {
+    setState((s) => {
+      const expanded = new Set(s.expanded);
+      const shown = new Map(s.shown);
+      let node: JsonNode = root;
+      for (let depth = 0; depth < path.length; depth++) {
+        const part = path[depth]!;
+        const parentId = formatPath(path.slice(0, depth));
+        expanded.add(parentId);
+        let position = -1;
+        if (node.type === "array" && typeof part === "number") {
+          position = part;
+          node = node.items[part]!;
+        } else if (node.type === "object") {
+          node.members.forEach((member, index) => {
+            if (member.key.value === part) position = index;
+          });
+          node = node.members[position]!.value;
+        }
+        const limit = shown.get(parentId) ?? pageSize;
+        if (position >= limit) shown.set(parentId, (Math.floor(position / pageSize) + 1) * pageSize);
+      }
+      return { ...s, expanded, shown, selected: formatPath(path), note: null };
+    });
+  }
+
+  useEffect(() => {
+    const match = found.matches[current];
+    if (match) reveal(match.path);
+    // reveal reads the latest root through setState; only a new match or step should move the selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [found, current]);
+
+  function step(delta: number): void {
+    const count = found.matches.length;
+    if (count > 0) setCurrent((index) => (index + delta + count) % count);
+  }
+
+  const status =
+    found.error ??
+    (found.mode === "none" ? "" : found.matches.length === 0 ? "No matches" : `${current + 1} of ${found.matches.length}`);
+
+  function resultsText(): string {
+    const joined = `[${found.matches.map((match) => source.slice(match.node.start, match.node.end)).join(",")}]`;
+    const formatted = formatJson(joined);
+    return formatted.ok ? formatted.value : joined;
+  }
 
   function toggle(id: string): void {
     setState((s) => {
@@ -164,6 +262,49 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
 
   return (
     <div className={["wk-tree", props.className].filter(Boolean).join(" ")}>
+      {props.searchable !== false && (
+        <div className="wk-tree__query">
+          <input
+            type="search"
+            className="wk-tree__search"
+            aria-label="Search or JSONPath"
+            placeholder="Search, or JSONPath like $..price"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              step(e.shiftKey ? -1 : 1);
+            }}
+          />
+          <span className="wk-tree__count" aria-live="polite">
+            {status}
+          </span>
+          <button
+            type="button"
+            className="wk-json__button"
+            aria-label="Previous match"
+            disabled={found.matches.length < 2}
+            onClick={() => step(-1)}
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            className="wk-json__button"
+            aria-label="Next match"
+            disabled={found.matches.length < 2}
+            onClick={() => step(1)}
+          >
+            ↓
+          </button>
+          {found.mode === "path" && found.matches.length > 0 && (
+            <button type="button" className="wk-json__button" onClick={() => copyResults(resultsText())}>
+              {resultsLabel}
+            </button>
+          )}
+        </div>
+      )}
       <div className="wk-tree__toolbar">
         <button type="button" className="wk-json__button" onClick={expandAll}>
           Expand all
@@ -220,7 +361,7 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
               aria-expanded={expandable ? open : undefined}
               aria-selected={row.id === selectedRow.id}
               aria-label={row.label === null ? valueText(row.node) : `${row.label}: ${valueText(row.node)}`}
-              className="wk-tree__row"
+              className={matchIds.has(row.id) ? "wk-tree__row wk-tree__row--match" : "wk-tree__row"}
               style={{ paddingLeft: `${row.depth * 1.25}rem` }}
               onClick={() => update({ selected: row.id })}
             >

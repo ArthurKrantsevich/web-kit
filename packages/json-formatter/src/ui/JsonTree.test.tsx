@@ -127,4 +127,52 @@ describe("JsonTree", () => {
     expect(items()).toEqual(["[2]", "0: 1", "1: 2"]);
     expect(selected()).toBe("[2]");
   });
+
+  it("searches keys and values and reveals the match", () => {
+    render(<JsonTree {...props()} />);
+    fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "bob" } });
+    expect(screen.getByText("1 of 1")).toBeTruthy();
+    expect(selected()).toBe('name: "Bob"');
+    expect(screen.getByLabelText("Selected path").textContent).toBe("$.users[1].name");
+  });
+
+  it("runs JSONPath and walks through the matches", () => {
+    render(<JsonTree {...props()} />);
+    const box = screen.getByLabelText("Search or JSONPath");
+    fireEvent.change(box, { target: { value: "$..name" } });
+    expect(screen.getByText("1 of 2")).toBeTruthy();
+    expect(selected()).toBe('name: "Ann"');
+    fireEvent.keyDown(box, { key: "Enter" });
+    expect(screen.getByText("2 of 2")).toBeTruthy();
+    expect(selected()).toBe('name: "Bob"');
+    fireEvent.keyDown(box, { key: "Enter", shiftKey: true });
+    expect(selected()).toBe('name: "Ann"');
+    fireEvent.click(screen.getByRole("button", { name: "Next match" }));
+    expect(selected()).toBe('name: "Bob"');
+    expect(document.querySelectorAll(".wk-tree__row--match")).toHaveLength(2);
+  });
+
+  it("copies JSONPath results as a JSON array", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<JsonTree {...props()} />);
+    fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "$.users[*].name" } });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy results" })));
+    expect(writeText).toHaveBeenCalledWith('[\n  "Ann",\n  "Bob"\n]');
+  });
+
+  it("shows JSONPath errors with a column and says when nothing matches", () => {
+    render(<JsonTree {...props()} />);
+    const box = screen.getByLabelText("Search or JSONPath");
+    fireEvent.change(box, { target: { value: "$[?length(@) > 1]" } });
+    expect(screen.getByText("Column 4: Function extensions like length() are not supported")).toBeTruthy();
+    fireEvent.change(box, { target: { value: "zzz" } });
+    expect(screen.getByText("No matches")).toBeTruthy();
+  });
+
+  it("opens the page that holds a match", () => {
+    render(<JsonTree {...props(JSON.stringify(Array.from({ length: 12 }, (_, i) => i)), { pageSize: 5 })} />);
+    fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "$[11]" } });
+    expect(selected()).toBe("11: 11");
+  });
 });

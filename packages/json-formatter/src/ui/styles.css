@@ -238,3 +238,27 @@
   color: var(--wk-muted, #5b6270);
   font-size: 0.875rem;
 }
+.wk-tree__query {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.wk-tree__search {
+  flex: 1 1 16rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--wk-border, #dfe1e6);
+  border-radius: var(--wk-radius, 10px);
+  background: var(--wk-surface, #ffffff);
+  color: inherit;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+}
+.wk-tree__count {
+  min-width: 5rem;
+  color: var(--wk-muted, #5b6270);
+  font-size: 0.875rem;
+}
+.wk-tree__row--match {
+  box-shadow: inset 3px 0 0 var(--wk-accent, #4f46e5);
+}

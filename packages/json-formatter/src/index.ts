@@ -7,10 +7,14 @@ export {
   getStats,
   parseJson,
   printJson,
+  queryJson,
+  searchJson,
   unescapeJson,
   type JsonNode,
   type JsonStats as JsonStatsData,
   type PrintOptions,
+  type QueryMatch,
+  type QueryResult,
   type Unescaped,
 } from "@web-kit/json-core";
 export {
