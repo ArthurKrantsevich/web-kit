@@ -33,6 +33,7 @@ The same tools also exist in Flutter: [flutter-kit](https://github.com/ArthurKra
 | Utility | Category | Status |
 |---|---|---|
 | JSON formatter | data | available |
+| JSON convert (YAML, CSV, XML, TypeScript) | data | available |
 | Base64 encode/decode | data | planned |
 | URL encode/decode | data | planned |
 | JWT decoder | data | planned |

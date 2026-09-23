@@ -97,3 +97,10 @@ test("sort keys and unescape in the formatter", async ({ page }) => {
   await input.fill('"{\\"x\\":true}"');
   await expect.poll(() => output.textContent()).toBe('{\n  "x": true\n}');
 });
+
+test("json-convert turns JSON into TypeScript", async ({ page }) => {
+  await page.goto("tools/json-convert/");
+  await page.getByLabel("Convert").selectOption("typescript");
+  await expect(page.getByLabel("Output", { exact: true })).toContainText("export interface Root {");
+  await expect(page.getByLabel("Output", { exact: true })).toContainText("email: string | null;");
+});

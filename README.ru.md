@@ -33,6 +33,7 @@
 | Утилита | Категория | Статус |
 |---|---|---|
 | JSON-форматтер | data | готово |
+| JSON-конвертер (YAML, CSV, XML, TypeScript) | data | готово |
 | Base64 encode/decode | data | в планах |
 | URL encode/decode | data | в планах |
 | JWT-декодер | data | в планах |
