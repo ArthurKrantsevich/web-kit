@@ -3,7 +3,7 @@ import type { ToolMeta } from "../../registry";
 export const meta: ToolMeta = {
   id: "json-formatter",
   title: "JSON Formatter",
-  description: "Format, minify and validate JSON. Shows exactly where the error is and suggests verified fixes.",
+  description: "Format, minify and validate JSON. Tree view, highlighting, stats, exact error positions and verified fixes.",
   category: "data",
   tags: ["json", "format", "minify", "validate", "pretty print"],
   pkg: "@web-kit/json-formatter",
@@ -59,6 +59,21 @@ if (result.ok) console.log(result.value);`,
       name: "JsonFormatter",
       signature: "<JsonFormatter initialInput? initialIndent? className? />",
       description: "Ready-made UI: input, output, format/minify switch, indent and copy button.",
+    },
+    {
+      name: "JsonTree",
+      signature: "<JsonTree root={node} source={text} onShowInInput? initialDepth? />",
+      description: "Collapsible, keyboard-accessible tree with paths, copy path/value and paging for large arrays.",
+    },
+    {
+      name: "HighlightedJson",
+      signature: "<HighlightedJson text={formatted} />",
+      description: "Syntax-highlighted JSON with line numbers; plain text above 200 KB.",
+    },
+    {
+      name: "JsonStats",
+      signature: "<JsonStats stats={getStats(node, text)} />",
+      description: "One line: size, keys, depth and counts by type.",
     },
   ],
 };

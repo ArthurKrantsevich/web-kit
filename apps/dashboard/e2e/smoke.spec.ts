@@ -37,7 +37,7 @@ test("json-formatter works inside the dashboard", async ({ page }) => {
   await expect(input).toHaveValue('{"a": 1, "b": [true]}');
 
   await input.fill('{"a":1}');
-  await expect(page.getByLabel("Output", { exact: true })).toHaveValue('{\n  "a": 1\n}');
+  await expect.poll(() => page.getByLabel("Output", { exact: true }).textContent()).toBe('{\n  "a": 1\n}');
 
   await page.getByRole("tab", { name: "Install & Usage" }).click();
   await expect(page.getByText("npm i @web-kit/json-formatter")).toBeVisible();
@@ -76,4 +76,12 @@ test("tabs switch with the keyboard", async ({ page }) => {
   await expect(demo).toHaveAttribute("aria-selected", "true");
   await expect(demo).toHaveAttribute("tabindex", "0");
   await expect(api).toHaveAttribute("tabindex", "-1");
+});
+
+test("tree view shows the path of a node and stats", async ({ page }) => {
+  await page.goto("tools/json-formatter/");
+  await page.getByRole("button", { name: "Tree" }).click();
+  await page.getByRole("treeitem", { name: /hello/ }).click();
+  await expect(page.getByLabel("Selected path")).toHaveText("$.hello");
+  await expect(page.getByText(/· 3 numbers ·/)).toBeVisible();
 });
