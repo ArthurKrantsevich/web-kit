@@ -32,7 +32,7 @@
 
 | Утилита | Категория | Статус |
 |---|---|---|
-| JSON-форматтер | data | в планах |
+| JSON-форматтер | data | готово |
 | Base64 encode/decode | data | в планах |
 | URL encode/decode | data | в планах |
 | JWT-декодер | data | в планах |
@@ -50,14 +50,14 @@
 
 ```ts
 // Только логика. React не нужен: работает в Node, воркерах, любом фреймворке.
-import { format } from '@scope/json-formatter/core'
+import { formatJson, suggestFixes } from '@web-kit/json-formatter/core'
 
 // Логика + React UI.
-import { JsonFormatter, useJsonFormatter } from '@scope/json-formatter'
-import '@scope/json-formatter/styles.css'
+import { JsonFormatter, useJsonFormatter } from '@web-kit/json-formatter'
+import '@web-kit/json-formatter/styles.css'
 ```
 
-Пакеты только ESM, с типами. Стили на CSS variables, их можно переопределить. npm-scope выберем перед первым релизом.
+Пакеты только ESM, с типами. Стили на CSS variables, их можно переопределить. `@web-kit` — рабочее имя, npm-scope выберем перед первым релизом.
 
 ## Структура репозитория
 
@@ -76,8 +76,16 @@ packages/           по пакету на утилиту (скоро)
 corepack enable
 pnpm install
 pnpm --filter @web-kit/dashboard dev   # dev-сервер на http://localhost:3000/web-kit
-pnpm check                              # собрать всё и проверить статический экспорт
+pnpm verify                             # типы, unit-тесты, проверки пакетов, e2e
 ```
+
+### Добавить утилиту
+
+```bash
+pnpm turbo gen utility
+```
+
+Генератор создаёт `packages/<id>` (core + React UI + тесты) и регистрирует страницу демо в витрине.
 
 Каждый push в `main` собирает витрину и деплоит её на GitHub Pages.
 

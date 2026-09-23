@@ -32,7 +32,7 @@ The same tools also exist in Flutter: [flutter-kit](https://github.com/ArthurKra
 
 | Utility | Category | Status |
 |---|---|---|
-| JSON formatter | data | planned |
+| JSON formatter | data | available |
 | Base64 encode/decode | data | planned |
 | URL encode/decode | data | planned |
 | JWT decoder | data | planned |
@@ -50,14 +50,14 @@ Every utility is one package with two entry points:
 
 ```ts
 // Logic only. No React needed: works in Node, workers, any framework.
-import { format } from '@scope/json-formatter/core'
+import { formatJson, suggestFixes } from '@web-kit/json-formatter/core'
 
 // Logic + React UI.
-import { JsonFormatter, useJsonFormatter } from '@scope/json-formatter'
-import '@scope/json-formatter/styles.css'
+import { JsonFormatter, useJsonFormatter } from '@web-kit/json-formatter'
+import '@web-kit/json-formatter/styles.css'
 ```
 
-Packages are ESM-only, typed, and styled with CSS variables you can override. The npm scope will be chosen before the first release.
+Packages are ESM-only, typed, and styled with CSS variables you can override. `@web-kit` is a working name; the npm scope will be chosen before the first release.
 
 ## Repository layout
 
@@ -76,8 +76,16 @@ Requirements: Node 22+, pnpm (enabled through `corepack`).
 corepack enable
 pnpm install
 pnpm --filter @web-kit/dashboard dev   # dev server at http://localhost:3000/web-kit
-pnpm check                              # build everything and verify the static export
+pnpm verify                             # typecheck, unit tests, package checks, e2e
 ```
+
+### Add a utility
+
+```bash
+pnpm turbo gen utility
+```
+
+The generator creates `packages/<id>` (core + React UI + tests) and registers the demo page in the dashboard.
 
 Every push to `main` builds the dashboard and deploys it to GitHub Pages.
 
