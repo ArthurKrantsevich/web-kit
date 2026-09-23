@@ -203,8 +203,18 @@ class Parser {
         if (esc === quote) value += quote;
         else if (esc !== undefined && esc in simple) value += simple[esc];
         else if (esc === "u" && /^[0-9a-fA-F]{4}$/.test(this.text.slice(this.i + 2, this.i + 6))) {
-          value += String.fromCharCode(parseInt(this.text.slice(this.i + 2, this.i + 6), 16));
+          const code = parseInt(this.text.slice(this.i + 2, this.i + 6), 16);
+          const escapeStart = this.i;
           this.i += 6;
+          if (code >= 0xdc00 && code <= 0xdfff) this.fail("Invalid unicode escape: lone surrogate", escapeStart);
+          if (code >= 0xd800 && code <= 0xdbff) {
+            const low = /^\\u([dD][c-fC-F][0-9a-fA-F]{2})/.exec(this.text.slice(this.i));
+            if (!low) this.fail("Invalid unicode escape: lone surrogate", escapeStart);
+            value += String.fromCharCode(code, parseInt(low[1]!, 16));
+            this.i += 6;
+            continue;
+          }
+          value += String.fromCharCode(code);
           continue;
         } else this.fail("Invalid escape in string");
         this.i += 2;
@@ -242,7 +252,16 @@ class Parser {
     if (this.text[this.i] === "!") {
       this.i++;
       this.skipWs();
-      return { kind: "not", expr: this.basic() };
+      if (this.text[this.i] === "(") return { kind: "not", expr: this.basic() };
+      const ch = this.text[this.i];
+      if (ch !== "@" && ch !== "$") this.fail("Expected ( or a query after !");
+      const query = this.query(ch);
+      const save = this.i;
+      this.skipWs();
+      // RFC 9535: "!" negates a test or a parenthesised expression, never a bare comparison.
+      if (OPS.some((op) => this.text.startsWith(op, this.i))) this.fail("Use !( … ) to negate a comparison");
+      this.i = save;
+      return { kind: "not", expr: { kind: "exists", query } };
     }
     if (this.text[this.i] === "(") {
       this.i++;
@@ -306,9 +325,18 @@ class Parser {
   }
 }
 
+/** Members that a later member with the same key does not override (last wins, like JSON.parse). */
+function effectiveMembers(node: Extract<JsonNode, { type: "object" }>): Extract<JsonNode, { type: "object" }>["members"] {
+  const last = new Map<string, number>();
+  node.members.forEach((member, index) => last.set(member.key.value, index));
+  return node.members.filter((member, index) => last.get(member.key.value) === index);
+}
+
 function childrenOf(match: QueryMatch): QueryMatch[] {
   const { node, path } = match;
-  if (node.type === "object") return node.members.map((member) => ({ path: [...path, member.key.value], node: member.value }));
+  if (node.type === "object") {
+    return effectiveMembers(node).map((member) => ({ path: [...path, member.key.value], node: member.value }));
+  }
   if (node.type === "array") return node.items.map((item, index) => ({ path: [...path, index], node: item }));
   return [];
 }
@@ -453,12 +481,17 @@ export function queryJson(root: JsonNode, query: string): QueryResult {
   const parser = new Parser(query);
   try {
     const parsed = parser.query("$");
-    parser.skipWs();
-    if (parser.i < query.length) parser.fail(`Unexpected character '${query[parser.i]}'`);
+    if (parser.i < query.length) {
+      const trailing = parser.i;
+      parser.skipWs();
+      if (parser.i >= query.length) parser.fail("Trailing whitespace is not allowed", trailing);
+      parser.fail(`Unexpected character '${String.fromCodePoint(query.codePointAt(parser.i)!)}'`);
+    }
     return { ok: true, value: evaluate(parsed, root, { path: [], node: root }) };
   } catch (e) {
     if (!(e instanceof QueryFailure)) throw e;
-    return { ok: false, error: { message: e.message, column: e.at + 1 } };
+    // Columns count characters (code points), like the JSON error columns.
+    return { ok: false, error: { message: e.message, column: Array.from(query.slice(0, e.at)).length + 1 } };
   }
 }
 
@@ -487,7 +520,7 @@ export function searchJson(root: JsonNode, text: string): QueryMatch[] {
     if ((key !== null && key.toLowerCase().includes(needle)) || (value !== null && value.toLowerCase().includes(needle))) {
       out.push({ path, node });
     }
-    if (node.type === "object") for (const member of node.members) visit(member.value, [...path, member.key.value], member.key.value);
+    if (node.type === "object") for (const member of effectiveMembers(node)) visit(member.value, [...path, member.key.value], member.key.value);
     else if (node.type === "array") node.items.forEach((item, index) => visit(item, [...path, index], null));
   };
   visit(root, [], null);

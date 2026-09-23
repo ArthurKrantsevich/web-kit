@@ -170,6 +170,47 @@ describe("JsonTree", () => {
     expect(screen.getByText("No matches")).toBeTruthy();
   });
 
+  it("keeps the selection when the data is edited during a query", () => {
+    const { rerender } = render(<JsonTree {...props()} />);
+    fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "$..name" } });
+    fireEvent.click(screen.getByRole("button", { name: "Next match" }));
+    expect(selected()).toBe('name: "Bob"');
+    rerender(<JsonTree {...props(SRC.replace("Ann", "Anna"))} />);
+    expect(selected()).toBe('name: "Bob"');
+    expect(screen.getByText("2 of 2")).toBeTruthy();
+  });
+
+  it("scrolls to the match even while typing in the query bar", () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    render(<JsonTree {...props()} />);
+    fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "bob" } });
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  it("marks an invalid query for assistive technology", () => {
+    render(<JsonTree {...props()} />);
+    const box = screen.getByLabelText("Search or JSONPath");
+    fireEvent.change(box, { target: { value: "$[" } });
+    expect(box.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(box.getAttribute("aria-describedby")!)!.textContent).toMatch(/^Column 3:/);
+  });
+
+  it("waits for a pause in typing before querying large documents", () => {
+    vi.useFakeTimers();
+    try {
+      render(<JsonTree {...props(JSON.stringify(["x".repeat(250_000), "needle"]))} />);
+      fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "needle" } });
+      expect(screen.queryByText("1 of 1")).toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByText("1 of 1")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("opens the page that holds a match", () => {
     render(<JsonTree {...props(JSON.stringify(Array.from({ length: 12 }, (_, i) => i)), { pageSize: 5 })} />);
     fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "$[11]" } });

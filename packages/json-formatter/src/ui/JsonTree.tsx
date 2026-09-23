@@ -65,6 +65,10 @@ function findMatches(root: JsonNode, query: string): Found {
     : { mode: "path", matches: [], error: `Column ${result.error.column}: ${result.error.message}` };
 }
 
+/** Documents larger than this are queried after a pause in typing, not on every keystroke. */
+const LARGE_SOURCE = 200_000;
+const QUERY_DELAY = 150;
+
 function limitNote(limit: number, collapsed: number): string {
   const what = collapsed === 1 ? "1 container stays" : `${collapsed.toLocaleString("en-US")} containers stay`;
   return `Expanded as much as fits in ${limit.toLocaleString("en-US")} rows. ${what} collapsed; expand them one by one.`;
@@ -117,15 +121,33 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
   const [pathLabel, copyPath] = useCopy("Copy path");
   const [resultsLabel, copyResults] = useCopy("Copy results");
   const [query, setQuery] = useState("");
-  const [current, setCurrent] = useState(0);
-  const deferredQuery = useDeferredValue(query);
+  const [pausedQuery, setPausedQuery] = useState("");
+  const large = source.length > LARGE_SOURCE;
+  useEffect(() => {
+    if (!large) return;
+    const timer = setTimeout(() => setPausedQuery(query), QUERY_DELAY);
+    return () => clearTimeout(timer);
+  }, [query, large]);
+  const deferredQuery = useDeferredValue(large ? pausedQuery : query);
   const found = useMemo(() => findMatches(root, deferredQuery), [root, deferredQuery]);
   const matchIds = useMemo(() => new Set(found.matches.map((match) => formatPath(match.path))), [found]);
-  // New matches start at the first one.
-  const [seenFound, setSeenFound] = useState(found);
-  if (seenFound !== found) {
-    setSeenFound(found);
-    setCurrent(0);
+  const [current, setCurrent] = useState(0);
+  // Bumped when the user asks to move to a match (new query, Enter, ↑/↓); an edit of the data alone does not move the selection.
+  const [revealTick, setRevealTick] = useState(0);
+  const scrollPending = useRef(false);
+  const [seen, setSeen] = useState({ found, query: deferredQuery });
+  if (seen.found !== found) {
+    let next = 0;
+    if (seen.query === deferredQuery) {
+      const previous = seen.found.matches[current];
+      const previousId = previous ? formatPath(previous.path) : null;
+      const kept = previousId === null ? -1 : found.matches.findIndex((match) => formatPath(match.path) === previousId);
+      next = kept >= 0 ? kept : 0;
+    } else {
+      setRevealTick((tick) => tick + 1);
+    }
+    setSeen({ found, query: deferredQuery });
+    setCurrent(next);
   }
   const [valueLabel, copyValue] = useCopy("Copy value");
 
@@ -145,7 +167,10 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
 
   useEffect(() => {
     const list = listRef.current;
-    if (!list || !list.contains(document.activeElement)) return;
+    const requested = scrollPending.current;
+    scrollPending.current = false;
+    // Scroll while the user moves inside the tree, or when they jumped to a match from the query bar.
+    if (!list || (!requested && !list.contains(document.activeElement))) return;
     document.getElementById(`${baseId}-${selectedRow.id}`)?.scrollIntoView?.({ block: "nearest" });
   }, [baseId, selectedRow.id]);
 
@@ -179,15 +204,20 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
   }
 
   useEffect(() => {
+    if (revealTick === 0) return;
     const match = found.matches[current];
-    if (match) reveal(match.path);
-    // reveal reads the latest root through setState; only a new match or step should move the selection.
+    if (!match) return;
+    scrollPending.current = true;
+    reveal(match.path);
+    // Only an explicit request (revealTick) moves the selection; found/current are read at that moment.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [found, current]);
+  }, [revealTick]);
 
   function step(delta: number): void {
     const count = found.matches.length;
-    if (count > 0) setCurrent((index) => (index + delta + count) % count);
+    if (count === 0) return;
+    setCurrent((index) => (index + delta + count) % count);
+    setRevealTick((tick) => tick + 1);
   }
 
   const status =
@@ -268,6 +298,8 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
             type="search"
             className="wk-tree__search"
             aria-label="Search or JSONPath"
+            aria-invalid={found.error ? true : undefined}
+            aria-describedby={`${baseId}-query-status`}
             placeholder="Search, or JSONPath like $..price"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -277,7 +309,7 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
               step(e.shiftKey ? -1 : 1);
             }}
           />
-          <span className="wk-tree__count" aria-live="polite">
+          <span id={`${baseId}-query-status`} className="wk-tree__count" aria-live="polite">
             {status}
           </span>
           <button

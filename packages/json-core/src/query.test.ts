@@ -104,6 +104,17 @@ describe("queryJson selectors", () => {
     expect(paths(root, "$.é")).toEqual(['$["é"]']);
   });
 
+  it("accepts surrogate pairs written as escapes", () => {
+    expect(paths(parsed('{"😀":1}'), '$["\\uD83D\\uDE00"]')).toEqual(['$["😀"]']);
+  });
+
+  it("ignores duplicate keys that a later key overrides, everywhere", () => {
+    const root = parsed('{"a":"hit","a":"x"}');
+    expect(paths(root, "$.*")).toEqual(["$.a"]);
+    expect(searchJson(root, "hit")).toEqual([]);
+    expect(searchJson(root, "x").map((match) => formatPath(match.path))).toEqual(["$.a"]);
+  });
+
   it("picks the last of duplicate keys, like JSON.parse", () => {
     const result = queryJson(parsed('{"a":1,"a":2}'), "$.a");
     expect(result.ok && result.value.map((match) => match.node.type === "number" && match.node.raw)).toEqual(["2"]);
@@ -123,6 +134,11 @@ describe("queryJson errors", () => {
     ["$[?@.a == @.*]", "Comparisons need a single value; this query can select many", 11],
     ["$[?1]", "A value alone is not a test; compare it with something", 4],
     ["$.a b", "Unexpected character 'b'", 5],
+    ["$[?!@.x == 1]", "Use !( … ) to negate a comparison", 9],
+    ["$[?!!@.a]", "Expected ( or a query after !", 5],
+    ['$["\\uD800"]', "Invalid unicode escape: lone surrogate", 4],
+    ["$.a ", "Trailing whitespace is not allowed", 4],
+    ["$.😀 x", "Unexpected character 'x'", 5],
   ])("%s", (query, message, column) => {
     expect(error(STORE, query)).toEqual({ message, column });
   });
