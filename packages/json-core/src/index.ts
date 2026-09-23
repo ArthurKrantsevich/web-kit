@@ -23,3 +23,4 @@ export { compareNumbers, isMultipleOf } from "./numbers";
 export { stringEnd, tokenizeJson, type JsonToken, type JsonTokenType } from "./tokens";
 export { stripBom } from "./validate";
 export { escapeJson, unescapeJson, type Unescaped } from "./escape";
+export { inferShape, mergeShapes, type ObjectShape, type Primitive, type TypeShape } from "./shape";
