@@ -47,6 +47,7 @@ export function visibleRows(
   root: JsonNode,
   expanded: ReadonlySet<string>,
   shown: ReadonlyMap<string, number> = new Map(),
+  pageSize: number = CHILD_PAGE,
 ): TreeRow[] {
   const rows: TreeRow[] = [];
   const walk = (
@@ -61,7 +62,7 @@ export function visibleRows(
     rows.push({ kind: "node", id, node, label, depth, parentId, position, siblings });
     if (!hasChildren(node) || !expanded.has(id)) return;
     const children = childrenOf(node);
-    const limit = shown.get(id) ?? CHILD_PAGE;
+    const limit = shown.get(id) ?? pageSize;
     children.slice(0, limit).forEach((child, index) => {
       walk(child.node, child.label, childId(id, child.label), depth + 1, id, index + 1, children.length);
     });
@@ -81,6 +82,7 @@ export function expandBreadthFirst(
   root: JsonNode,
   maxDepth: number,
   budget: number = EXPAND_ALL_LIMIT,
+  pageSize: number = CHILD_PAGE,
 ): { expanded: Set<string>; collapsed: number } {
   const expanded = new Set<string>();
   const queue: { node: JsonNode; id: string; depth: number }[] = [{ node: root, id: "$", depth: 0 }];
@@ -89,14 +91,14 @@ export function expandBreadthFirst(
     const { node, id, depth } = queue[head]!;
     if (!hasChildren(node) || depth >= maxDepth) continue;
     const children = childrenOf(node);
-    const added = Math.min(children.length, CHILD_PAGE) + (children.length > CHILD_PAGE ? 1 : 0);
+    const added = Math.min(children.length, pageSize) + (children.length > pageSize ? 1 : 0);
     if (rows + added > budget) {
       const collapsed = queue.slice(head).filter((item) => hasChildren(item.node) && item.depth < maxDepth).length;
       return { expanded, collapsed };
     }
     expanded.add(id);
     rows += added;
-    for (const child of children.slice(0, CHILD_PAGE)) {
+    for (const child of children.slice(0, pageSize)) {
       queue.push({ node: child.node, id: childId(id, child.label), depth: depth + 1 });
     }
   }

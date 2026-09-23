@@ -1,6 +1,6 @@
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { HIGHLIGHT_LIMIT, HighlightedJson } from "./HighlightedJson";
+import { gutterWidth, HIGHLIGHT_LIMIT, HighlightedJson } from "./HighlightedJson";
 
 afterEach(cleanup);
 
@@ -18,9 +18,9 @@ describe("HighlightedJson", () => {
   });
 
   it("sizes the line-number gutter to the number of lines", () => {
-    const text = JSON.stringify(Array.from({ length: 998 }, (_, i) => i), null, 2);
-    const { container } = render(<HighlightedJson text={text} />);
-    expect(container.querySelector("pre")!.style.getPropertyValue("--wk-gutter")).toBe("4ch");
+    expect([gutterWidth(1), gutterWidth(999), gutterWidth(1000), gutterWidth(123456)]).toEqual(["3ch", "3ch", "4ch", "6ch"]);
+    const { container } = render(<HighlightedJson text={"[\n  1\n]"} />);
+    expect(container.querySelector("pre")!.style.getPropertyValue("--wk-gutter")).toBe("3ch");
   });
 
   it("falls back to plain text above the limit", () => {

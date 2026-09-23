@@ -74,21 +74,22 @@ describe("JsonTree", () => {
     expect(onShowInInput).toHaveBeenCalledWith(SRC.indexOf("true"), SRC.indexOf("true") + 4);
   });
 
-  it("pages very long arrays", () => {
-    render(<JsonTree {...props(JSON.stringify(Array.from({ length: 1200 }, (_, i) => i)))} />);
-    expect(items()).toHaveLength(502);
-    fireEvent.click(screen.getByRole("treeitem", { name: "Show 500 more (700 left)" }));
-    expect(items()).toHaveLength(1002);
-    expect(screen.getByRole("treeitem", { name: "Show 200 more (200 left)" })).toBeTruthy();
+  it("pages long arrays", () => {
+    render(<JsonTree {...props(JSON.stringify(Array.from({ length: 12 }, (_, i) => i)), { pageSize: 5 })} />);
+    expect(items()).toHaveLength(7);
+    fireEvent.click(screen.getByRole("treeitem", { name: "Show 5 more (7 left)" }));
+    expect(items()).toHaveLength(12);
+    expect(screen.getByRole("treeitem", { name: "Show 2 more (2 left)" })).toBeTruthy();
   });
 
   it("stops Expand all at the row budget and says so", () => {
-    render(<JsonTree {...props(JSON.stringify(Array.from({ length: 20 }, () => Array.from({ length: 500 }, (_, i) => i))))} />);
+    const data = JSON.stringify(Array.from({ length: 20 }, () => Array.from({ length: 10 }, (_, i) => i)));
+    render(<JsonTree {...props(data, { expandAllLimit: 50 })} />);
     fireEvent.click(screen.getByRole("button", { name: "Expand all" }));
     expect(screen.getByRole("status").textContent).toBe(
-      "Expanded as much as fits in 5,000 rows. 11 containers stay collapsed; expand them one by one.",
+      "Expanded as much as fits in 50 rows. 18 containers stay collapsed; expand them one by one.",
     );
-    expect(items().length).toBeLessThanOrEqual(5000);
+    expect(items().length).toBeLessThanOrEqual(50);
     fireEvent.click(screen.getByRole("button", { name: "Collapse all" }));
     expect(items()).toEqual(["[20]"]);
   });
@@ -102,9 +103,9 @@ describe("JsonTree", () => {
   });
 
   it("gives screen readers the real size of paged lists and skips empty containers", () => {
-    render(<JsonTree {...props('{"list":' + JSON.stringify(Array.from({ length: 1200 }, (_, i) => i)) + ',"empty":{}}')} />);
+    render(<JsonTree {...props('{"list":' + JSON.stringify(Array.from({ length: 12 }, (_, i) => i)) + ',"empty":{}}', { pageSize: 5 })} />);
     const first = screen.getByRole("treeitem", { name: "0: 0" });
-    expect([first.getAttribute("aria-posinset"), first.getAttribute("aria-setsize")]).toEqual(["1", "1200"]);
+    expect([first.getAttribute("aria-posinset"), first.getAttribute("aria-setsize")]).toEqual(["1", "12"]);
     expect(screen.getByRole("treeitem", { name: "empty: {0}" }).hasAttribute("aria-expanded")).toBe(false);
   });
 

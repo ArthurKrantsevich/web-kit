@@ -1,6 +1,6 @@
 import { formatPath, pathOf, type JsonNode } from "@web-kit/json-core";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
-import { CHILD_PAGE, expandBreadthFirst, hasChildren, visibleRows, type TreeRow } from "./tree-model";
+import { CHILD_PAGE, EXPAND_ALL_LIMIT, expandBreadthFirst, hasChildren, visibleRows, type TreeRow } from "./tree-model";
 import { useCopy } from "./useCopy";
 
 export interface JsonTreeProps {
@@ -11,6 +11,10 @@ export interface JsonTreeProps {
   onShowInInput?: (start: number, end: number) => void;
   /** Levels expanded at first. Default 2. */
   initialDepth?: number;
+  /** Most rows "Expand all" may show. Default 5000. */
+  expandAllLimit?: number;
+  /** Children shown per step in large containers. Default 500. */
+  pageSize?: number;
   className?: string;
 }
 
@@ -24,9 +28,9 @@ interface TreeState {
 
 type NodeRow = Extract<TreeRow, { kind: "node" }>;
 
-function limitNote(collapsed: number): string {
+function limitNote(limit: number, collapsed: number): string {
   const what = collapsed === 1 ? "1 container stays" : `${collapsed.toLocaleString("en-US")} containers stay`;
-  return `Expanded as much as fits in 5,000 rows. ${what} collapsed; expand them one by one.`;
+  return `Expanded as much as fits in ${limit.toLocaleString("en-US")} rows. ${what} collapsed; expand them one by one.`;
 }
 
 function truncate(text: string): string {
@@ -64,10 +68,11 @@ const VALUE_CLASS: Record<JsonNode["type"], string> = {
 /** Collapsible, keyboard-accessible JSON tree. Numbers and strings are shown exactly as written. */
 export function JsonTree(props: JsonTreeProps): ReactElement {
   const { root, source, onShowInInput } = props;
+  const pageSize = props.pageSize ?? CHILD_PAGE;
   const baseId = useId();
   const listRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<TreeState>(() => ({
-    expanded: expandBreadthFirst(root, props.initialDepth ?? 2).expanded,
+    expanded: expandBreadthFirst(root, props.initialDepth ?? 2, EXPAND_ALL_LIMIT, props.pageSize ?? CHILD_PAGE).expanded,
     shown: new Map(),
     selected: "$",
     note: null,
@@ -75,7 +80,10 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
   const [pathLabel, copyPath] = useCopy("Copy path");
   const [valueLabel, copyValue] = useCopy("Copy value");
 
-  const rows = useMemo(() => visibleRows(root, state.expanded, state.shown), [root, state.expanded, state.shown]);
+  const rows = useMemo(
+    () => visibleRows(root, state.expanded, state.shown, pageSize),
+    [root, state.expanded, state.shown, pageSize],
+  );
   // A selected path that no longer exists (after an edit) falls back to the root.
   const index = Math.max(0, rows.findIndex((row) => row.id === state.selected));
   const selectedRow = rows[index]!;
@@ -105,14 +113,15 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
   function showMore(parentId: string, at: number): void {
     setState((s) => {
       const shown = new Map(s.shown);
-      shown.set(parentId, (shown.get(parentId) ?? CHILD_PAGE) + CHILD_PAGE);
+      shown.set(parentId, (shown.get(parentId) ?? pageSize) + pageSize);
       return { ...s, shown, selected: at > 0 ? rows[at - 1]!.id : s.selected };
     });
   }
 
   function expandAll(): void {
-    const { expanded, collapsed } = expandBreadthFirst(root, Infinity);
-    update({ expanded, shown: new Map(), note: collapsed === 0 ? null : limitNote(collapsed) });
+    const limit = props.expandAllLimit ?? EXPAND_ALL_LIMIT;
+    const { expanded, collapsed } = expandBreadthFirst(root, Infinity, limit, pageSize);
+    update({ expanded, shown: new Map(), note: collapsed === 0 ? null : limitNote(limit, collapsed) });
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
@@ -194,7 +203,7 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
                 style={{ paddingLeft: `${row.depth * 1.25 + 1.25}rem` }}
                 onClick={() => showMore(row.parentId, at)}
               >
-                {`Show ${Math.min(CHILD_PAGE, row.remaining)} more (${row.remaining} left)`}
+                {`Show ${Math.min(pageSize, row.remaining)} more (${row.remaining} left)`}
               </div>
             );
           }

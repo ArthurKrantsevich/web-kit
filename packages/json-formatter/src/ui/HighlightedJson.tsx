@@ -12,6 +12,11 @@ export interface HighlightedJsonProps {
 
 type Piece = { type: JsonTokenType; text: string };
 
+/** Width of the line-number column: enough digits for the last line, at least 3. */
+export function gutterWidth(lineCount: number): string {
+  return `${Math.max(3, String(lineCount).length)}ch`;
+}
+
 function toLines(text: string): Piece[][] {
   const lines: Piece[][] = [];
   let line: Piece[] = [];
@@ -43,7 +48,7 @@ export function HighlightedJson(props: HighlightedJsonProps): ReactElement {
       className={["wk-code", props.className].filter(Boolean).join(" ")}
       aria-label={props["aria-label"]}
       tabIndex={0}
-      style={lines === null ? undefined : ({ "--wk-gutter": `${Math.max(3, String(lines.length).length)}ch` } as CSSProperties)}
+      style={lines === null ? undefined : ({ "--wk-gutter": gutterWidth(lines.length) } as CSSProperties)}
     >
       {lines === null
         ? text
