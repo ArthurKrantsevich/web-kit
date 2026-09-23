@@ -1,0 +1,14 @@
+{
+  "name": "@web-kit/json-formatter",
+  "version": "0.0.0",
+  "description": "Format, minify and validate JSON with exact error positions. Framework-free core + React UI.",
+  "license": "MIT",
+  "type": "module",
+  "files": ["dist"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "peerDependencies": { "react": ">=18" },
+  "peerDependenciesMeta": { "react": { "optional": true } }
+}
