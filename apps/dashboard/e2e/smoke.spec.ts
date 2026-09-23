@@ -50,3 +50,27 @@ test("unknown path shows the 404 page", async ({ page }) => {
   const response = await page.goto("tools/does-not-exist/");
   expect(response?.status()).toBe(404);
 });
+
+test("tabs switch with the keyboard", async ({ page }) => {
+  await page.goto("tools/json-formatter/");
+  const demo = page.getByRole("tab", { name: "Demo" });
+  const usage = page.getByRole("tab", { name: "Install & Usage" });
+  const api = page.getByRole("tab", { name: "API" });
+
+  await demo.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(usage).toBeFocused();
+  await expect(usage).toHaveAttribute("aria-selected", "true");
+
+  await page.keyboard.press("End");
+  await expect(api).toBeFocused();
+
+  await page.keyboard.press("ArrowRight");
+  await expect(demo).toBeFocused();
+
+  await page.keyboard.press("End");
+  await page.keyboard.press("Home");
+  await expect(demo).toHaveAttribute("aria-selected", "true");
+  await expect(demo).toHaveAttribute("tabindex", "0");
+  await expect(api).toHaveAttribute("tabindex", "-1");
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import type { ApiEntry, ToolMeta } from "@/registry";
 import { ToolDemo } from "@/tools/demos";
 import { CodeBlock } from "./CodeBlock";
@@ -12,16 +12,36 @@ const tabId = (tab: Tab) => `tab-${tab.toLowerCase().replace(/[^a-z]+/g, "-")}`;
 
 export function ToolTabs({ tool }: { tool: ToolMeta }) {
   const [active, setActive] = useState<Tab>("Demo");
+  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const index = TABS.indexOf(active);
+    const last = TABS.length - 1;
+    const next =
+      event.key === "ArrowRight" ? (index === last ? 0 : index + 1)
+      : event.key === "ArrowLeft" ? (index === 0 ? last : index - 1)
+      : event.key === "Home" ? 0
+      : event.key === "End" ? last
+      : -1;
+    if (next === -1) return;
+    event.preventDefault();
+    setActive(TABS[next]!);
+    buttons.current[next]?.focus();
+  }
 
   return (
     <div>
-      <div role="tablist" aria-label="Sections" className="tabs">
-        {TABS.map((tab) => (
+      <div role="tablist" aria-label="Sections" className="tabs" onKeyDown={onKeyDown}>
+        {TABS.map((tab, index) => (
           <button
             key={tab}
+            ref={(element) => {
+              buttons.current[index] = element;
+            }}
             id={tabId(tab)}
             type="button"
             role="tab"
+            tabIndex={active === tab ? 0 : -1}
             aria-selected={active === tab}
             aria-controls="tool-panel"
             onClick={() => setActive(tab)}
