@@ -1,0 +1,28 @@
+{
+  "name": "@web-kit/json-core",
+  "version": "0.0.0",
+  "description": "Lossless JSON parser and AST, exact error positions, verified fixes, code frames, paths and exact number comparison. No dependencies, no UI.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArthurKrantsevich/web-kit.git",
+    "directory": "packages/json-core"
+  },
+  "keywords": ["json", "parser", "ast", "validate", "formatter"],
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "check": "node ../../tooling/scripts/check-core-only.mjs && publint --strict && attw --pack . --profile esm-only && size-limit"
+  },
+  "size-limit": [
+    { "name": "json-core", "path": "dist/index.js", "limit": "8 kB" }
+  ]
+}
