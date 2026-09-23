@@ -1,0 +1,107 @@
+.wk-json {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--wk-fg, #111318);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+}
+.wk-json__label {
+  font-size: 0.875rem;
+  color: var(--wk-muted, #5b6270);
+}
+.wk-json__area {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 12rem;
+  padding: 0.75rem;
+  resize: vertical;
+  border: 1px solid var(--wk-border, #dfe1e6);
+  border-radius: var(--wk-radius, 10px);
+  background: var(--wk-surface, #ffffff);
+  color: inherit;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  tab-size: 2;
+}
+.wk-json__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.wk-json__button,
+.wk-json__select {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--wk-border, #dfe1e6);
+  border-radius: var(--wk-radius, 10px);
+  background: var(--wk-surface, #ffffff);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.wk-json__button[aria-pressed="true"],
+.wk-json__fix-all {
+  background: var(--wk-accent, #4f46e5);
+  border-color: var(--wk-accent, #4f46e5);
+  color: var(--wk-accent-fg, #ffffff);
+}
+.wk-json__button:disabled,
+.wk-json__select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.wk-json__indent {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--wk-muted, #5b6270);
+}
+.wk-json__copy {
+  margin-left: auto;
+}
+.wk-json__problem {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--wk-danger, #c62828);
+  border-radius: var(--wk-radius, 10px);
+}
+.wk-json__error {
+  margin: 0;
+  color: var(--wk-danger, #c62828);
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+}
+.wk-json__frame {
+  margin: 0;
+  overflow-x: auto;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  tab-size: 2;
+}
+.wk-json__link {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--wk-accent, #4f46e5);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.wk-json__fixes {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wk-json__fixes li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.wk-json__fix-all {
+  justify-self: start;
+}

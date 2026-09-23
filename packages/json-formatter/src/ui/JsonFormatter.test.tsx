@@ -1,0 +1,103 @@
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { JsonFormatter } from "./JsonFormatter";
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+const inputArea = () => screen.getByLabelText("Input") as HTMLTextAreaElement;
+const output = () => (screen.getByLabelText("Output") as HTMLTextAreaElement).value;
+const type = (value: string) => fireEvent.change(inputArea(), { target: { value } });
+
+function mockClipboard(writeText: (text: string) => Promise<void>) {
+  Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+}
+
+describe("JsonFormatter", () => {
+  it("formats input as you type", () => {
+    render(<JsonFormatter />);
+    type('{"a":1}');
+    expect(output()).toBe('{\n  "a": 1\n}');
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows the error with line and column", () => {
+    render(<JsonFormatter />);
+    type('{"a": }');
+    expect(screen.getByRole("alert").textContent).toBe("Line 1, column 7: Unexpected character '}'");
+    expect(output()).toBe("");
+  });
+
+  it("shows where the error is", () => {
+    render(<JsonFormatter />);
+    type('{"a": }');
+    expect(screen.getByLabelText("Error location").textContent).toBe('> 1 | {"a": }\n    |       ^');
+  });
+
+  it("moves the cursor to the error", () => {
+    render(<JsonFormatter />);
+    type('{"a": }');
+    fireEvent.click(screen.getByRole("button", { name: "Show in input" }));
+    expect(document.activeElement).toBe(inputArea());
+    expect([inputArea().selectionStart, inputArea().selectionEnd]).toEqual([6, 7]);
+  });
+
+  it("applies a suggested fix", () => {
+    render(<JsonFormatter />);
+    type("[1,2,]");
+    fireEvent.click(screen.getByRole("button", { name: "Apply: Remove trailing comma" }));
+    expect(inputArea().value).toBe("[1,2]");
+    expect(output()).toBe("[\n  1,\n  2\n]");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("fixes everything at once when every step is verified", () => {
+    render(<JsonFormatter />);
+    type("{a: 1, b: [True,]}");
+    fireEvent.click(screen.getByRole("button", { name: "Fix all (4 changes)" }));
+    expect(inputArea().value).toBe('{"a": 1, "b": [true]}');
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("offers no fix it cannot verify", () => {
+    render(<JsonFormatter />);
+    type('{"a": @}');
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Suggested fixes" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Fix all/ })).toBeNull();
+  });
+
+  it("shows nothing for empty input", () => {
+    render(<JsonFormatter />);
+    type("   ");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(output()).toBe("");
+  });
+
+  it("minifies and switches indentation", () => {
+    render(<JsonFormatter initialInput='{"a":1}' />);
+    fireEvent.change(screen.getByLabelText("Indent"), { target: { value: "tab" } });
+    expect(output()).toBe('{\n\t"a": 1\n}');
+    fireEvent.click(screen.getByRole("button", { name: "Minify" }));
+    expect(output()).toBe('{"a":1}');
+    expect((screen.getByLabelText("Indent") as HTMLSelectElement).disabled).toBe(true);
+  });
+
+  it("copies the output", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    mockClipboard(writeText);
+    render(<JsonFormatter initialInput="[1]" />);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy" })));
+    expect(writeText).toHaveBeenCalledWith("[\n  1\n]");
+    expect(await screen.findByRole("button", { name: "Copied" })).toBeTruthy();
+  });
+
+  it("reports a blocked clipboard instead of throwing", async () => {
+    mockClipboard(vi.fn().mockRejectedValue(new Error("NotAllowedError")));
+    render(<JsonFormatter initialInput="[1]" />);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy" })));
+    expect(await screen.findByRole("button", { name: "Copy failed" })).toBeTruthy();
+  });
+});
