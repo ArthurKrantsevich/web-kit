@@ -1,0 +1,8 @@
+{
+  "name": "@web-kit/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "exports": { "./tokens.css": "./tokens.css" },
+  "files": ["tokens.css"]
+}

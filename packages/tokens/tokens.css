@@ -1,0 +1,26 @@
+/* Design tokens shared by the dashboard and the default package styles. Keep in sync with flutter-kit. */
+:root {
+  --wk-bg: #f7f7f8;
+  --wk-surface: #ffffff;
+  --wk-fg: #111318;
+  --wk-muted: #5b6270;
+  --wk-border: #dfe1e6;
+  --wk-accent: #4f46e5;
+  --wk-accent-fg: #ffffff;
+  --wk-danger: #c62828;
+  --wk-radius: 10px;
+  --wk-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --wk-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --wk-bg: #0f1115;
+    --wk-surface: #171a21;
+    --wk-fg: #e6e6e6;
+    --wk-muted: #9aa1ad;
+    --wk-border: #2a2f3a;
+    --wk-accent: #818cf8;
+    --wk-accent-fg: #0f1115;
+    --wk-danger: #ef5350;
+  }
+}

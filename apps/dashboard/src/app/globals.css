@@ -1,23 +1,212 @@
-:root {
-  --bg: #ffffff;
-  --fg: #111318;
-  --muted: #5b6270;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1115;
-    --fg: #e6e6e6;
-    --muted: #9aa1ad;
-  }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 body {
   margin: 0;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  font-family: system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--wk-bg);
+  color: var(--wk-fg);
+  font-family: var(--wk-font-sans);
+  line-height: 1.5;
 }
-a { color: inherit; }
-p { color: var(--muted); }
+a {
+  color: inherit;
+}
+code,
+pre {
+  font-family: var(--wk-font-mono);
+}
+.site-header,
+.site-main,
+.site-footer,
+.privacy {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 20px;
+  padding-bottom: 12px;
+}
+.site-header nav {
+  display: flex;
+  gap: 16px;
+}
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+  text-decoration: none;
+}
+.privacy {
+  color: var(--wk-muted);
+  font-size: 0.875rem;
+}
+.site-main {
+  padding-top: 16px;
+  padding-bottom: 48px;
+  min-height: 70vh;
+}
+.site-footer {
+  padding-bottom: 32px;
+  color: var(--wk-muted);
+  font-size: 0.875rem;
+}
+.hero h1 {
+  margin: 0 0 4px;
+  font-size: 2.25rem;
+}
+.hero p,
+.tool__header p {
+  margin: 0;
+  color: var(--wk-muted);
+}
+.catalog__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin: 24px 0 16px;
+}
+.catalog__toolbar input {
+  flex: 1 1 240px;
+  padding: 10px 12px;
+  border: 1px solid var(--wk-border);
+  border-radius: var(--wk-radius);
+  background: var(--wk-surface);
+  color: inherit;
+  font: inherit;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chips button,
+.tabs button,
+.code__bar button {
+  padding: 6px 12px;
+  border: 1px solid var(--wk-border);
+  border-radius: 999px;
+  background: var(--wk-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.chips button[aria-pressed="true"],
+.tabs button[aria-selected="true"] {
+  background: var(--wk-accent);
+  border-color: var(--wk-accent);
+  color: var(--wk-accent-fg);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.card {
+  display: block;
+  height: 100%;
+  padding: 16px;
+  border: 1px solid var(--wk-border);
+  border-radius: var(--wk-radius);
+  background: var(--wk-surface);
+  text-decoration: none;
+}
+.card:hover,
+.card:focus-visible {
+  border-color: var(--wk-accent);
+}
+.card h2 {
+  margin: 8px 0 4px;
+  font-size: 1.1rem;
+}
+.card p {
+  margin: 0;
+  color: var(--wk-muted);
+  font-size: 0.9rem;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--wk-bg);
+  border: 1px solid var(--wk-border);
+  color: var(--wk-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.empty,
+.note {
+  color: var(--wk-muted);
+}
+.back {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--wk-muted);
+  text-decoration: none;
+}
+.tool__header h1 {
+  margin: 8px 0 4px;
+}
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin: 24px 0 16px;
+  flex-wrap: wrap;
+}
+.panel {
+  padding: 16px;
+  border: 1px solid var(--wk-border);
+  border-radius: var(--wk-radius);
+  background: var(--wk-surface);
+}
+.stack {
+  display: grid;
+  gap: 12px;
+}
+.code {
+  border: 1px solid var(--wk-border);
+  border-radius: var(--wk-radius);
+  overflow: hidden;
+}
+.code__bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--wk-bg);
+  color: var(--wk-muted);
+  font-size: 0.8rem;
+}
+.code pre {
+  margin: 0;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+.api {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.api th,
+.api td {
+  padding: 8px;
+  border-bottom: 1px solid var(--wk-border);
+  text-align: left;
+  vertical-align: top;
+}
+.api td:nth-child(2) {
+  overflow-wrap: anywhere;
+}
+.prose {
+  max-width: 680px;
+}

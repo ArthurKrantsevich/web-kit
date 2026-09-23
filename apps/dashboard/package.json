@@ -5,9 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "check": "node scripts/check-export.mjs"
+    "check": "node scripts/check-export.mjs",
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@web-kit/json-formatter": "workspace:*",
+    "@web-kit/tokens": "workspace:*",
     "next": "^16.3.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

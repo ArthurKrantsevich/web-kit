@@ -25,6 +25,7 @@ mustExist("index.html");
 mustExist("about/index.html");
 mustExist("404.html");
 mustExist(".nojekyll");
+mustExist("tools/json-formatter/index.html");
 
 if (existsSync(join(out, "index.html"))) {
   const html = readFileSync(join(out, "index.html"), "utf8");

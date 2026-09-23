@@ -217,6 +217,12 @@ importers:
 
   apps/dashboard:
     dependencies:
+      '@web-kit/json-formatter':
+        specifier: workspace:*
+        version: link:../../packages/json-formatter
+      '@web-kit/tokens':
+        specifier: workspace:*
+        version: link:../../packages/tokens
       next:
         specifier: ^16.3.5
         version: 16.3.5(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -245,6 +251,8 @@ importers:
       react:
         specifier: '>=18'
         version: 19.3.0
+
+  packages/tokens: {}
 
 packages:
 
