@@ -133,10 +133,41 @@ describe("JsonFormatter", () => {
     render(<JsonFormatter />);
     fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
     type('{"a":1,}');
-    expect(screen.getByRole("status").textContent).toBe("Line 1, column 8: Expected a double-quoted property name");
+    expect(screen.getByRole("status").textContent).toBe("Line 1, column 1: Unescape needs a JSON string literal");
     expect(screen.queryByRole("list", { name: "Suggested fixes" })).toBeNull();
     type('{"a":1}');
     expect(screen.getByRole("status").textContent).toBe("Line 1, column 1: Unescape needs a JSON string literal");
+  });
+
+  it("escapes whitespace-only text and drops a BOM", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Escape" }));
+    type("  ");
+    expect(output()).toBe('"  "');
+    type("\uFEFFa");
+    expect(output()).toBe('"a"');
+  });
+
+  it("sorts keys of unescaped JSON too", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    fireEvent.click(screen.getByLabelText("Sort keys"));
+    type('"{\\"b\\":1,\\"a\\":2}"');
+    expect(output()).toBe('{\n  "a": 2,\n  "b": 1\n}');
+  });
+
+  it("says when the unescaped value is another JSON string", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    type('"\\"{\\\\\\"a\\\\\\":1}\\""');
+    expect(screen.getByText("The value is itself a JSON string; unescape it again to go one level deeper.")).toBeTruthy();
+  });
+
+  it("announces the note politely", () => {
+    render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    type('"x"');
+    expect(screen.getByText("The string is not JSON; shown as plain text.").getAttribute("aria-live")).toBe("polite");
   });
 
   it("explains that the tree needs Format or Minify", () => {

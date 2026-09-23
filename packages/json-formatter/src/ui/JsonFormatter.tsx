@@ -99,7 +99,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
           Unescape
         </button>
         <label className="wk-json__check">
-          <input type="checkbox" checked={sortKeys} disabled={!jsonMode} onChange={(e) => setSortKeys(e.target.checked)} />
+          <input type="checkbox" checked={sortKeys} disabled={mode === "escape"} onChange={(e) => setSortKeys(e.target.checked)} />
           Sort keys
         </label>
         <label className="wk-json__indent" htmlFor={`${id}-indent`}>
@@ -121,7 +121,11 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         </button>
       </div>
 
-      {note && <p className="wk-json__note">{note}</p>}
+      {note && (
+        <p className="wk-json__note" aria-live="polite">
+          {note}
+        </p>
+      )}
 
       {error && (
         <div className="wk-json__problem">

@@ -26,9 +26,16 @@ export function unescapeJson(input: string): Result<Unescaped> {
     const text = parsed.value.value;
     return { ok: true, value: { text, isJson: validateJson(text) === null, wrapped: false } };
   }
-  const wrapped = parseJson(`"${input.trim()}"`);
+  // Only JSON whitespace is trimmed: other invisible characters are content, not padding.
+  const inner = stripBom(input).replace(/^[ \t\n\r]+|[ \t\n\r]+$/g, "");
+  const wrapped = parseJson(`"${inner}"`);
   if (wrapped.ok && wrapped.value.type === "string" && validateJson(wrapped.value.value) === null) {
     return { ok: true, value: { text: wrapped.value.value, isJson: true, wrapped: true } };
+  }
+  // The user did not start a string, so the useful message is what Unescape expects, not a JSON syntax detail.
+  if (!inner.startsWith('"')) {
+    const offset = stripBom(input).length - stripBom(input).trimStart().length;
+    return { ok: false, error: notAString(input, offset) };
   }
   return { ok: false, error: parsed.error };
 }

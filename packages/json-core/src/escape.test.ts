@@ -31,7 +31,20 @@ describe("unescapeJson", () => {
     expect(unescapeJson('{\\"a\\":1}')).toEqual({ ok: true, value: { text: '{"a":1}', isJson: true, wrapped: true } });
     const plain = unescapeJson('hello \\"x\\"');
     expect(plain.ok).toBe(false);
-    if (!plain.ok) expect(plain.error).toMatchObject({ message: "Unexpected character 'h'", line: 1, column: 1 });
+    if (!plain.ok) expect(plain.error).toMatchObject({ message: "Unescape needs a JSON string literal", line: 1, column: 1 });
+  });
+
+  it("does not treat non-JSON whitespace as removable", () => {
+    const result = unescapeJson("\u00A0[1]");
+    expect(result.ok).toBe(false);
+  });
+
+  it("asks for a string when the input is broken JSON that is not a string", () => {
+    const result = unescapeJson('{"a":1,}');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatchObject({ message: "Unescape needs a JSON string literal", line: 1, column: 1 });
+    const unterminated = unescapeJson('"abc');
+    expect(!unterminated.ok && unterminated.error.message).toBe("Unterminated string");
   });
 
   it("explains that it needs a string", () => {

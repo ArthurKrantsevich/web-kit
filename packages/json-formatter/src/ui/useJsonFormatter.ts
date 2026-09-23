@@ -62,18 +62,24 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
   const jsonMode = mode === "format" || mode === "minify";
 
   const { result, note } = useMemo((): { result: Result<string> | null; note: string | null } => {
+    if (mode === "escape") {
+      // Whitespace is content here; a leading BOM is not.
+      return input === "" ? { result: null, note: null } : { result: { ok: true, value: escapeJson(stripBom(input)) }, note: null };
+    }
     if (input.trim() === "") return { result: null, note: null };
-    if (mode === "escape") return { result: { ok: true, value: escapeJson(input) }, note: null };
     if (mode === "unescape") {
       const unescaped = unescapeJson(input);
       if (!unescaped.ok) return { result: unescaped, note: null };
       const { text, isJson, wrapped } = unescaped.value;
+      if (!isJson) return { result: { ok: true, value: text }, note: "The string is not JSON; shown as plain text." };
+      const inner = parseJson(text);
+      if (!inner.ok) return { result: inner, note: null };
       const note = wrapped
         ? "No surrounding quotes: read the input as the inside of a JSON string."
-        : isJson
-          ? "The string contains JSON; shown formatted."
-          : "The string is not JSON; shown as plain text.";
-      return { result: isJson ? formatJson(text, { indent }) : { ok: true, value: text }, note };
+        : inner.value.type === "string"
+          ? "The value is itself a JSON string; unescape it again to go one level deeper."
+          : "The string contains JSON; shown formatted.";
+      return { result: { ok: true, value: printJson(inner.value, { indent, sortKeys }) }, note };
     }
     if (!sortKeys) return { result: mode === "format" ? formatJson(input, { indent }) : minifyJson(input), note: null };
     const parsed = parseJson(input);
