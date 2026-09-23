@@ -19,6 +19,13 @@ describe("compareNumbers", () => {
     expect(compareNumbers(a, b)).toBe(expected);
   });
 
+  it("stays exact for exponents beyond Number precision", () => {
+    expect(compareNumbers("1e9007199254740993", "1e9007199254740992")).toBe(1);
+    expect(compareNumbers("1e99999999999999999999", "1e99999999999999999998")).toBe(1);
+    expect(compareNumbers("1e" + "9".repeat(400), "1e" + "9".repeat(399) + "8")).toBe(1);
+    expect(compareNumbers("-1e" + "9".repeat(400), "-1e" + "9".repeat(400))).toBe(0);
+  });
+
   it("rejects text that is not a JSON number", () => {
     expect(() => compareNumbers("abc", "1")).toThrow(TypeError);
   });
@@ -37,6 +44,9 @@ describe("isMultipleOf", () => {
     ["5", "0", false],
     ["1e1000", "3", false],
     ["3e1000", "3", true],
+    ["1e" + "9".repeat(400), "1", true],
+    ["1e" + "9".repeat(400), "1e" + "9".repeat(400), true],
+    ["1", "1e" + "9".repeat(400), false],
   ] as const)("%s is a multiple of %s: %s", (a, b, expected) => {
     expect(isMultipleOf(a, b)).toBe(expected);
   });

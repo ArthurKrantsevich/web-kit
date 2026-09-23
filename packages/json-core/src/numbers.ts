@@ -1,10 +1,10 @@
 const JSON_NUMBER = /^(-?)(0|[1-9]\d*)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/;
 
-/** value = sign × digits × 10^exp, with `digits` free of trailing zeros. */
+/** value = sign × digits × 10^exp, with `digits` free of trailing zeros. Exponents are bigint: JSON allows any size. */
 interface Decimal {
   sign: -1 | 0 | 1;
   digits: bigint;
-  exp: number;
+  exp: bigint;
   length: number;
 }
 
@@ -13,9 +13,9 @@ function toDecimal(raw: string): Decimal {
   if (!match) throw new TypeError(`Not a JSON number: ${raw}`);
   const fraction = match[3] ?? "";
   const all = (match[2]! + fraction).replace(/^0+/, "");
-  if (all === "") return { sign: 0, digits: 0n, exp: 0, length: 0 };
+  if (all === "") return { sign: 0, digits: 0n, exp: 0n, length: 0 };
   const trimmed = all.replace(/0+$/, "");
-  const exp = Number(match[4] ?? "0") - fraction.length + (all.length - trimmed.length);
+  const exp = BigInt(match[4] ?? "0") - BigInt(fraction.length) + BigInt(all.length - trimmed.length);
   return { sign: match[1] === "-" ? -1 : 1, digits: BigInt(trimmed), exp, length: trimmed.length };
 }
 
@@ -32,12 +32,12 @@ export function compareNumbers(a: string, b: string): -1 | 0 | 1 {
 
 function compareMagnitude(x: Decimal, y: Decimal): -1 | 0 | 1 {
   // Position of the leading digit decides unless both are equal; then the shift is at most the digit count.
-  const orderX = x.length + x.exp;
-  const orderY = y.length + y.exp;
+  const orderX = BigInt(x.length) + x.exp;
+  const orderY = BigInt(y.length) + y.exp;
   if (orderX !== orderY) return orderX > orderY ? 1 : -1;
   const shift = x.exp - y.exp;
-  const left = shift > 0 ? x.digits * 10n ** BigInt(shift) : x.digits;
-  const right = shift < 0 ? y.digits * 10n ** BigInt(-shift) : y.digits;
+  const left = shift > 0n ? x.digits * 10n ** shift : x.digits;
+  const right = shift < 0n ? y.digits * 10n ** -shift : y.digits;
   return left === right ? 0 : left > right ? 1 : -1;
 }
 
@@ -49,8 +49,8 @@ export function isMultipleOf(a: string, b: string): boolean {
   if (x.sign === 0) return true;
   const k = x.exp - y.exp;
   // x.digits has no trailing zeros, so it cannot be divisible by 10^-k for k < 0.
-  if (k < 0) return false;
-  return (x.digits * modPow(10n, BigInt(k), y.digits)) % y.digits === 0n;
+  if (k < 0n) return false;
+  return (x.digits * modPow(10n, k, y.digits)) % y.digits === 0n;
 }
 
 function modPow(base: bigint, exponent: bigint, modulus: bigint): bigint {
