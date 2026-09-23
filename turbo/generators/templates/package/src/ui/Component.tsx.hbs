@@ -1,0 +1,28 @@
+import { useId, useMemo, useState, type ReactElement } from "react";
+import { {{ camelCase id }}, type Result } from "../core/index";
+
+export interface Use{{ pascalCase id }} {
+  input: string;
+  setInput: (value: string) => void;
+  result: Result<string> | null;
+}
+
+export function use{{ pascalCase id }}(initialInput: string = ""): Use{{ pascalCase id }} {
+  const [input, setInput] = useState(initialInput);
+  const result = useMemo(() => (input.trim() === "" ? null : {{ camelCase id }}(input)), [input]);
+  return { input, setInput, result };
+}
+
+export function {{ pascalCase id }}(props: { initialInput?: string; className?: string }): ReactElement {
+  const { input, setInput, result } = use{{ pascalCase id }}(props.initialInput);
+  const id = useId();
+  return (
+    <div className={["wk-tool", props.className].filter(Boolean).join(" ")}>
+      <label htmlFor={id + "-input"}>Input</label>
+      <textarea id={id + "-input"} value={input} onChange={(e) => setInput(e.target.value)} />
+      {result && !result.ok && <p role="alert">{result.error}</p>}
+      <label htmlFor={id + "-output"}>Output</label>
+      <textarea id={id + "-output"} readOnly value={result && result.ok ? result.value : ""} />
+    </div>
+  );
+}

@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import { {{ camelCase id }} } from "./index";
+
+describe("{{ camelCase id }}", () => {
+  it("returns an error for empty input", () => {
+    expect({{ camelCase id }}("  ")).toEqual({ ok: false, error: "Input is empty" });
+  });
+
+  it("returns a value for input", () => {
+    expect({{ camelCase id }}(" a ")).toEqual({ ok: true, value: "a" });
+  });
+});

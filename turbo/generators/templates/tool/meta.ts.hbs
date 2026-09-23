@@ -1,0 +1,28 @@
+import type { ToolMeta } from "../../registry";
+
+export const meta: ToolMeta = {
+  id: "{{ id }}",
+  title: "{{ title }}",
+  description: "{{ description }}",
+  category: "{{ category }}",
+  tags: ["{{ id }}"],
+  pkg: "@web-kit/{{ id }}",
+  usage: `import { {{ pascalCase id }} } from "@web-kit/{{ id }}";
+import "@web-kit/{{ id }}/styles.css";
+
+export function Page() {
+  return <{{ pascalCase id }} />;
+}`,
+  api: [
+    {
+      name: "{{ camelCase id }}",
+      signature: "{{ camelCase id }}(input: string): Result<string>",
+      description: "{{ description }}",
+    },
+    {
+      name: "{{ pascalCase id }}",
+      signature: "<{{ pascalCase id }} initialInput? className? />",
+      description: "Ready-made React UI.",
+    },
+  ],
+};
