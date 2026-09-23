@@ -4,6 +4,8 @@ Format, minify and validate JSON in the browser. Errors point to the exact line 
 
 > Not published to npm yet. The package name will change before the first release.
 
+The logic lives in [`@web-kit/json-core`](../json-core); `@web-kit/json-formatter/core` re-exports the functions below.
+
 ## Logic only (no React)
 
 ```ts

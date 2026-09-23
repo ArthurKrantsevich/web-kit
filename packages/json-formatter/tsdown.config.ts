@@ -7,5 +7,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   fixedExtension: false,
-  external: ["react", "react/jsx-runtime"],
+  deps: { neverBundle: ["react", "react/jsx-runtime"] },
 });

@@ -1,7 +1,5 @@
 import { useDeferredValue, useMemo, useState } from "react";
-import { repairJson, suggestFixes, type JsonFix } from "../core/fixes";
-import { formatJson, minifyJson } from "../core/format";
-import type { Indent, Result } from "../core/types";
+import { formatJson, minifyJson, repairJson, suggestFixes, type Indent, type JsonFix, type Result } from "../core/index";
 
 /** Above this size "Fix all" is not computed, to keep typing fast. Single fixes are still offered. */
 const REPAIR_INPUT_LIMIT = 10_000;

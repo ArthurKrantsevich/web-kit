@@ -8,16 +8,32 @@
     "url": "git+https://github.com/ArthurKrantsevich/web-kit.git",
     "directory": "packages/json-formatter"
   },
-  "keywords": ["json", "formatter", "minify", "validate", "react"],
+  "keywords": [
+    "json",
+    "formatter",
+    "minify",
+    "validate",
+    "react"
+  ],
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-    "./core": { "types": "./dist/core.d.ts", "default": "./dist/core.js" },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "default": "./dist/core.js"
+    },
     "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"
   },
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "build": "tsdown && cp src/ui/styles.css dist/styles.css",
     "typecheck": "tsc --noEmit -p .",
@@ -25,8 +41,21 @@
     "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit"
   },
   "size-limit": [
-    { "name": "core", "path": "dist/core.js", "limit": "4 kB" }
+    {
+      "name": "core",
+      "path": "dist/core.js",
+      "limit": "4 kB"
+    }
   ],
-  "peerDependencies": { "react": ">=18" },
-  "peerDependenciesMeta": { "react": { "optional": true } }
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@web-kit/json-core": "workspace:*"
+  }
 }

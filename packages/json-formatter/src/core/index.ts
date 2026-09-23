@@ -1,5 +1,15 @@
-export type { Indent, JsonError, Result } from "./types";
-export { validateJson } from "./validate";
-export { formatJson, minifyJson, type FormatOptions } from "./format";
-export { repairJson, suggestFixes, type FixRule, type JsonFix, type RepairResult } from "./fixes";
-export { codeFrame } from "./frame";
+export {
+  codeFrame,
+  formatJson,
+  minifyJson,
+  repairJson,
+  suggestFixes,
+  validateJson,
+  type FixRule,
+  type FormatOptions,
+  type Indent,
+  type JsonError,
+  type JsonFix,
+  type RepairResult,
+  type Result,
+} from "@web-kit/json-core";

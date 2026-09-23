@@ -252,8 +252,13 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  packages/json-core: {}
+
   packages/json-formatter:
     dependencies:
+      '@web-kit/json-core':
+        specifier: workspace:*
+        version: link:../json-core
       react:
         specifier: '>=18'
         version: 19.3.0

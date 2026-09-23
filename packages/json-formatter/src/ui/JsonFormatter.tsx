@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
-import { codeFrame } from "../core/frame";
-import type { Indent, JsonError } from "../core/types";
+import { codeFrame, type Indent, type JsonError } from "../core/index";
 import { useJsonFormatter, type UseJsonFormatterOptions } from "./useJsonFormatter";
 
 export interface JsonFormatterProps extends UseJsonFormatterOptions {
@@ -102,7 +101,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
           <p role="status" className="wk-json__error">
             {formatJsonError(error)}
           </p>
-          <pre className="wk-json__frame" aria-label="Error location">
+          <pre className="wk-json__frame" role="region" aria-label="Error location">
             {codeFrame(input, error)}
           </pre>
           <button type="button" className="wk-json__link" onClick={showError}>

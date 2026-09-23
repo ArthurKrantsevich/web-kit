@@ -33,7 +33,7 @@ describe("JsonFormatter", () => {
   it("shows where the error is", () => {
     render(<JsonFormatter />);
     type('{"a": }');
-    expect(screen.getByLabelText("Error location").textContent).toBe('> 1 | {"a": }\n    |       ^');
+    expect(screen.getByRole("region", { name: "Error location" }).textContent).toBe('> 1 | {"a": }\n    |       ^');
   });
 
   it("moves the cursor to the error", () => {
