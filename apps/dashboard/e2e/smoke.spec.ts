@@ -28,7 +28,7 @@ test("json-formatter works inside the dashboard", async ({ page }) => {
   const input = page.getByLabel("Input", { exact: true });
 
   await input.fill('{"a": }');
-  await expect(page.getByRole("tabpanel").getByRole("alert")).toHaveText("Line 1, column 7: Unexpected character '}'");
+  await expect(page.getByRole("tabpanel").getByRole("status")).toHaveText("Line 1, column 7: Unexpected character '}'");
 
   await expect(page.getByLabel("Error location")).toContainText("^");
 

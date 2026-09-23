@@ -20,13 +20,13 @@ describe("JsonFormatter", () => {
     render(<JsonFormatter />);
     type('{"a":1}');
     expect(output()).toBe('{\n  "a": 1\n}');
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("shows the error with line and column", () => {
     render(<JsonFormatter />);
     type('{"a": }');
-    expect(screen.getByRole("alert").textContent).toBe("Line 1, column 7: Unexpected character '}'");
+    expect(screen.getByRole("status").textContent).toBe("Line 1, column 7: Unexpected character '}'");
     expect(output()).toBe("");
   });
 
@@ -50,7 +50,7 @@ describe("JsonFormatter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply: Remove trailing comma" }));
     expect(inputArea().value).toBe("[1,2]");
     expect(output()).toBe("[\n  1,\n  2\n]");
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("fixes everything at once when every step is verified", () => {
@@ -58,13 +58,20 @@ describe("JsonFormatter", () => {
     type("{a: 1, b: [True,]}");
     fireEvent.click(screen.getByRole("button", { name: "Fix all (4 changes)" }));
     expect(inputArea().value).toBe('{"a": 1, "b": [true]}');
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("skips Fix all for large input so typing stays fast", () => {
+    render(<JsonFormatter />);
+    type("[" + "1,".repeat(12_000) + "True, None]");
+    expect(screen.getByRole("button", { name: "Apply: Replace True with true" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Fix all/ })).toBeNull();
   });
 
   it("offers no fix it cannot verify", () => {
     render(<JsonFormatter />);
     type('{"a": @}');
-    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getByRole("status")).toBeTruthy();
     expect(screen.queryByRole("list", { name: "Suggested fixes" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Fix all/ })).toBeNull();
   });
@@ -72,7 +79,7 @@ describe("JsonFormatter", () => {
   it("shows nothing for empty input", () => {
     render(<JsonFormatter />);
     type("   ");
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
     expect(output()).toBe("");
   });
 

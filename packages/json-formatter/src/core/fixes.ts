@@ -33,7 +33,7 @@ interface Edit {
 
 type Rule = (text: string, error: JsonError) => Edit | null;
 
-const REPAIR_MAX_STEPS = 200;
+const REPAIR_MAX_STEPS = 50;
 const VALUE_START = /["\-0-9{[tfn]/;
 const IDENT_START = /[A-Za-z_$]/;
 const IDENT = /[A-Za-z0-9_$]*/y;

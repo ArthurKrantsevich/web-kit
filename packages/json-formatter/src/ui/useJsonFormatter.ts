@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { repairJson, suggestFixes, type JsonFix } from "../core/fixes";
 import { formatJson, minifyJson } from "../core/format";
 import type { Indent, Result } from "../core/types";
 
 /** Above this size "Fix all" is not computed, to keep typing fast. Single fixes are still offered. */
-const REPAIR_INPUT_LIMIT = 100_000;
+const REPAIR_INPUT_LIMIT = 10_000;
 
 export type JsonFormatterMode = "format" | "minify";
 
@@ -39,15 +39,22 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
     return mode === "format" ? formatJson(input, { indent }) : minifyJson(input);
   }, [input, indent, mode]);
 
+  // Fix suggestions are slower than formatting, so they follow the input at low priority.
+  const deferredInput = useDeferredValue(input);
   const hasError = result !== null && !result.ok;
 
-  const fixes = useMemo(() => (hasError ? suggestFixes(input) : []), [hasError, input]);
+  const deferredFixes = useMemo(() => (hasError ? suggestFixes(deferredInput) : []), [hasError, deferredInput]);
 
-  const repair = useMemo(() => {
-    if (!hasError || input.length > REPAIR_INPUT_LIMIT) return null;
-    const repaired = repairJson(input);
+  const deferredRepair = useMemo(() => {
+    if (!hasError || deferredInput.length > REPAIR_INPUT_LIMIT) return null;
+    const repaired = repairJson(deferredInput);
     return repaired.ok && repaired.changes.length > 1 ? { value: repaired.value, changes: repaired.changes } : null;
-  }, [hasError, input]);
+  }, [hasError, deferredInput]);
+
+  // Never show suggestions computed for older text: applying one would drop what was typed since.
+  const fresh = deferredInput === input;
+  const fixes = fresh ? deferredFixes : [];
+  const repair = fresh ? deferredRepair : null;
 
   return { input, setInput, indent, setIndent, mode, setMode, result, fixes, repair };
 }

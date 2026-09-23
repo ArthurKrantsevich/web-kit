@@ -99,7 +99,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
 
       {error && (
         <div className="wk-json__problem">
-          <p role="alert" className="wk-json__error">
+          <p role="status" className="wk-json__error">
             {formatJsonError(error)}
           </p>
           <pre className="wk-json__frame" aria-label="Error location">
