@@ -15,13 +15,18 @@ export function CodeBlock({ code, label }: { code: string; label: string }) {
     setTimeout(() => setState("idle"), 1500);
   }
 
+  const message = state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : "";
+
   return (
     <div className="code">
       <div className="code__bar">
         <span>{label}</span>
-        <button type="button" onClick={copy}>
-          {state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : "Copy"}
+        <button type="button" aria-label={`Copy ${label}`} onClick={copy}>
+          {message || "Copy"}
         </button>
+        <span role="status" aria-live="polite" className="sr-only">
+          {message}
+        </span>
       </div>
       <pre>
         <code>{code}</code>

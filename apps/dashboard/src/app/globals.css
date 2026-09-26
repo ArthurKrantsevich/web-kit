@@ -323,92 +323,123 @@ a.card:hover {
 }
 
 /* ── tool page ── */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--wk-bg);
-  border: 1px solid var(--wk-border);
+.crumbs ol {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
   color: var(--wk-muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.875rem;
 }
-.note {
-  color: var(--wk-muted);
+.crumbs li + li::before {
+  content: "/";
+  margin-right: 8px;
 }
-.back {
-  display: inline-block;
-  margin-bottom: 16px;
-  color: var(--wk-muted);
+.crumbs a {
   text-decoration: none;
 }
+.tool__header {
+  display: grid;
+  gap: 8px;
+  max-width: 760px;
+}
 .tool__header h1 {
-  margin: 8px 0 4px;
+  margin: 0;
+  font-family: var(--wk-font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  line-height: 1.1;
 }
 .tool__header p {
   margin: 0;
   color: var(--wk-muted);
 }
 .tabs {
-  display: flex;
-  gap: 8px;
-  margin: 24px 0 16px;
+  display: inline-flex;
   flex-wrap: wrap;
-}
-.tabs button,
-.code__bar button {
-  padding: 6px 12px;
-  border: 1px solid var(--wk-border);
+  gap: 4px;
+  margin: 28px 0 16px;
+  padding: 4px;
   border-radius: 999px;
-  background: var(--wk-surface);
-  color: inherit;
+  background: var(--wk-surface-2);
+}
+.tabs button {
+  height: 36px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--wk-muted);
   font: inherit;
+  font-weight: 500;
   cursor: pointer;
 }
 .tabs button[aria-selected="true"] {
-  background: var(--wk-accent);
-  border-color: var(--wk-accent);
-  color: var(--wk-accent-fg);
+  background: var(--wk-surface);
+  color: var(--wk-fg);
+  box-shadow: 0 1px 2px rgba(20, 20, 19, 0.08);
 }
 .panel {
-  padding: 16px;
+  min-width: 0;
+  padding: 20px;
+  overflow-x: auto;
   border: 1px solid var(--wk-border);
-  border-radius: var(--wk-radius);
+  border-radius: var(--wk-radius-lg);
   background: var(--wk-surface);
 }
 .stack {
   display: grid;
   gap: 12px;
 }
+.note {
+  margin: 0;
+  color: var(--wk-muted);
+}
 .code {
+  overflow: hidden;
   border: 1px solid var(--wk-border);
   border-radius: var(--wk-radius);
-  overflow: hidden;
+  background: var(--wk-surface-2);
 }
 .code__bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 12px;
-  background: var(--wk-bg);
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid var(--wk-border);
   color: var(--wk-muted);
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
+}
+.code__bar button {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--wk-border-strong);
+  border-radius: 8px;
+  background: var(--wk-surface);
+  color: var(--wk-fg);
+  font: inherit;
+  cursor: pointer;
 }
 .code pre {
   margin: 0;
-  padding: 12px;
+  padding: 14px;
   overflow-x: auto;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
+  line-height: 1.6;
 }
 .api {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+}
+.api th {
+  color: var(--wk-muted);
+  font-weight: 500;
 }
 .api th,
 .api td {
-  padding: 8px;
+  padding: 10px 8px;
   border-bottom: 1px solid var(--wk-border);
   text-align: left;
   vertical-align: top;
@@ -418,4 +449,18 @@ a.card:hover {
 }
 .prose {
   max-width: 680px;
+}
+.prose h1 {
+  margin: 0 0 24px;
+  font-family: var(--wk-font-display);
+  font-weight: 400;
+  font-size: 2.5rem;
+  line-height: 1.1;
+}
+.prose p {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+}
+.prose a {
+  color: var(--wk-accent);
 }

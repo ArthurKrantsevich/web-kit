@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ToolTabs } from "@/components/ToolTabs";
-import { getTool, tools } from "@/registry";
+import { CATEGORY_LABELS, getTool, tools } from "@/registry";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -23,11 +23,15 @@ export default async function ToolPage({ params }: Props) {
 
   return (
     <article className="tool">
-      <Link href="/" className="back">
-        ← All utilities
-      </Link>
+      <nav aria-label="Breadcrumb" className="crumbs">
+        <ol>
+          <li>
+            <Link href="/">Tools</Link>
+          </li>
+          <li aria-current="page">{CATEGORY_LABELS[tool.category]}</li>
+        </ol>
+      </nav>
       <header className="tool__header">
-        <span className="badge">{tool.category}</span>
         <h1>{tool.title}</h1>
         <p>{tool.description}</p>
       </header>

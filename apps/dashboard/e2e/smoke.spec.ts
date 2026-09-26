@@ -127,3 +127,19 @@ test("tool cards show a preview", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByRole("link", { name: /JSON Formatter/ }).locator(".card__preview")).toContainText('"name"');
 });
+
+test("breadcrumbs lead back to all tools", async ({ page }) => {
+  await page.goto("tools/json-formatter/");
+  const crumbs = page.getByRole("navigation", { name: "Breadcrumb" });
+  await expect(crumbs).toContainText("Data");
+  await crumbs.getByRole("link", { name: "Tools" }).click();
+  await expect(page).toHaveURL(/\/web-kit\/$/);
+});
+
+test("code blocks announce a copy", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("tools/json-formatter/");
+  await page.getByRole("tab", { name: "Install & Usage" }).click();
+  await page.getByRole("button", { name: "Copy npm" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Copied" })).toHaveCount(1);
+});
