@@ -1,3 +1,9 @@
+/* Self-hosted next/font families (see layout.tsx) override the plain family names from tokens.css. */
+:root {
+  --wk-font-display: var(--font-display, Georgia), Georgia, serif;
+  --wk-font-sans: var(--font-sans, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --wk-font-mono: var(--font-mono, ui-monospace), ui-monospace, Menlo, Consolas, monospace;
+}
 *,
 *::before,
 *::after {
@@ -9,58 +15,159 @@ body {
   color: var(--wk-fg);
   font-family: var(--wk-font-sans);
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 a {
   color: inherit;
+}
+a:hover {
+  color: var(--wk-accent);
 }
 code,
 pre {
   font-family: var(--wk-font-mono);
 }
-.site-header,
-.site-main,
-.site-footer,
-.privacy {
-  max-width: 1080px;
+:focus-visible {
+  outline: 2px solid var(--wk-accent);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.container {
+  max-width: 1280px;
   margin: 0 auto;
   padding: 0 16px;
 }
+@media (min-width: 640px) {
+  .container {
+    padding: 0 48px;
+  }
+}
+
+/* ── shell ── */
 .site-header {
+  position: relative;
+  border-bottom: 1px solid var(--wk-border);
+}
+.site-header__inner {
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 20px;
-  padding-bottom: 12px;
-}
-.site-header nav {
-  display: flex;
   gap: 16px;
 }
 .logo {
-  font-weight: 700;
-  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 1.0625rem;
   text-decoration: none;
 }
-.privacy {
-  color: var(--wk-muted);
-  font-size: 0.875rem;
+.logo__mark {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--wk-primary);
+  color: var(--wk-primary-fg);
+  font-family: var(--wk-font-mono);
+  font-size: 13px;
+}
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.site-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin: 0 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9375rem;
+}
+.site-nav__links a {
+  text-decoration: none;
+}
+.icon-button {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--wk-border-strong);
+  border-radius: 999px;
+  background: var(--wk-surface);
+  color: var(--wk-fg);
+  cursor: pointer;
+}
+.menu-button {
+  display: none;
+}
+@media (max-width: 639px) {
+  .menu-button {
+    display: inline-flex;
+  }
+  .site-nav__links {
+    display: none;
+  }
+  .site-nav__links[data-open="true"] {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+    padding: 8px 16px 16px;
+    background: var(--wk-bg);
+    border-bottom: 1px solid var(--wk-border);
+  }
+  .site-nav__links[data-open="true"] a {
+    display: block;
+    padding: 12px 0;
+  }
 }
 .site-main {
-  padding-top: 16px;
-  padding-bottom: 48px;
   min-height: 70vh;
+  padding-top: 48px;
+  padding-bottom: 80px;
 }
 .site-footer {
-  padding-bottom: 32px;
+  border-top: 1px solid var(--wk-border);
+  padding: 24px 0 40px;
   color: var(--wk-muted);
   font-size: 0.875rem;
 }
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+/* ── home ── */
 .hero h1 {
   margin: 0 0 4px;
   font-size: 2.25rem;
 }
-.hero p,
-.tool__header p {
+.hero p {
   margin: 0;
   color: var(--wk-muted);
 }
@@ -85,9 +192,7 @@ pre {
   flex-wrap: wrap;
   gap: 8px;
 }
-.chips button,
-.tabs button,
-.code__bar button {
+.chips button {
   padding: 6px 12px;
   border: 1px solid var(--wk-border);
   border-radius: 999px;
@@ -96,8 +201,7 @@ pre {
   font: inherit;
   cursor: pointer;
 }
-.chips button[aria-pressed="true"],
-.tabs button[aria-selected="true"] {
+.chips button[aria-pressed="true"] {
   background: var(--wk-accent);
   border-color: var(--wk-accent);
   color: var(--wk-accent-fg);
@@ -132,6 +236,11 @@ pre {
   color: var(--wk-muted);
   font-size: 0.9rem;
 }
+.empty {
+  color: var(--wk-muted);
+}
+
+/* ── tool page ── */
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -143,7 +252,6 @@ pre {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.empty,
 .note {
   color: var(--wk-muted);
 }
@@ -156,11 +264,30 @@ pre {
 .tool__header h1 {
   margin: 8px 0 4px;
 }
+.tool__header p {
+  margin: 0;
+  color: var(--wk-muted);
+}
 .tabs {
   display: flex;
   gap: 8px;
   margin: 24px 0 16px;
   flex-wrap: wrap;
+}
+.tabs button,
+.code__bar button {
+  padding: 6px 12px;
+  border: 1px solid var(--wk-border);
+  border-radius: 999px;
+  background: var(--wk-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.tabs button[aria-selected="true"] {
+  background: var(--wk-accent);
+  border-color: var(--wk-accent);
+  color: var(--wk-accent-fg);
 }
 .panel {
   padding: 16px;

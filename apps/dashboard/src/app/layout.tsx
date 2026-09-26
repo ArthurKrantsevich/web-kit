@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Instrument_Sans, JetBrains_Mono, Newsreader } from "next/font/google";
 import "@web-kit/tokens/tokens.css";
 import "./globals.css";
+import { SiteHeader } from "@/components/SiteHeader";
+import { THEME_SCRIPT } from "@/theme";
+
+// next/font downloads the files at build time and serves them from this site.
+const display = Newsreader({ subsets: ["latin"], variable: "--font-display", display: "swap" });
+const sans = Instrument_Sans({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
   title: "web-kit",
@@ -10,22 +17,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    // THEME_SCRIPT sets data-theme before hydration, hence suppressHydrationWarning.
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
-        <header className="site-header">
-          <Link href="/" className="logo">
-            web-kit
-          </Link>
-          <nav>
-            <Link href="/about/">About</Link>
-            <a href="https://github.com/ArthurKrantsevich/web-kit">GitHub</a>
-          </nav>
-        </header>
-        <p className="privacy">Everything runs in your browser. Your data never leaves your device.</p>
-        <main className="site-main">{children}</main>
+        <SiteHeader />
+        <main className="container site-main">{children}</main>
         <footer className="site-footer">
-          MIT · Also built with Flutter:{" "}
-          <a href="https://arthurkrantsevich.github.io/flutter-kit/">flutter-kit</a>
+          <div className="container site-footer__inner">
+            <span>Everything runs in your browser. Your data never leaves your device.</span>
+            <span>
+              MIT · Also built with Flutter: <a href="https://arthurkrantsevich.github.io/flutter-kit/">flutter-kit</a>
+            </span>
+          </div>
         </footer>
       </body>
     </html>
