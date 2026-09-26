@@ -88,7 +88,8 @@ describe("JsonSchemaValidator", () => {
     expect([area("Data").value, area("Schema").value]).toEqual(["", ""]);
   });
 
-  it("lists at most 1,000 errors and says how many more there are", () => {
+  // Renders 1,000 rows; slow under a full parallel `pnpm verify`, so it gets its own timeout.
+  it("lists at most 1,000 errors and says how many more there are", { timeout: 20_000 }, () => {
     const data = `[${Array.from({ length: 1500 }, () => '"x"').join(",")}]`;
     render(<JsonSchemaValidator initialData={data} initialSchema='{"items":{"type":"number"}}' />);
     expect(rows("Errors")).toHaveLength(1000);

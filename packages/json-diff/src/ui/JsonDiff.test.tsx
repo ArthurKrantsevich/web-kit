@@ -86,7 +86,8 @@ describe("JsonDiff", () => {
     expect(rows().length).toBeGreaterThan(0);
   });
 
-  it("lists at most 1,000 changes and says how many more there are", () => {
+  // Renders 1,000 rows; under a full parallel `pnpm verify` this takes about 4.5 s, so it gets its own timeout.
+  it("lists at most 1,000 changes and says how many more there are", { timeout: 20_000 }, () => {
     const left = `[${Array.from({ length: 1500 }, (_, i) => i).join(",")}]`;
     const right = `[${Array.from({ length: 1500 }, (_, i) => i + 1).join(",")}]`;
     render(<JsonDiff initialLeft={left} initialRight={right} />);
