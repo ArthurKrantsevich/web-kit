@@ -4,6 +4,11 @@ export const meta: ToolMeta = {
   id: "json-formatter",
   title: "JSON Formatter",
   description: "Format, minify, sort, escape and validate JSON. Tree view, highlighting, stats, exact errors and verified fixes.",
+  preview: `{
+  "name": "web-kit",
+  "tools": ["formatter", "convert"],
+  "stable": true
+}`,
   category: "data",
   tags: ["json", "format", "minify", "validate", "pretty print"],
   pkg: "@web-kit/json-formatter",

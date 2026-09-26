@@ -4,6 +4,11 @@ export const meta: ToolMeta = {
   id: "json-convert",
   title: "JSON Convert",
   description: "JSON to YAML, CSV, XML and TypeScript, and CSV to JSON. Numbers stay exact; every format is checked.",
+  preview: `name: web-kit
+tools:
+  - formatter
+  - convert
+# YAML · CSV · XML · TypeScript`,
   category: "data",
   tags: ["json", "yaml", "csv", "xml", "typescript", "convert"],
   pkg: "@web-kit/json-convert",

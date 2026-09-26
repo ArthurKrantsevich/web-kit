@@ -112,3 +112,18 @@ test("JSONPath in the tree selects the match", async ({ page }) => {
   await expect(page.getByText("1 of 2")).toBeVisible();
   await expect(page.getByLabel("Selected path")).toHaveText("$.list[1]");
 });
+
+test("coming-soon cards show only without a search", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByText("JSON Diff")).toBeVisible();
+  await expect(page.getByRole("link", { name: /JSON Diff/ })).toHaveCount(0);
+
+  await page.getByRole("searchbox", { name: "Search utilities" }).fill("json");
+  await expect(page.getByText("JSON Diff")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
+});
+
+test("tool cards show a preview", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByRole("link", { name: /JSON Formatter/ }).locator(".card__preview")).toContainText('"name"');
+});
