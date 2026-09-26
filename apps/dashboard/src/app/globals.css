@@ -147,7 +147,7 @@ pre {
 }
 .site-main {
   min-height: 70vh;
-  padding-top: 48px;
+  padding-top: 32px;
   padding-bottom: 80px;
 }
 .site-footer {
@@ -327,7 +327,7 @@ a.card:hover {
 .crumbs ol {
   display: flex;
   gap: 8px;
-  margin: 0 0 12px;
+  margin: 0 0 6px;
   padding: 0;
   list-style: none;
   color: var(--wk-muted);
@@ -340,27 +340,32 @@ a.card:hover {
 .crumbs a {
   text-decoration: none;
 }
-.tool__header {
-  display: grid;
-  gap: 8px;
-  max-width: 760px;
+.tool__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 24px;
+  margin-bottom: 16px;
 }
 .tool__header h1 {
   margin: 0;
   font-family: var(--wk-font-display);
   font-weight: 400;
-  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-size: 2rem;
   line-height: 1.1;
 }
-.tool__header p {
+.tool__lead {
   margin: 0;
-  color: var(--wk-muted);
+  max-width: 760px;
+  color: var(--wk-fg);
+  font-size: 1rem;
 }
 .tabs {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin: 28px 0 16px;
+  margin: 0;
   padding: 4px;
   border-radius: 999px;
   background: var(--wk-surface-2);
@@ -464,4 +469,11 @@ a.card:hover {
 }
 .prose a {
   color: var(--wk-accent);
+}
+/* The formatter draws its own card; no second frame around it. */
+.panel:has(> .wk-json) {
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
 }

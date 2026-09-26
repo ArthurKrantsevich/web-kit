@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { ApiEntry, ToolMeta } from "@/registry";
 import { ToolDemo } from "@/tools/demos";
 import { CodeBlock } from "./CodeBlock";
@@ -10,7 +10,7 @@ type Tab = (typeof TABS)[number];
 
 const tabId = (tab: Tab) => `tab-${tab.toLowerCase().replace(/[^a-z]+/g, "-")}`;
 
-export function ToolTabs({ tool }: { tool: ToolMeta }) {
+export function ToolTabs({ tool, header }: { tool: ToolMeta; header: ReactNode }) {
   const [active, setActive] = useState<Tab>("Demo");
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -33,24 +33,27 @@ export function ToolTabs({ tool }: { tool: ToolMeta }) {
 
   return (
     <div>
-      <div role="tablist" aria-label="Sections" className="tabs" onKeyDown={onKeyDown}>
-        {TABS.map((tab, index) => (
-          <button
-            key={tab}
-            ref={(element) => {
-              buttons.current[index] = element;
-            }}
-            id={tabId(tab)}
-            type="button"
-            role="tab"
-            tabIndex={active === tab ? 0 : -1}
-            aria-selected={active === tab}
-            aria-controls="tool-panel"
-            onClick={() => setActive(tab)}
-          >
-            {tab}
-          </button>
-        ))}
+      <div className="tool__top">
+        <div className="tool__header">{header}</div>
+        <div role="tablist" aria-label="Sections" className="tabs" onKeyDown={onKeyDown}>
+          {TABS.map((tab, index) => (
+            <button
+              key={tab}
+              ref={(element) => {
+                buttons.current[index] = element;
+              }}
+              id={tabId(tab)}
+              type="button"
+              role="tab"
+              tabIndex={active === tab ? 0 : -1}
+              aria-selected={active === tab}
+              aria-controls="tool-panel"
+              onClick={() => setActive(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
       <div role="tabpanel" id="tool-panel" aria-labelledby={tabId(active)} className="panel">
         {active === "Demo" && <ToolDemo id={tool.id} />}
@@ -64,6 +67,7 @@ export function ToolTabs({ tool }: { tool: ToolMeta }) {
 function Usage({ tool }: { tool: ToolMeta }) {
   return (
     <div className="stack">
+      <p className="tool__lead">{tool.description}</p>
       <p className="note">Not published to npm yet. These commands will work after the first release.</p>
       <CodeBlock label="npm" code={`npm i ${tool.pkg}`} />
       <CodeBlock label="pnpm" code={`pnpm add ${tool.pkg}`} />
