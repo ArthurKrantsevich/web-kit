@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { tools } from "../src/registry";
+import { tools, upcoming } from "../src/registry";
 
 test("home lists utilities and filters them", async ({ page }) => {
   await page.goto("./");
@@ -113,13 +113,18 @@ test("JSONPath in the tree selects the match", async ({ page }) => {
   await expect(page.getByLabel("Selected path")).toHaveText("$.list[1]");
 });
 
-test("coming-soon cards show only without a search", async ({ page }) => {
+test("coming-soon cards follow the registry and hide during a search", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByText("JSON Schema Validator")).toBeVisible();
-  await expect(page.getByRole("link", { name: /JSON Schema Validator/ })).toHaveCount(0);
+  // `upcoming` is empty after the schema validator shipped; this still checks that no stale "Soon" card is shown,
+  // and checks each card's title and missing link again as soon as a planned tool is added.
+  await expect(page.locator(".card--soon")).toHaveCount(upcoming.length);
+  for (const tool of upcoming) {
+    await expect(page.getByText(tool.title, { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: tool.title })).toHaveCount(0);
+  }
 
   await page.getByRole("searchbox", { name: "Search utilities" }).fill("json");
-  await expect(page.getByText("JSON Schema Validator")).toHaveCount(0);
+  await expect(page.locator(".card--soon")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
 });
 
@@ -156,4 +161,25 @@ test("json-diff compares and copies a JSON Patch", async ({ page, context }) => 
     { op: "replace", path: "/b", value: 3 },
     { op: "add", path: "/c", value: 4 },
   ]);
+});
+
+test("json-schema-validator lists errors and selects them in the data", async ({ page }) => {
+  await page.goto("./");
+  await expect(page.getByRole("link", { name: /JSON Schema Validator/ })).toBeVisible();
+
+  await page.goto("tools/json-schema-validator/");
+  const data = page.getByLabel("Data", { exact: true });
+  await data.fill('{"age": -1}');
+  await page.getByLabel("Schema", { exact: true }).fill('{"type":"object","properties":{"age":{"minimum":0}},"required":["name"]}');
+  const errors = page.getByRole("list", { name: "Errors" }).getByRole("button");
+  await expect(errors).toHaveCount(2);
+  await expect(page.getByText("Not valid: 2 errors")).toBeVisible();
+
+  await errors.nth(1).click();
+  const selection = await data.evaluate((area: HTMLTextAreaElement) => [area.selectionStart, area.selectionEnd]);
+  expect(selection).toEqual([8, 10]);
+
+  await page.getByRole("button", { name: "Generate schema from data" }).click();
+  await expect(page.getByText("Valid", { exact: true })).toBeVisible();
+  await expect(page.getByText("The data matches the schema.")).toBeVisible();
 });

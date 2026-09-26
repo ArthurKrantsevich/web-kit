@@ -48,9 +48,7 @@ export interface UpcomingTool {
   description: string;
 }
 
-export const upcoming: UpcomingTool[] = [
-  { title: "JSON Schema Validator", description: "Check JSON against a schema." },
-];
+export const upcoming: UpcomingTool[] = [];
 
 export function getTool(id: string): ToolMeta | undefined {
   return tools.find((tool) => tool.id === id);
