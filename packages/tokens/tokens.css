@@ -1,36 +1,69 @@
 /* Design tokens shared by the dashboard and the default package styles. Keep in sync with flutter-kit. */
+/* Dark values are written twice (system dark, and data-theme="dark"); check-contrast.mjs fails if they differ. */
 :root {
-  --wk-bg: #f7f7f8;
+  color-scheme: light;
+  --wk-bg: #faf9f5;
   --wk-surface: #ffffff;
-  --wk-fg: #111318;
-  --wk-muted: #5b6270;
-  --wk-border: #dfe1e6;
-  --wk-accent: #4f46e5;
+  --wk-surface-2: #f0eee6;
+  --wk-fg: #141413;
+  --wk-muted: #5e5d59;
+  --wk-border: rgba(31, 30, 29, 0.15);
+  --wk-border-strong: rgba(31, 30, 29, 0.3);
+  --wk-accent: #b5532f;
   --wk-accent-fg: #ffffff;
-  --wk-danger: #c62828;
+  --wk-primary: #141413;
+  --wk-primary-fg: #faf9f5;
+  --wk-danger: #b3261e;
   --wk-radius: 10px;
-  --wk-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --wk-font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --wk-syntax-key: #7c3aed;
-  --wk-syntax-string: #047857;
-  --wk-syntax-number: #b45309;
-  --wk-syntax-literal: #2563eb;
-  --wk-syntax-punct: #5b6270;
+  --wk-radius-lg: 16px;
+  --wk-font-display: "Newsreader", Georgia, serif;
+  --wk-font-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --wk-font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --wk-syntax-key: #8a3fa0;
+  --wk-syntax-string: #2f6b3a;
+  --wk-syntax-number: #9a5210;
+  --wk-syntax-literal: #2a5fb0;
+  --wk-syntax-punct: #5e5d59;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --wk-bg: #0f1115;
-    --wk-surface: #171a21;
-    --wk-fg: #e6e6e6;
-    --wk-muted: #9aa1ad;
-    --wk-border: #2a2f3a;
-    --wk-accent: #818cf8;
-    --wk-accent-fg: #0f1115;
-    --wk-danger: #ef5350;
-    --wk-syntax-key: #c4b5fd;
-    --wk-syntax-string: #6ee7b7;
-    --wk-syntax-number: #fcd34d;
-    --wk-syntax-literal: #93c5fd;
-    --wk-syntax-punct: #9aa1ad;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --wk-bg: #1a1918;
+    --wk-surface: #262624;
+    --wk-surface-2: #30302e;
+    --wk-fg: #f0eee6;
+    --wk-muted: #b0aea5;
+    --wk-border: rgba(240, 238, 230, 0.14);
+    --wk-border-strong: rgba(240, 238, 230, 0.28);
+    --wk-accent: #e08a6a;
+    --wk-accent-fg: #1a1918;
+    --wk-primary: #f0eee6;
+    --wk-primary-fg: #1a1918;
+    --wk-danger: #f2837b;
+    --wk-syntax-key: #c9a2ff;
+    --wk-syntax-string: #7ee2a8;
+    --wk-syntax-number: #f2c46d;
+    --wk-syntax-literal: #8ab8ff;
+    --wk-syntax-punct: #b0aea5;
   }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --wk-bg: #1a1918;
+  --wk-surface: #262624;
+  --wk-surface-2: #30302e;
+  --wk-fg: #f0eee6;
+  --wk-muted: #b0aea5;
+  --wk-border: rgba(240, 238, 230, 0.14);
+  --wk-border-strong: rgba(240, 238, 230, 0.28);
+  --wk-accent: #e08a6a;
+  --wk-accent-fg: #1a1918;
+  --wk-primary: #f0eee6;
+  --wk-primary-fg: #1a1918;
+  --wk-danger: #f2837b;
+  --wk-syntax-key: #c9a2ff;
+  --wk-syntax-string: #7ee2a8;
+  --wk-syntax-number: #f2c46d;
+  --wk-syntax-literal: #8ab8ff;
+  --wk-syntax-punct: #b0aea5;
 }
