@@ -57,9 +57,11 @@ function saveFile(text: string, name: string): void {
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
+  // Some Firefox and Safari versions ignore clicks on detached links and cancel downloads whose URL is revoked early.
+  document.body.append(link);
   link.click();
-  // Revoke once the click has handed the URL to the download.
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 40_000);
 }
 
 const ICONS = {

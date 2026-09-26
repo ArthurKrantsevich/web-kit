@@ -1,6 +1,9 @@
 /* Default look for JsonFormatter, JsonTree, HighlightedJson and JsonStats.
    Colors come from @web-kit/tokens when the app loads it; the fallbacks match its light theme. */
 .wk-json {
+  /* An inline-size container ignores its content's width; without this it collapses in shrink-to-fit parents. */
+  width: 100%;
+  box-sizing: border-box;
   container-type: inline-size;
   display: flex;
   flex-direction: column;
@@ -241,6 +244,11 @@
   border: 0;
   border-radius: 0;
   padding: 14px 16px;
+}
+/* The pane clips overflow, so focus rings go inside. */
+.wk-json__body > .wk-code:focus-visible,
+.wk-json__body > .wk-tree > .wk-tree__list:focus-visible {
+  outline-offset: -2px;
 }
 .wk-json__placeholder {
   margin: 0;

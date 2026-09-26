@@ -67,3 +67,28 @@ test("formatter: file actions stay on one row on a phone", async ({ page }) => {
   expect(tops).toHaveLength(3);
   expect(new Set(tops).size).toBe(1);
 });
+
+test("formatter: keyboard focus on the output is visible inside the pane", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("tools/json-formatter/");
+  const output = page.getByLabel("Output", { exact: true });
+  await output.focus();
+  expect(await output.evaluate((el) => getComputedStyle(el).outlineOffset)).toBe("-2px");
+});
+
+test("formatter: keeps its width inside a shrink-to-fit parent", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("tools/json-formatter/");
+  const width = await page.evaluate(() => {
+    const editor = document.querySelector(".wk-json")!;
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.width = "1000px";
+    const aside = document.createElement("aside");
+    aside.style.width = "100px";
+    editor.replaceWith(row);
+    row.append(aside, editor);
+    return editor.getBoundingClientRect().width;
+  });
+  expect(width).toBeGreaterThan(800);
+});

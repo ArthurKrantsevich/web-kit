@@ -386,4 +386,23 @@ describe("JsonFormatter editor", () => {
     const { container } = render(<JsonFormatter initialInput='"é"' />);
     expect(container.querySelector(".wk-json__size")?.textContent).toBe("4 B");
   });
+
+  it("downloads through a connected link and revokes the URL only later", () => {
+    vi.useFakeTimers();
+    const revoke = vi.fn();
+    let connected = false;
+    Object.defineProperty(URL, "createObjectURL", { value: () => "blob:test", configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: revoke, configurable: true });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      connected = this.isConnected;
+    });
+    render(<JsonFormatter initialInput='{"a":1}' />);
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    expect(connected).toBe(true);
+    vi.advanceTimersByTime(1000);
+    expect(revoke).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(60_000);
+    expect(revoke).toHaveBeenCalledWith("blob:test");
+    vi.useRealTimers();
+  });
 });
