@@ -115,11 +115,11 @@ test("JSONPath in the tree selects the match", async ({ page }) => {
 
 test("coming-soon cards show only without a search", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByText("JSON Diff")).toBeVisible();
-  await expect(page.getByRole("link", { name: /JSON Diff/ })).toHaveCount(0);
+  await expect(page.getByText("JSON Schema Validator")).toBeVisible();
+  await expect(page.getByRole("link", { name: /JSON Schema Validator/ })).toHaveCount(0);
 
   await page.getByRole("searchbox", { name: "Search utilities" }).fill("json");
-  await expect(page.getByText("JSON Diff")).toHaveCount(0);
+  await expect(page.getByText("JSON Schema Validator")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
 });
 
@@ -142,4 +142,18 @@ test("code blocks announce a copy", async ({ page, context }) => {
   await page.getByRole("tab", { name: "Install & Usage" }).click();
   await page.getByRole("button", { name: "Copy npm" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Copied" })).toHaveCount(1);
+});
+
+test("json-diff compares and copies a JSON Patch", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("tools/json-diff/");
+  await page.getByLabel("Left", { exact: true }).fill('{"a":1,"b":2}');
+  await page.getByLabel("Right", { exact: true }).fill('{"a":1.0,"b":3,"c":4}');
+  await expect(page.getByRole("list", { name: "Changes" }).getByRole("listitem")).toHaveCount(2);
+  await page.getByRole("button", { name: "Copy JSON Patch" }).click();
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  expect(JSON.parse(text)).toEqual([
+    { op: "replace", path: "/b", value: 3 },
+    { op: "add", path: "/c", value: 4 },
+  ]);
 });

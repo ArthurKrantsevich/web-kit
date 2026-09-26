@@ -1,5 +1,6 @@
 import { meta as jsonFormatter } from "./tools/json-formatter/meta";
 // generator:meta-imports
+import { meta as jsonDiff } from "./tools/json-diff/meta";
 import { meta as jsonConvert } from "./tools/json-convert/meta";
 
 export type Category = "data" | "generators" | "media";
@@ -35,6 +36,7 @@ export interface ToolMeta {
 export const tools: ToolMeta[] = [
   jsonFormatter,
   // generator:metas
+  jsonDiff,
   jsonConvert,
 ];
 
@@ -45,7 +47,6 @@ export interface UpcomingTool {
 }
 
 export const upcoming: UpcomingTool[] = [
-  { title: "JSON Diff", description: "Compare two JSON documents." },
   { title: "JSON Schema Validator", description: "Check JSON against a schema." },
 ];
 

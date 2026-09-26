@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-for (const path of ["./", "tools/json-formatter/", "tools/json-convert/"]) {
+for (const path of ["./", "tools/json-formatter/", "tools/json-convert/", "tools/json-diff/"]) {
   test(`no horizontal scroll at 390 px: ${path}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(path);

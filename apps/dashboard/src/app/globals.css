@@ -471,7 +471,7 @@ a.card:hover {
   color: var(--wk-accent);
 }
 /* The formatter draws its own card; no second frame around it. */
-.panel:has(> .wk-json) {
+.panel:has(> .wk-json, > .wk-diff) {
   padding: 0;
   overflow: visible;
   border: 0;

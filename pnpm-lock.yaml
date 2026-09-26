@@ -223,6 +223,9 @@ importers:
       '@web-kit/json-convert':
         specifier: workspace:*
         version: link:../../packages/json-convert
+      '@web-kit/json-diff':
+        specifier: workspace:*
+        version: link:../../packages/json-diff
       '@web-kit/json-formatter':
         specifier: workspace:*
         version: link:../../packages/json-formatter
@@ -272,6 +275,15 @@ importers:
         version: 2.9.1
 
   packages/json-core: {}
+
+  packages/json-diff:
+    dependencies:
+      '@web-kit/json-core':
+        specifier: workspace:*
+        version: link:../json-core
+      react:
+        specifier: '>=18'
+        version: 19.3.0
 
   packages/json-formatter:
     dependencies:
