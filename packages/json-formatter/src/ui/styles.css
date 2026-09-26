@@ -588,3 +588,25 @@
 .wk-json__body:has(> .wk-tree) {
   overflow: hidden;
 }
+
+/* Narrow component: shorter rows so the toolbar and the tree tools do not wrap into odd lines. */
+@container (max-width: 639px) {
+  .wk-json__bar {
+    gap: 8px;
+  }
+  .wk-json__bar .wk-json__ghost {
+    padding: 0 8px;
+  }
+  .wk-json__field {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .wk-tree__search,
+  .wk-tree__path {
+    flex-basis: 100%;
+  }
+}

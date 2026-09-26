@@ -56,3 +56,14 @@ test("formatter page loads without console errors", async ({ page }) => {
   await page.getByLabel("Input", { exact: true }).waitFor();
   expect(errors).toEqual([]);
 });
+
+test("formatter: file actions stay on one row on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("tools/json-formatter/");
+  const tops = await page
+    .getByRole("group", { name: "Options" })
+    .getByRole("button", { name: /^(Open file|Sample|Clear)$/ })
+    .evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().top)));
+  expect(tops).toHaveLength(3);
+  expect(new Set(tops).size).toBe(1);
+});

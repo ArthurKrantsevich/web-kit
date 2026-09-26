@@ -477,3 +477,7 @@ a.card:hover {
   border: 0;
   background: none;
 }
+/* On the tool page the editor fills the rest of the screen, status line included. */
+.panel:has(> .wk-json) > .wk-json {
+  --wk-json-height: max(420px, calc(100dvh - 310px));
+}
