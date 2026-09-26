@@ -271,3 +271,12 @@
     flex-basis: 100%;
   }
 }
+/* Too narrow for one row: "Generate schema from data" alone, then Sample and Clear together (not Clear alone). */
+@container (max-width: 479px) {
+  .wk-schema__bar {
+    row-gap: 4px;
+  }
+  .wk-schema__spacer {
+    flex-basis: 100%;
+  }
+}

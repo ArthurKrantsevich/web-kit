@@ -481,3 +481,7 @@ a.card:hover {
 .panel:has(> .wk-json) > .wk-json {
   --wk-json-height: max(420px, calc(100dvh - 310px));
 }
+/* The validator's results sit under the panes: leave room for the demo's five errors and the status line. */
+.panel:has(> .wk-schema) > .wk-schema {
+  --wk-schema-height: max(320px, calc(100dvh - 480px));
+}
