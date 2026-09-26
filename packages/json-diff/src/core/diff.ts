@@ -102,7 +102,9 @@ function walkArrays(a: ArrayNode, b: ArrayNode, path: JsonPath, ctx: Context): v
   if (key !== undefined) {
     const leftKeyed = usesKeys(a, path, key, "left");
     const rightKeyed = usesKeys(b, path, key, "right");
-    if (leftKeyed || rightKeyed) return walkKeyed(a, b, path, key, ctx);
+    // By key only when every non-empty side holds objects; values against objects compare by index.
+    const keyed = (leftKeyed || rightKeyed) && (leftKeyed || a.items.length === 0) && (rightKeyed || b.items.length === 0);
+    if (keyed) return walkKeyed(a, b, path, key, ctx);
   }
   const common = Math.min(a.items.length, b.items.length);
   for (let i = 0; i < common; i++) walk(a.items[i]!, b.items[i]!, [...path, i], ctx);

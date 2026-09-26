@@ -144,3 +144,18 @@ describe("applyJsonPatch", () => {
     expect(apply("{", []).ok).toBe(false);
   });
 });
+
+describe("toJsonPatch on large documents", () => {
+  it("stays fast with many reordered keyed arrays", () => {
+    const item = (id: number, order: string) => `{"id":${id},"c":[${order}]}`;
+    const left = `[${Array.from({ length: 20_000 }, (_, i) => item(i, '{"id":1},{"id":2}')).join(",")}]`;
+    const right = `[${Array.from({ length: 20_000 }, (_, i) => item(i, '{"id":2},{"id":1}')).join(",")}]`;
+    const result = diffJson(left, right, { arrayKey: "id" });
+    if (!result.ok) throw new Error(result.error.message);
+    const started = performance.now();
+    const ops = toJsonPatch(result.value);
+    expect(performance.now() - started).toBeLessThan(1000);
+    expect(ops).toHaveLength(20_000);
+  });
+});
+

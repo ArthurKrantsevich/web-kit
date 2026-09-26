@@ -188,7 +188,8 @@
   overflow: auto;
 }
 .wk-diff__placeholder,
-.wk-diff__same {
+.wk-diff__same,
+.wk-diff__more {
   margin: 0;
   padding: 16px;
   color: var(--wk-muted, #5e5d59);

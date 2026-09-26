@@ -6,16 +6,23 @@ export function toPointer(path: JsonPath): string {
   return path.map((part) => `/${String(part).replace(/~/g, "~0").replace(/\//g, "~1")}`).join("");
 }
 
-const isUnder = (path: JsonPath, prefix: JsonPath): boolean =>
-  prefix.length <= path.length && prefix.every((part, i) => part === path[i]);
+/** Pointers of the path and of every ancestor, root first: "", "/a", "/a/0". */
+function pointerPrefixes(path: JsonPath): string[] {
+  const out = [""];
+  let pointer = "";
+  for (const part of path) {
+    pointer += toPointer([part]);
+    out.push(pointer);
+  }
+  return out;
+}
 
 /** Operations that turn the left document into the right one. Values are copied verbatim from the right text. */
 export function toJsonPatch(diff: JsonDiff): JsonPatchOperation[] {
-  const whole = diff.wholeArrays.filter(
-    (array) => !diff.wholeArrays.some((other) => other !== array && isUnder(array.path, other.path)),
-  );
-  const replaced = whole.map((array) => array.path);
-  const kept = diff.changes.filter((change) => !replaced.some((prefix) => isUnder(change.path, prefix)));
+  // Set lookups keep this linear in the number of changes (times path depth) for large documents.
+  const replacedPointers = new Set(diff.wholeArrays.map((array) => toPointer(array.path)));
+  const whole = diff.wholeArrays.filter((array) => !pointerPrefixes(array.path).slice(0, -1).some((p) => replacedPointers.has(p)));
+  const kept = diff.changes.filter((change) => !pointerPrefixes(change.path).some((p) => replacedPointers.has(p)));
   const ops: JsonPatchOperation[] = whole.map((array) => ({ op: "replace", path: toPointer(array.path), value: array.right.raw }));
   for (const change of kept) {
     if (change.kind === "changed") ops.push({ op: "replace", path: toPointer(change.path), value: change.right!.raw });

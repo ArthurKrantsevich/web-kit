@@ -15,6 +15,9 @@ const SAMPLE_LEFT =
 const SAMPLE_RIGHT =
   '{"name":"web-kit","version":"1.1.0","tools":[{"id":1,"name":"formatter"},{"id":2,"name":"convert"},{"id":3,"name":"diff"}],"license":"MIT"}';
 
+/** Rows beyond this are not rendered: a huge list would freeze the page. The patch still has every change. */
+const LIST_LIMIT = 1000;
+
 const SIGN: Record<JsonChange["kind"], string> = { added: "+", removed: "−", changed: "~" };
 const LABEL: Record<Side, string> = { left: "Left", right: "Right" };
 const hasBom = (text: string): boolean => text.charCodeAt(0) === 0xfeff;
@@ -211,8 +214,9 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
               {result.value.wholeArrays.length > 0 ? "Only the order of array items differs." : "No differences."}
             </p>
           ) : (
+            <>
             <ul className="wk-diff__changes" aria-label="Changes">
-              {result.value.changes.map((change, index) => (
+              {result.value.changes.slice(0, LIST_LIMIT).map((change, index) => (
                 <li key={index}>
                   <button
                     type="button"
@@ -229,6 +233,12 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
                 </li>
               ))}
             </ul>
+            {result.value.changes.length > LIST_LIMIT && (
+              <p className="wk-diff__more">
+                {`${result.value.changes.length - LIST_LIMIT} more changes are not listed. Copy JSON Patch includes all of them.`}
+              </p>
+            )}
+            </>
           )}
         </div>
       </section>

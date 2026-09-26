@@ -85,4 +85,13 @@ describe("JsonDiff", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sample" }));
     expect(rows().length).toBeGreaterThan(0);
   });
+
+  it("lists at most 1,000 changes and says how many more there are", () => {
+    const left = `[${Array.from({ length: 1500 }, (_, i) => i).join(",")}]`;
+    const right = `[${Array.from({ length: 1500 }, (_, i) => i + 1).join(",")}]`;
+    render(<JsonDiff initialLeft={left} initialRight={right} />);
+    expect(rows()).toHaveLength(1000);
+    expect(screen.getByText("500 more changes are not listed. Copy JSON Patch includes all of them.")).toBeTruthy();
+  });
 });
+

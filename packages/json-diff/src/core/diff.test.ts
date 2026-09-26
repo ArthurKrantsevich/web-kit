@@ -131,4 +131,11 @@ describe("diffJson", () => {
     if (!result.ok) throw new Error("parse");
     expect(result.value.changes[0]!.left).toEqual({ raw: "1", start: 5, end: 6 });
   });
+
+  it("compares by index when only one side of a keyed array has objects", () => {
+    expect(changes('{"a":[1,2]}', '{"a":[{"id":1}]}', { arrayKey: "id" })).toEqual([
+      { kind: "changed", path: ["a", 0], left: "1", right: '{"id":1}' },
+      { kind: "removed", path: ["a", 1], left: "2", right: undefined },
+    ]);
+  });
 });
