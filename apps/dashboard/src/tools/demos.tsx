@@ -6,6 +6,7 @@ import type { ComponentType } from "react";
 const demos: Record<string, ComponentType> = {
   "json-formatter": dynamic(() => import("./json-formatter/demo")),
   // generator:demos
+  "json-schema-validator": dynamic(() => import("./json-schema-validator/demo")),
   "json-diff": dynamic(() => import("./json-diff/demo")),
   "json-convert": dynamic(() => import("./json-convert/demo")),
 };

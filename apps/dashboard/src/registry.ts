@@ -1,5 +1,6 @@
 import { meta as jsonFormatter } from "./tools/json-formatter/meta";
 // generator:meta-imports
+import { meta as jsonSchemaValidator } from "./tools/json-schema-validator/meta";
 import { meta as jsonDiff } from "./tools/json-diff/meta";
 import { meta as jsonConvert } from "./tools/json-convert/meta";
 
@@ -36,6 +37,7 @@ export interface ToolMeta {
 export const tools: ToolMeta[] = [
   jsonFormatter,
   // generator:metas
+  jsonSchemaValidator,
   jsonDiff,
   jsonConvert,
 ];

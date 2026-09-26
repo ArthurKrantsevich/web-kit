@@ -229,6 +229,9 @@ importers:
       '@web-kit/json-formatter':
         specifier: workspace:*
         version: link:../../packages/json-formatter
+      '@web-kit/json-schema-validator':
+        specifier: workspace:*
+        version: link:../../packages/json-schema-validator
       '@web-kit/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -293,6 +296,19 @@ importers:
       react:
         specifier: '>=18'
         version: 19.3.0
+
+  packages/json-schema-validator:
+    dependencies:
+      '@web-kit/json-core':
+        specifier: workspace:*
+        version: link:../json-core
+      react:
+        specifier: '>=18'
+        version: 19.3.0
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
 
   packages/tokens: {}
 
