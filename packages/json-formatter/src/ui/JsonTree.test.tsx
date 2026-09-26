@@ -217,3 +217,27 @@ describe("JsonTree", () => {
     expect(selected()).toBe("11: 11");
   });
 });
+
+describe("JsonTree toolbar", () => {
+  it("keeps search and Expand/Collapse in one toolbar", () => {
+    const text = '{"a":[1,2]}';
+    const parsed = parseJson(text);
+    if (!parsed.ok) throw new Error("fixture");
+    const { container } = render(<JsonTree root={parsed.value} source={text} />);
+    const toolbar = container.querySelector(".wk-tree__toolbar")!;
+    expect(toolbar.querySelector('input[aria-label="Search or JSONPath"]')).not.toBeNull();
+    expect([...toolbar.querySelectorAll("button")].map((b) => b.textContent)).toEqual(
+      expect.arrayContaining(["Expand all", "Collapse all"]),
+    );
+    expect(container.querySelector(".wk-tree__query")).toBeNull();
+  });
+
+  it("still shows Expand/Collapse when search is off", () => {
+    const text = "[1]";
+    const parsed = parseJson(text);
+    if (!parsed.ok) throw new Error("fixture");
+    const { container } = render(<JsonTree root={parsed.value} source={text} searchable={false} />);
+    expect(container.querySelector(".wk-tree__toolbar input")).toBeNull();
+    expect(screen.getByRole("button", { name: "Expand all" })).toBeTruthy();
+  });
+});

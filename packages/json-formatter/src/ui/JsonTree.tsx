@@ -292,58 +292,59 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
 
   return (
     <div className={["wk-tree", props.className].filter(Boolean).join(" ")}>
-      {props.searchable !== false && (
-        <div className="wk-tree__query">
-          <input
-            type="search"
-            className="wk-tree__search"
-            aria-label="Search or JSONPath"
-            aria-invalid={found.error ? true : undefined}
-            aria-describedby={`${baseId}-query-status`}
-            placeholder="Search, or JSONPath like $..price"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              step(e.shiftKey ? -1 : 1);
-            }}
-          />
-          <span id={`${baseId}-query-status`} className="wk-tree__count" aria-live="polite">
-            {status}
-          </span>
-          <button
-            type="button"
-            className="wk-json__button"
-            aria-label="Previous match"
-            disabled={found.matches.length < 2}
-            onClick={() => step(-1)}
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            className="wk-json__button"
-            aria-label="Next match"
-            disabled={found.matches.length < 2}
-            onClick={() => step(1)}
-          >
-            ↓
-          </button>
-          {found.mode === "path" && found.matches.length > 0 && (
-            <button type="button" className="wk-json__button" onClick={() => copyResults(resultsText())}>
-              {resultsLabel}
-            </button>
-          )}
-        </div>
-      )}
       <div className="wk-tree__toolbar">
-        <button type="button" className="wk-json__button" onClick={expandAll}>
+        {props.searchable !== false && (
+          <>
+            <input
+              type="search"
+              className="wk-tree__search"
+              aria-label="Search or JSONPath"
+              aria-invalid={found.error ? true : undefined}
+              aria-describedby={`${baseId}-query-status`}
+              placeholder="Search, or JSONPath like $..price"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                step(e.shiftKey ? -1 : 1);
+              }}
+            />
+            <span id={`${baseId}-query-status`} className="wk-tree__count" aria-live="polite">
+              {status}
+            </span>
+            <button
+              type="button"
+              className="wk-tree__tool"
+              aria-label="Previous match"
+              disabled={found.matches.length < 2}
+              onClick={() => step(-1)}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              className="wk-tree__tool"
+              aria-label="Next match"
+              disabled={found.matches.length < 2}
+              onClick={() => step(1)}
+            >
+              ↓
+            </button>
+            {found.mode === "path" && found.matches.length > 0 && (
+              <button type="button" className="wk-tree__tool" onClick={() => copyResults(resultsText())}>
+                {resultsLabel}
+              </button>
+            )}
+          </>
+        )}
+        <span className="wk-tree__spacer" />
+        <button type="button" className="wk-tree__tool" onClick={expandAll}>
           Expand all
         </button>
         <button
           type="button"
-          className="wk-json__button"
+          className="wk-tree__tool"
           onClick={() => update({ expanded: new Set(), shown: new Map(), selected: "$", note: null })}
         >
           Collapse all
@@ -419,14 +420,14 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
         <code className="wk-tree__path" aria-label="Selected path">
           {path}
         </code>
-        <button type="button" className="wk-json__button" onClick={() => copyPath(path)}>
+        <button type="button" className="wk-tree__tool" onClick={() => copyPath(path)}>
           {pathLabel}
         </button>
-        <button type="button" className="wk-json__button" onClick={() => copyValue(source.slice(target.start, target.end))}>
+        <button type="button" className="wk-tree__tool" onClick={() => copyValue(source.slice(target.start, target.end))}>
           {valueLabel}
         </button>
         {onShowInInput && (
-          <button type="button" className="wk-json__button" onClick={() => onShowInInput(target.start, target.end)}>
+          <button type="button" className="wk-tree__tool" onClick={() => onShowInInput(target.start, target.end)}>
             Show in input
           </button>
         )}

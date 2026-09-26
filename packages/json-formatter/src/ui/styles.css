@@ -409,11 +409,6 @@
   color: var(--wk-muted, #5e5d59);
   font-size: 0.875rem;
 }
-.wk-tree__note {
-  margin: 0;
-  color: var(--wk-muted, #5e5d59);
-  font-size: 0.875rem;
-}
 .wk-code,
 .wk-tree__list {
   box-sizing: border-box;
@@ -470,7 +465,8 @@
   color: var(--wk-syntax-punct, #5e5d59);
 }
 .wk-tree {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
 }
 .wk-tree__toolbar,
@@ -478,7 +474,50 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 4px 6px;
+}
+.wk-tree__spacer {
+  flex: 1 1 auto;
+}
+.wk-tree__tool {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--wk-fg, #141413);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.wk-tree__tool:hover:not(:disabled) {
+  background: var(--wk-surface-2, #f0eee6);
+}
+.wk-tree__tool:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.wk-tree__search {
+  flex: 1 1 14rem;
+  min-width: 0;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
+  border-radius: 999px;
+  background: var(--wk-surface, #ffffff);
+  color: inherit;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+}
+.wk-tree__count {
+  min-width: 4rem;
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.8125rem;
+}
+.wk-tree__note {
+  margin: 0;
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.8125rem;
 }
 .wk-tree__list {
   padding: 0.5rem 0;
@@ -491,6 +530,9 @@
 .wk-tree__row[aria-selected="true"] {
   background: rgba(181, 83, 47, 0.14);
   background: color-mix(in srgb, var(--wk-accent, #b5532f) 14%, transparent);
+}
+.wk-tree__row--match {
+  box-shadow: inset 3px 0 0 var(--wk-accent, #b5532f);
 }
 .wk-tree__toggle {
   display: inline-block;
@@ -513,32 +555,36 @@
   cursor: pointer;
 }
 .wk-tree__path {
-  flex: 1 1 12rem;
+  flex: 1 1 10rem;
   overflow-wrap: anywhere;
   font-family: var(--wk-font-mono, ui-monospace, monospace);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
-.wk-tree__query {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
+
+/* Inside JsonFormatter the tree fills the output pane: toolbar on top, details at the bottom. */
+.wk-json__body > .wk-tree {
+  height: 100%;
+  gap: 0;
 }
-.wk-tree__search {
-  flex: 1 1 16rem;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-  border-radius: var(--wk-radius, 10px);
-  background: var(--wk-surface, #ffffff);
-  color: inherit;
-  font-family: var(--wk-font-mono, ui-monospace, monospace);
-  font-size: 0.875rem;
+.wk-json__body > .wk-tree > .wk-tree__toolbar {
+  padding: 8px 8px 8px 12px;
+  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
 }
-.wk-tree__count {
-  min-width: 5rem;
-  color: var(--wk-muted, #5e5d59);
-  font-size: 0.875rem;
+.wk-json__body > .wk-tree > .wk-tree__note {
+  padding: 6px 12px;
 }
-.wk-tree__row--match {
-  box-shadow: inset 3px 0 0 var(--wk-accent, #b5532f);
+.wk-json__body > .wk-tree > .wk-tree__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+}
+.wk-json__body > .wk-tree > .wk-tree__details {
+  min-height: 40px;
+  padding: 4px 6px 4px 12px;
+  border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+}
+.wk-json__body:has(> .wk-tree) {
+  overflow: hidden;
 }
