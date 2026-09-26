@@ -52,6 +52,9 @@ export interface UseJsonFormatter {
   stats: JsonStats | null;
 }
 
+/** Unescape's note when the decoded string is not JSON; the UI uses it to name downloads. */
+export const PLAIN_TEXT_NOTE = "The string is not JSON; shown as plain text.";
+
 /** Headless state for a JSON formatter: bring your own markup. */
 export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJsonFormatter {
   const [input, setInput] = useState(options.initialInput ?? "");
@@ -71,7 +74,7 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
       const unescaped = unescapeJson(input);
       if (!unescaped.ok) return { result: unescaped, note: null };
       const { text, isJson, wrapped } = unescaped.value;
-      if (!isJson) return { result: { ok: true, value: text }, note: "The string is not JSON; shown as plain text." };
+      if (!isJson) return { result: { ok: true, value: text }, note: PLAIN_TEXT_NOTE };
       const inner = parseJson(text);
       if (!inner.ok) return { result: inner, note: null };
       const note = wrapped

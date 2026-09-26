@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonFormatter } from "./JsonFormatter";
 
@@ -27,7 +27,7 @@ describe("JsonFormatter", () => {
     render(<JsonFormatter />);
     type('{"a": }');
     expect(screen.getByRole("status").textContent).toBe("Line 1, column 7: Unexpected character '}'");
-    expect(output()).toBe("");
+    expect(screen.queryByLabelText("Output")).toBeNull();
   });
 
   it("shows where the error is", () => {
@@ -74,7 +74,7 @@ describe("JsonFormatter", () => {
     render(<JsonFormatter />);
     type("[1,");
     fireEvent.click(screen.getByRole("button", { name: "Tree" }));
-    expect(screen.getByText("Fix the error to see the tree.")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toMatch(/^Line 1, column \d+: /);
   });
 
   it("keeps the tree and its selection while typing", () => {
@@ -240,5 +240,150 @@ describe("JsonFormatter", () => {
     render(<JsonFormatter initialInput="[1]" />);
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy" })));
     expect(await screen.findByRole("button", { name: "Copy failed" })).toBeTruthy();
+  });
+});
+
+function openFile(file: File) {
+  return act(async () => {
+    fireEvent.change(screen.getByLabelText("Open file"), { target: { files: [file] } });
+  });
+}
+
+function setClipboard(value: unknown) {
+  Object.defineProperty(navigator, "clipboard", { value, configurable: true });
+}
+
+describe("JsonFormatter editor", () => {
+  it("groups the modes and marks the current one", () => {
+    render(<JsonFormatter />);
+    const modes = screen.getByRole("group", { name: "Mode" });
+    expect(within(modes).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Format",
+      "Minify",
+      "Escape",
+      "Unescape",
+    ]);
+    fireEvent.click(within(modes).getByRole("button", { name: "Minify" }));
+    expect(within(modes).getByRole("button", { name: "Minify" }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(modes).getByRole("button", { name: "Format" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("Clear empties the input; Sample loads valid JSON", () => {
+    render(<JsonFormatter initialInput='{"a":1}' />);
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(inputArea().value).toBe("");
+    expect(screen.getByText("Paste JSON, open a file or load a sample.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Sample" }));
+    expect(() => JSON.parse(inputArea().value)).not.toThrow();
+    expect(screen.getByText("Valid JSON")).toBeTruthy();
+  });
+
+  it("opens a file into the input and replaces an error with its text", async () => {
+    render(<JsonFormatter initialInput='{"a": }' />);
+    expect(screen.getByRole("status")).toBeTruthy();
+    await openFile(new File(['{"b":2}'], "data.json", { type: "application/json" }));
+    expect(inputArea().value).toBe('{"b":2}');
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("list", { name: "Suggested fixes" })).toBeNull();
+  });
+
+  it("refuses files over 10 MB and drops the message on the next edit", async () => {
+    render(<JsonFormatter initialInput="{}" />);
+    const big = new File(["x"], "big.json");
+    Object.defineProperty(big, "size", { value: 10 * 1024 * 1024 + 1 });
+    await openFile(big);
+    expect(inputArea().value).toBe("{}");
+    expect(screen.getByText("File is larger than 10 MB")).toBeTruthy();
+    type("[]");
+    expect(screen.queryByText("File is larger than 10 MB")).toBeNull();
+  });
+
+  it("pastes from the clipboard", async () => {
+    setClipboard({ readText: () => Promise.resolve('{"p":1}') });
+    render(<JsonFormatter />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Paste" }));
+    });
+    expect(inputArea().value).toBe('{"p":1}');
+  });
+
+  it("reports a refused clipboard", async () => {
+    setClipboard({ readText: () => Promise.reject(new Error("denied")) });
+    render(<JsonFormatter />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Paste" }));
+    });
+    expect(screen.getByText("Clipboard access was denied")).toBeTruthy();
+  });
+
+  it("hides Paste without a clipboard reader", () => {
+    setClipboard({ writeText: () => Promise.resolve() });
+    render(<JsonFormatter />);
+    expect(screen.queryByRole("button", { name: "Paste" })).toBeNull();
+  });
+
+  it("disables To input, Download and Copy without an output", () => {
+    render(<JsonFormatter />);
+    for (const name of ["Use output as input", "Download", "Copy"]) {
+      expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(true);
+    }
+  });
+
+  it("To input puts the output into the input", () => {
+    render(<JsonFormatter initialInput='{"a":1}' />);
+    fireEvent.click(screen.getByRole("button", { name: "Use output as input" }));
+    expect(inputArea().value).toBe('{\n  "a": 1\n}');
+  });
+
+  it("names the downloaded file by mode and by what Unescape found", () => {
+    const names: string[] = [];
+    Object.defineProperty(URL, "createObjectURL", { value: () => "blob:test", configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: () => {}, configurable: true });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      names.push(this.download);
+    });
+    render(<JsonFormatter initialInput={String.raw`"a\nb"`} />);
+    const download = () => fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    download();
+    fireEvent.click(screen.getByRole("button", { name: "Minify" }));
+    download();
+    fireEvent.click(screen.getByRole("button", { name: "Escape" }));
+    download();
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    download();
+    type(String.raw`"{\"x\":1}"`);
+    download();
+    expect(names).toEqual(["formatted.json", "minified.json", "escaped.txt", "unescaped.txt", "unescaped.json"]);
+  });
+
+  it("shows an error in the output pane instead of the output, in Text and Tree", () => {
+    render(<JsonFormatter initialInput='{"a": }' />);
+    expect(screen.queryByLabelText("Output")).toBeNull();
+    expect(screen.getByText("Not valid JSON")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
+    expect(screen.getByRole("status").textContent).toBe("Line 1, column 7: Unexpected character '}'");
+  });
+
+  it("replaces the error with the tree after Fix all", () => {
+    render(<JsonFormatter initialInput="{a: 1, b: [True,]}" />);
+    fireEvent.click(screen.getByRole("button", { name: "Tree" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Fix all/ }));
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByRole("tree", { name: "JSON tree" })).toBeTruthy();
+  });
+
+  it("status line: valid, error and empty, without a status role", () => {
+    render(<JsonFormatter initialInput='{"a":1}' />);
+    expect(screen.getByText("Valid JSON")).toBeTruthy();
+    expect(screen.queryByRole("status")).toBeNull();
+    type('{"a": }');
+    expect(screen.getByText("Error at 1:7")).toBeTruthy();
+    type("");
+    expect(screen.getByText("Paste JSON, open a file or load a sample.")).toBeTruthy();
+  });
+
+  it("shows the input size in UTF-8 bytes", () => {
+    const { container } = render(<JsonFormatter initialInput='"é"' />);
+    expect(container.querySelector(".wk-json__size")?.textContent).toBe("4 B");
   });
 });
