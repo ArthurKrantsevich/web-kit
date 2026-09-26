@@ -36,18 +36,7 @@ export function SiteHeader() {
           web-kit
         </Link>
         <nav className="site-nav" aria-label="Main">
-          <ul id="site-links" className="site-nav__links" data-open={open}>
-            <li>
-              <Link href="/">Tools</Link>
-            </li>
-            <li>
-              <Link href="/about/">About</Link>
-            </li>
-            <li>
-              <a href="https://github.com/ArthurKrantsevich/web-kit">GitHub</a>
-            </li>
-          </ul>
-          <ThemeToggle />
+          {/* Before the links in the DOM so Tab goes from the button into the open menu; CSS puts it last. */}
           <button
             ref={menuButton}
             type="button"
@@ -61,6 +50,19 @@ export function SiteHeader() {
               <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
           </button>
+          {/* A click on any link closes the menu, including a link to the current page. */}
+          <ul id="site-links" className="site-nav__links" data-open={open} onClick={() => setOpen(false)}>
+            <li>
+              <Link href="/">Tools</Link>
+            </li>
+            <li>
+              <Link href="/about/">About</Link>
+            </li>
+            <li>
+              <a href="https://github.com/ArthurKrantsevich/web-kit">GitHub</a>
+            </li>
+          </ul>
+          <ThemeToggle />
         </nav>
       </div>
     </header>

@@ -120,6 +120,7 @@ pre {
 @media (max-width: 639px) {
   .menu-button {
     display: inline-flex;
+    order: 1;
   }
   .site-nav__links {
     display: none;

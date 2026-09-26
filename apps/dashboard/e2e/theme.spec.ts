@@ -82,3 +82,22 @@ test("footer carries the privacy line", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByRole("contentinfo")).toContainText("Your data never leaves your device.");
 });
+
+test("phone menu: Tools on the home page closes the menu", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./");
+  const menu = page.getByRole("button", { name: "Menu" });
+  await menu.click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Tools" }).click();
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+});
+
+test("phone menu: Tab from the menu button reaches the first link", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("./");
+  const menu = page.getByRole("button", { name: "Menu" });
+  await menu.click();
+  await expect(menu).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Tools" })).toBeFocused();
+});
