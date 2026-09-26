@@ -1,7 +1,7 @@
 .wk-convert {
   display: grid;
   gap: 0.5rem;
-  color: var(--wk-fg, #111318);
+  color: var(--wk-fg, #141413);
   font-family: var(--wk-font-sans, system-ui, sans-serif);
 }
 .wk-convert__toolbar {
@@ -15,7 +15,7 @@
 .wk-convert__toolbar input:not([type="checkbox"]),
 .wk-convert__copy {
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--wk-border, #dfe1e6);
+  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
   border-radius: var(--wk-radius, 10px);
   background: var(--wk-surface, #ffffff);
   color: inherit;
@@ -37,7 +37,7 @@
 .wk-convert__label,
 .wk-convert__note {
   font-size: 0.875rem;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
 }
 .wk-convert__note {
   margin: 0;
@@ -49,7 +49,7 @@
   min-height: 12rem;
   margin: 0;
   padding: 0.75rem;
-  border: 1px solid var(--wk-border, #dfe1e6);
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
   border-radius: var(--wk-radius, 10px);
   background: var(--wk-surface, #ffffff);
   color: inherit;
@@ -64,7 +64,7 @@
 }
 .wk-convert__error {
   margin: 0;
-  color: var(--wk-danger, #c62828);
+  color: var(--wk-danger, #b3261e);
   font-family: var(--wk-font-mono, ui-monospace, monospace);
   font-size: 0.875rem;
 }

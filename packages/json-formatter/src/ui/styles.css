@@ -1,12 +1,12 @@
 .wk-json {
   display: grid;
   gap: 0.5rem;
-  color: var(--wk-fg, #111318);
+  color: var(--wk-fg, #141413);
   font-family: var(--wk-font-sans, system-ui, sans-serif);
 }
 .wk-json__label {
   font-size: 0.875rem;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
 }
 .wk-json__area {
   box-sizing: border-box;
@@ -14,7 +14,7 @@
   min-height: 12rem;
   padding: 0.75rem;
   resize: vertical;
-  border: 1px solid var(--wk-border, #dfe1e6);
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
   border-radius: var(--wk-radius, 10px);
   background: var(--wk-surface, #ffffff);
   color: inherit;
@@ -32,7 +32,7 @@
 .wk-json__button,
 .wk-json__select {
   padding: 0.4rem 0.8rem;
-  border: 1px solid var(--wk-border, #dfe1e6);
+  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
   border-radius: var(--wk-radius, 10px);
   background: var(--wk-surface, #ffffff);
   color: inherit;
@@ -41,8 +41,8 @@
 }
 .wk-json__button[aria-pressed="true"],
 .wk-json__fix-all {
-  background: var(--wk-accent, #4f46e5);
-  border-color: var(--wk-accent, #4f46e5);
+  background: var(--wk-accent, #b5532f);
+  border-color: var(--wk-accent, #b5532f);
   color: var(--wk-accent-fg, #ffffff);
 }
 .wk-json__button:disabled,
@@ -53,7 +53,7 @@
 .wk-json__indent {
   margin-left: 0.5rem;
   font-size: 0.875rem;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
 }
 .wk-json__copy {
   margin-left: auto;
@@ -62,12 +62,12 @@
   display: grid;
   gap: 0.5rem;
   padding: 0.75rem;
-  border: 1px solid var(--wk-danger, #c62828);
+  border: 1px solid var(--wk-danger, #b3261e);
   border-radius: var(--wk-radius, 10px);
 }
 .wk-json__error {
   margin: 0;
-  color: var(--wk-danger, #c62828);
+  color: var(--wk-danger, #b3261e);
   font-family: var(--wk-font-mono, ui-monospace, monospace);
   font-size: 0.875rem;
 }
@@ -84,7 +84,7 @@
   padding: 0;
   border: 0;
   background: none;
-  color: var(--wk-accent, #4f46e5);
+  color: var(--wk-accent, #b5532f);
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
@@ -119,7 +119,7 @@
 .wk-tree__note,
 .wk-stats {
   margin: 0;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
   font-size: 0.875rem;
 }
 .wk-code,
@@ -128,7 +128,7 @@
   margin: 0;
   max-height: 32rem;
   overflow: auto;
-  border: 1px solid var(--wk-border, #dfe1e6);
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
   border-radius: var(--wk-radius, 10px);
   background: var(--wk-surface, #ffffff);
   font-family: var(--wk-font-mono, ui-monospace, monospace);
@@ -150,32 +150,32 @@
   min-width: var(--wk-gutter, 3ch);
   margin-right: 1.5ch;
   text-align: right;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
   opacity: 0.6;
   user-select: none;
 }
 .wk-code:focus-visible,
 .wk-tree__list:focus-visible {
-  outline: 2px solid var(--wk-accent, #4f46e5);
+  outline: 2px solid var(--wk-accent, #b5532f);
   outline-offset: 2px;
 }
 .wk-syntax-key,
 .wk-tree__key {
-  color: var(--wk-syntax-key, #7c3aed);
+  color: var(--wk-syntax-key, #8a3fa0);
 }
 .wk-syntax-string {
-  color: var(--wk-syntax-string, #047857);
+  color: var(--wk-syntax-string, #2f6b3a);
 }
 .wk-syntax-number {
-  color: var(--wk-syntax-number, #b45309);
+  color: var(--wk-syntax-number, #9a5210);
 }
 .wk-syntax-literal {
-  color: var(--wk-syntax-literal, #2563eb);
+  color: var(--wk-syntax-literal, #2a5fb0);
 }
 .wk-syntax-punctuation,
 .wk-tree__preview,
 .wk-tree__colon {
-  color: var(--wk-syntax-punct, #5b6270);
+  color: var(--wk-syntax-punct, #5e5d59);
 }
 .wk-tree {
   display: grid;
@@ -197,14 +197,14 @@
   cursor: default;
 }
 .wk-tree__row[aria-selected="true"] {
-  background: rgba(79, 70, 229, 0.14);
-  background: color-mix(in srgb, var(--wk-accent, #4f46e5) 14%, transparent);
+  background: rgba(181, 83, 47, 0.14);
+  background: color-mix(in srgb, var(--wk-accent, #b5532f) 14%, transparent);
 }
 .wk-tree__toggle {
   display: inline-block;
   width: 1.25rem;
   text-align: center;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
 }
 .wk-tree__toggle[data-state] {
   cursor: pointer;
@@ -216,7 +216,7 @@
   content: "▸";
 }
 .wk-tree__more {
-  color: var(--wk-accent, #4f46e5);
+  color: var(--wk-accent, #b5532f);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -231,11 +231,11 @@
   align-items: center;
   gap: 0.35rem;
   font-size: 0.875rem;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
 }
 .wk-json__note {
   margin: 0;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
   font-size: 0.875rem;
 }
 .wk-tree__query {
@@ -247,7 +247,7 @@
 .wk-tree__search {
   flex: 1 1 16rem;
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--wk-border, #dfe1e6);
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
   border-radius: var(--wk-radius, 10px);
   background: var(--wk-surface, #ffffff);
   color: inherit;
@@ -256,9 +256,9 @@
 }
 .wk-tree__count {
   min-width: 5rem;
-  color: var(--wk-muted, #5b6270);
+  color: var(--wk-muted, #5e5d59);
   font-size: 0.875rem;
 }
 .wk-tree__row--match {
-  box-shadow: inset 3px 0 0 var(--wk-accent, #4f46e5);
+  box-shadow: inset 3px 0 0 var(--wk-accent, #b5532f);
 }
