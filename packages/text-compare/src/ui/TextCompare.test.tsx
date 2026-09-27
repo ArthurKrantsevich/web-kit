@@ -167,7 +167,7 @@ describe("TextCompare", () => {
       ["Previous change", "Previous change (Alt+↑ or Shift+F7). 1 change"],
       ["Next change", "Next change (Alt+↓ or F7). 1 change"],
       ["Download", "Save the unified diff as compare.patch"],
-      ["Copy", "Copy the unified diff to the clipboard"],
+      ["Copy patch", "Copy the unified diff to the clipboard"],
       ["More actions", "Load from a URL, share, save, keyboard shortcuts"],
       ["Use left", "Replace these lines on the right with the left ones"],
       ["Use right", "Replace these lines on the left with the right ones"],
@@ -378,7 +378,7 @@ describe("TextCompare files and export", () => {
     await openInto("Open file into Left", new File(["a\nb\n"], "old.txt"));
     await openInto("Open file into Right", new File(["a\nc\n"], "new.txt"));
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+      fireEvent.click(screen.getByRole("button", { name: "Copy patch" }));
     });
     expect(writeText).toHaveBeenCalledWith("--- old.txt\n+++ new.txt\n@@ -1,2 +1,2 @@\n a\n-b\n+c\n");
   });
@@ -405,7 +405,7 @@ describe("TextCompare files and export", () => {
 
   it("disables Download and Copy when there is nothing to export", () => {
     render(<TextCompare initialLeft={"a\n"} initialRight={"a\n"} />);
-    for (const name of ["Download", "Copy"]) expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(true);
+    for (const name of ["Download", "Copy patch"]) expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("swaps the sides with their names, and loads a sample", async () => {

@@ -501,7 +501,7 @@ export function TextCompare(props: TextCompareProps): ReactElement {
             disabled={!exportable}
             onClick={() => downloadText(unified(), "compare.patch", "text/x-diff")}
           />
-          <CopyButton text={unified} tooltip="Copy the unified diff to the clipboard" variant="quiet" icon disabled={!exportable} />
+          <CopyButton text={unified} label="Copy patch" tooltip="Copy the unified diff to the clipboard" variant="quiet" icon disabled={!exportable} />
         </div>
         <p role="status" aria-live="polite" className="wk-ui-sr-only">
           {announcement}
