@@ -5,3 +5,6 @@ export function textCompare(input: string): Result<string> {
   if (input.trim() === "") return { ok: false, error: "Input is empty" };
   return { ok: true, value: input.trim() };
 }
+
+export type * from "./types";
+export { splitLines, type SplitText } from "./lines";
