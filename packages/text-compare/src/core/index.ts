@@ -9,3 +9,4 @@ export function textCompare(input: string): Result<string> {
 export type * from "./types";
 export { splitLines, type SplitText } from "./lines";
 export { compareTexts } from "./compare";
+export { inlineDiff } from "./inline";
