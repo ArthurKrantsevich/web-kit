@@ -1,229 +1,18 @@
-/* Default look for JsonFormatter, JsonTree, HighlightedJson and JsonStats.
+/* Default look for JsonFormatter, JsonTree, HighlightedJson and JsonStats. The toolbar, panes, buttons and status
+   line come from @web-kit/ui, whose styles are built into the start of this file.
    Colors come from @web-kit/tokens when the app loads it; the fallbacks match its light theme. */
 .wk-json {
-  /* An inline-size container ignores its content's width; without this it collapses in shrink-to-fit parents. */
-  width: 100%;
-  box-sizing: border-box;
-  container-type: inline-size;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-  border-radius: var(--wk-radius-lg, 16px);
-  background: var(--wk-surface, #ffffff);
-  color: var(--wk-fg, #141413);
-  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  /* --wk-json-height still sets the pane height; otherwise --wk-editor-height does. */
+  --wk-ui-panes-height: var(--wk-json-height, var(--wk-editor-height, max(420px, 70vh)));
 }
-.wk-json button:disabled,
-.wk-json select:disabled,
-.wk-json input:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Toolbar */
-.wk-json__bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-json__segments {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 10px;
-  background: var(--wk-surface-2, #f0eee6);
-}
-.wk-json__segment {
-  height: 32px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--wk-muted, #5e5d59);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-.wk-json__segment[aria-pressed="true"] {
-  background: var(--wk-surface, #ffffff);
-  color: var(--wk-fg, #141413);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(20, 20, 19, 0.1);
-}
-.wk-json__segments--small {
-  padding: 2px;
-  border-radius: 8px;
-}
-.wk-json__segments--small .wk-json__segment {
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 6px;
-  font-size: 0.8125rem;
-}
-.wk-json__divider {
-  width: 1px;
-  height: 24px;
-  background: var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-json__field {
-  font-size: 0.875rem;
-  color: var(--wk-muted, #5e5d59);
-}
-.wk-json__select {
-  height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
-  border-radius: 8px;
-  background: var(--wk-surface, #ffffff);
-  color: var(--wk-fg, #141413);
-  font: inherit;
-  font-size: 0.875rem;
-}
-.wk-json__switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-.wk-json__switch input {
-  appearance: none;
-  position: relative;
-  width: 32px;
-  height: 18px;
-  margin: 0;
-  border-radius: 999px;
-  background: var(--wk-border-strong, rgba(31, 30, 29, 0.3));
-  cursor: pointer;
-}
-.wk-json__switch input::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--wk-surface, #ffffff);
-  transition: transform 0.15s;
-}
-.wk-json__switch input:checked {
-  background: var(--wk-primary, #141413);
-}
-.wk-json__switch input:checked::before {
-  transform: translateX(14px);
-  background: var(--wk-primary-fg, #faf9f5);
-}
-.wk-json__spacer {
-  flex: 1 1 auto;
-}
-.wk-json__file {
-  display: none;
-}
-.wk-json__ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--wk-fg, #141413);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-.wk-json__ghost:hover:not(:disabled) {
-  background: var(--wk-surface-2, #f0eee6);
-}
-.wk-json__primary {
-  height: 30px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--wk-primary, #141413);
-  color: var(--wk-primary-fg, #faf9f5);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.wk-json__button {
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
-  border-radius: 8px;
-  background: var(--wk-surface, #ffffff);
-  color: var(--wk-fg, #141413);
-  font: inherit;
-  font-size: 0.8125rem;
-  cursor: pointer;
-}
-.wk-json__button:hover:not(:disabled) {
-  background: var(--wk-surface-2, #f0eee6);
-}
-
-/* Panes */
-.wk-json__panes {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
+/* Stacked panes: the output gets more room than the input. */
+.wk-json .wk-ui-editor__panes {
   grid-template-rows: minmax(0, 2fr) minmax(0, 3fr);
-  height: var(--wk-json-height, max(480px, 70vh));
 }
-.wk-json__pane {
+.wk-json__output {
   display: flex;
   flex-direction: column;
-  min-width: 0;
   min-height: 0;
-}
-.wk-json__pane--input {
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-json__pane-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 8px;
-  min-height: 44px;
-  padding: 6px 8px 6px 16px;
-  box-sizing: border-box;
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-json__pane--output .wk-json__pane-head {
-  padding-left: 12px;
-}
-.wk-json__pane-title {
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-.wk-json__size {
-  font-size: 0.8125rem;
-  color: var(--wk-muted, #5e5d59);
-}
-.wk-json__area {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 14px 16px;
-  border: 0;
-  resize: none;
-  background: transparent;
-  color: inherit;
-  font-family: var(--wk-font-mono, ui-monospace, monospace);
-  font-size: 0.8125rem;
-  line-height: 1.7;
-  tab-size: 2;
-}
-.wk-json__area:focus-visible {
-  outline: 2px solid var(--wk-accent, #b5532f);
-  outline-offset: -2px;
 }
 .wk-json__note {
   margin: 0;
@@ -334,80 +123,29 @@
   height: 38px;
   padding: 0 16px;
   border-radius: 10px;
-  font-size: 0.875rem;
-}
-
-/* Status line */
-.wk-json__status {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 12px;
-  min-height: 34px;
-  margin: 0;
-  padding: 6px 16px;
-  box-sizing: border-box;
-  border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-  background: var(--wk-bg, #faf9f5);
-  color: var(--wk-muted, #5e5d59);
-  font-size: 0.75rem;
-}
-.wk-json__state {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-}
-.wk-json__state::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-}
-.wk-json__state--valid {
-  color: var(--wk-syntax-string, #2f6b3a);
-}
-.wk-json__state--error {
-  color: var(--wk-danger, #b3261e);
 }
 .wk-json__message {
   color: var(--wk-fg, #141413);
 }
-.wk-json__status .wk-stats {
+.wk-ui-status .wk-stats {
   font-size: inherit;
 }
 
 /* Width of the component, not of the window: it may sit in a narrow column. */
 @container (min-width: 1024px) {
-  .wk-json__panes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .wk-json .wk-ui-editor__panes {
     grid-template-rows: minmax(0, 1fr);
-  }
-  .wk-json__pane--input {
-    border-bottom: 0;
-    border-right: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
   }
 }
 @container (max-width: 639px) {
+  /* The four modes share the first row. */
   .wk-json__modes {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     width: 100%;
   }
-  .wk-json__modes .wk-json__segment {
+  .wk-json__modes .wk-ui-segment {
     padding: 0 4px;
-  }
-  .wk-json__divider {
-    display: none;
-  }
-  .wk-json__action-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
   }
 }
 
@@ -597,22 +335,8 @@
   overflow: hidden;
 }
 
-/* Narrow component: shorter rows so the toolbar and the tree tools do not wrap into odd lines. */
+/* Narrow component: the search field and the selected path get their own rows. */
 @container (max-width: 639px) {
-  .wk-json__bar {
-    gap: 8px;
-  }
-  .wk-json__bar .wk-json__ghost {
-    padding: 0 8px;
-  }
-  .wk-json__field {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
   .wk-tree__search,
   .wk-tree__path {
     flex-basis: 100%;

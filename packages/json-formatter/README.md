@@ -27,7 +27,7 @@ export function Page() {
 }
 ```
 
-The component is an editor: one toolbar (modes, Indent, Sort keys, Open file, Sample, Clear), input and output side by side when the component is at least 1024 px wide, errors with checked fixes inside the output pane, and a status line. Set `--wk-json-height` on it or a parent to change the pane height (default `max(480px, 70vh)`).
+The component is an editor built with `@web-kit/ui`: one toolbar (modes, Indent, Sort keys, Open file, Sample, Clear), input and output side by side when the component is at least 1024 px wide, errors with checked fixes inside the output pane, and a status line. Every button has a tooltip that says what it will do. Set `--wk-json-height` (or `--wk-editor-height`) on it or a parent to change the pane height (default `max(420px, 70vh)`).
 
 ## Errors and fixes
 

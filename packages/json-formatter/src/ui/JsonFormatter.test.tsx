@@ -219,11 +219,12 @@ describe("JsonFormatter", () => {
 
   it("minifies and switches indentation", () => {
     render(<JsonFormatter initialInput='{"a":1}' />);
-    fireEvent.change(screen.getByLabelText("Indent"), { target: { value: "tab" } });
+    fireEvent.click(screen.getByRole("button", { name: "Indent" }));
+    fireEvent.click(screen.getByRole("option", { name: "Tab" }));
     expect(output()).toBe('{\n\t"a": 1\n}');
     fireEvent.click(screen.getByRole("button", { name: "Minify" }));
     expect(output()).toBe('{"a":1}');
-    expect((screen.getByLabelText("Indent") as HTMLSelectElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Indent" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("copies the output", async () => {
@@ -404,5 +405,41 @@ describe("JsonFormatter editor", () => {
     vi.advanceTimersByTime(60_000);
     expect(revoke).toHaveBeenCalledWith("blob:test");
     vi.useRealTimers();
+  });
+});
+
+const tooltipOf = (element: HTMLElement) =>
+  element
+    .getAttribute("aria-describedby")
+    ?.split(" ")
+    .map((id) => document.getElementById(id)?.textContent)
+    .join(" ");
+
+describe("JsonFormatter tooltips", () => {
+  it("every action says what it does", () => {
+    setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
+    render(<JsonFormatter initialInput="[1]" />);
+    const expected: [string, string][] = [
+      ["Format", "Pretty-print with the chosen indent"],
+      ["Minify", "Remove all whitespace"],
+      ["Escape", "Turn any text into a JSON string literal"],
+      ["Unescape", "Turn a JSON string literal back into its text"],
+      ["Open file", "Open a .json or .txt file (up to 10 MB)"],
+      ["Sample", "Replace the input with an example"],
+      ["Clear", "Empty the input"],
+      ["Paste", "Paste from the clipboard"],
+      ["Text", "Show the output as highlighted text"],
+      ["Tree", "Browse, search and query the output as a tree"],
+      ["Use output as input", "Replace the input with the output"],
+      ["Download", "Save the output as formatted.json"],
+      ["Copy", "Copy the output to the clipboard"],
+    ];
+    for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
+  });
+
+  it("names the download in the Download tooltip", () => {
+    render(<JsonFormatter initialInput="[1]" />);
+    fireEvent.click(screen.getByRole("button", { name: "Escape" }));
+    expect(tooltipOf(screen.getByRole("button", { name: "Download" }))).toBe("Save the output as escaped.txt");
   });
 });
