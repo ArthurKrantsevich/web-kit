@@ -215,6 +215,34 @@ test("a dropped file names its side; a long name ends with an ellipsis on one li
   await expect(page.getByRole("tooltip")).toHaveText(name);
 });
 
+test("the result's counts are never cut, from 320 px up and with five-digit counts", async ({ page }) => {
+  const cut = () =>
+    page.evaluate(() => {
+      const head = document.querySelector(".wk-compare__result .wk-ui-pane__head")!;
+      const title = head.querySelector<HTMLElement>(".wk-ui-pane__title")!;
+      const counts = head.querySelector<HTMLElement>(".wk-compare__counts")!;
+      const out: string[] = [];
+      if (counts.scrollWidth > counts.clientWidth) out.push(`counts ${counts.textContent} ${counts.scrollWidth} > ${counts.clientWidth}`);
+      // The title is either whole or hidden from sight (the section keeps "Changes" as its name).
+      if (title.clientWidth > 1 && title.scrollWidth > title.clientWidth) out.push(`title ${title.scrollWidth} > ${title.clientWidth}`);
+      return `${innerWidth}: ${out.join(", ")}`;
+    });
+  await open(page, 320);
+  expect(await cut()).toBe("320: ");
+  // Groups of ten lines in reverse order, as in the 5 MB test, but small enough to compare on the page.
+  const make = `const lines = Array.from({ length: 30000 }, (_, i) => "l" + (i % 3000));
+    if (arg) for (let i = 0; i < lines.length; i += 10) lines.splice(i, 10, ...lines.slice(i, i + 10).reverse());
+    return lines.join("\\n");`;
+  await dropFile(page, "left", "left.txt", make, false);
+  await dropFile(page, "right", "right.txt", make, true);
+  await expect(page.locator(".wk-compare__count--changed")).toHaveText(/^~\d{5}$/, { timeout: 60_000 });
+  for (const width of [320, 360, 390, 430, 640, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await cut()).toBe(`${width}: `);
+  }
+  await expect(page.getByRole("region", { name: "Changes" })).toBeVisible();
+});
+
 test("Download saves the unified diff as compare.patch", async ({ page }) => {
   await open(page);
   await left(page).fill("a\nb\n");

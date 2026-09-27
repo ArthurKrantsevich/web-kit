@@ -57,6 +57,29 @@
 .wk-compare__count--changed {
   color: var(--wk-syntax-number, #9a5210);
 }
+/* The result's title is a word, not a file name: it never gives way to an ellipsis, and neither do the counts. */
+.wk-compare__result > .wk-ui-pane__head > .wk-ui-pane__title {
+  flex: none;
+  min-width: 0;
+}
+/* On a narrow result the counts take the title's place; the section keeps "Changes" as its name. */
+@container wk-ui-pane (max-width: 479px) {
+  .wk-compare__result > .wk-ui-pane__head > .wk-ui-pane__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .wk-compare__result > .wk-ui-pane__head {
+    column-gap: 4px;
+  }
+  .wk-compare__counts {
+    gap: 4px;
+    font-size: 0.75rem;
+  }
+}
 /* Previous, Next, Download and Copy show only their icons when the result is narrower than their labels need. */
 @container wk-ui-pane (max-width: 639px) {
   .wk-compare__result .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon {
