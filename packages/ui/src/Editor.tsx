@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
+import type { FileDrop } from "./drop";
 import { cx } from "./popover";
 
 export interface EditorShellProps {
@@ -49,11 +50,28 @@ export interface EditorPaneProps {
   /** Id of the field the title labels. */
   labelFor?: string;
   className?: string;
+  /** Makes the pane a drop target for files; the pane also renders `drop.input`. */
+  drop?: FileDrop;
+  /** Shown over the pane while a file is dragged over it. Default "Drop the file to open it". */
+  dropLabel?: string;
 }
 
-export function EditorPane({ title, meta, actions, children, labelFor, className }: EditorPaneProps): ReactElement {
+export function EditorPane({
+  title,
+  meta,
+  actions,
+  children,
+  labelFor,
+  className,
+  drop,
+  dropLabel = "Drop the file to open it",
+}: EditorPaneProps): ReactElement {
   return (
-    <section className={cx("wk-ui-pane", className)}>
+    <section
+      className={cx("wk-ui-pane", className)}
+      data-dragging={drop === undefined ? undefined : drop.isDragging}
+      {...drop?.dropProps}
+    >
       <div className="wk-ui-pane__head">
         {labelFor === undefined ? (
           <span className="wk-ui-pane__title">{title}</span>
@@ -66,6 +84,15 @@ export function EditorPane({ title, meta, actions, children, labelFor, className
         <span className="wk-ui-spacer" />
         {actions}
       </div>
+      {/* Between the header and the body: the header stays the first child and the body the last, which fills the pane. */}
+      {drop !== undefined && (
+        <>
+          <div className="wk-ui-pane__drop" aria-hidden="true">
+            {dropLabel}
+          </div>
+          {drop.input}
+        </>
+      )}
       {children}
     </section>
   );

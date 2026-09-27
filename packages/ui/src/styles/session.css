@@ -117,3 +117,27 @@
   color: var(--wk-danger, #b3261e);
   font-weight: 500;
 }
+
+/* ── File drop on a pane: an overlay that takes no room ── */
+.wk-ui-pane {
+  position: relative;
+}
+.wk-ui-pane__drop {
+  position: absolute;
+  inset: 6px;
+  z-index: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--wk-accent, #b5532f);
+  border-radius: 12px;
+  background: rgba(250, 249, 245, 0.92);
+  background: color-mix(in srgb, var(--wk-surface, #ffffff) 92%, transparent);
+  color: var(--wk-fg, #141413);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+.wk-ui-pane[data-dragging="true"] > .wk-ui-pane__drop {
+  display: flex;
+}

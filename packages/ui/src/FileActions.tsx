@@ -1,72 +1,39 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { Button } from "./Button";
-import { readTextFile } from "./files";
+import { useFileDrop, type FileDrop, type UseFileDropOptions } from "./drop";
 
-export interface OpenFileButtonProps {
+interface OpenFileButtonBase {
   /** Accessible name of the button and of the hidden file input. Default "Open file". */
   label?: string;
   tooltip: string;
-  /** The `accept` attribute of the file input. */
-  accept: string;
-  maxBytes: number;
-  /**
-   * Called when a chosen file starts being read, before `onText` or `onError`. A tool can note its input here and
-   * ignore a text that arrives after the user changed the input.
-   */
-  onReadStart?: () => void;
-  /** The file's text, without a BOM. */
-  onText: (text: string) => void;
-  /** A message such as "File is larger than 10 MB". */
-  onError: (message: string) => void;
   iconOnly?: boolean;
 }
 
 /**
- * "Open file": a quiet button that opens the file picker and reads the chosen file with `readTextFile`. When a second
- * file is chosen before the first is read, only the second one's text or error is passed on.
+ * Either the button reads files itself (`accept`, `maxBytes`, `onText`, `onError`, optional `onReadStart`), or it
+ * opens the picker of a `useFileDrop` result that the tool also spreads on a drop target (`drop`); then the tool
+ * renders `drop.input`, for example through `EditorPane`'s `drop`, and file picks and drops share one "latest file wins".
  */
-export function OpenFileButton({
-  label = "Open file",
-  tooltip,
-  accept,
-  maxBytes,
-  onReadStart,
-  onText,
-  onError,
-  iconOnly = false,
-}: OpenFileButtonProps): ReactElement {
-  const input = useRef<HTMLInputElement>(null);
-  // Only the file chosen last counts: an earlier, slower read that finishes after it is dropped.
-  const latestRead = useRef(0);
+export type OpenFileButtonProps = OpenFileButtonBase &
+  ({ drop: FileDrop } | (Omit<UseFileDropOptions, "label"> & { drop?: undefined }));
 
-  async function open(file: File | undefined): Promise<void> {
-    if (!file) return;
-    const id = ++latestRead.current;
-    onReadStart?.();
-    const read = await readTextFile(file, maxBytes);
-    if (id !== latestRead.current) return;
-    if (read.ok) onText(read.value);
-    else onError(read.error.message);
-  }
+/** Reads nothing: the options of the unused own reader when a `drop` is given. */
+const IDLE: UseFileDropOptions = { accept: "", maxBytes: 0, onText: () => {}, onError: () => {} };
 
+/**
+ * "Open file": a quiet button that opens the file picker and reads the chosen file with `readTextFile` (UTF-8, BOM
+ * removed, size limit). When a second file is chosen before the first is read, only the second one is passed on.
+ */
+export function OpenFileButton(props: OpenFileButtonProps): ReactElement {
+  const { label = "Open file", tooltip, iconOnly = false } = props;
+  const own = useFileDrop(props.drop === undefined ? { ...props, label } : IDLE);
+  const drop = props.drop ?? own;
   return (
     <>
-      <Button icon="open" tooltip={tooltip} iconOnly={iconOnly} onClick={() => input.current?.click()}>
+      <Button icon="open" tooltip={tooltip} iconOnly={iconOnly} onClick={drop.open}>
         {label}
       </Button>
-      <input
-        ref={input}
-        type="file"
-        className="wk-ui-file"
-        aria-label={label}
-        tabIndex={-1}
-        accept={accept}
-        onChange={(event) => {
-          void open(event.target.files?.[0]);
-          // Let the same file be opened again.
-          event.target.value = "";
-        }}
-      />
+      {props.drop === undefined && own.input}
     </>
   );
 }

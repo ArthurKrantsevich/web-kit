@@ -19,4 +19,12 @@ export {
 export { OpenFileButton, PasteButton, type OpenFileButtonProps, type PasteButtonProps } from "./FileActions";
 export { downloadText, readTextFile, type Result } from "./files";
 export { Dialog, type DialogProps } from "./Dialog";
+export {
+  acceptsFile,
+  useFileDrop,
+  type FileDrop,
+  type FileDropProps,
+  type FileReadOptions,
+  type UseFileDropOptions,
+} from "./drop";
 export { Menu, type MenuItem, type MenuProps } from "./Menu";
