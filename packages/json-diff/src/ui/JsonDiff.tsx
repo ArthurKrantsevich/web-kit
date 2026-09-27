@@ -102,7 +102,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
     },
   };
 
-  /** Selects `start..end` (offsets without a BOM) in one of the inputs. */
+  // Open file and drop share one reader per side, so the file chosen or dropped last wins.
   const files = { accept: ACCEPT, maxBytes: MAX_FILE_BYTES, onError: setNotice };
   const leftDrop = useFileDrop({ ...files, label: "Open file into Left", onText: set.left });
   const rightDrop = useFileDrop({ ...files, label: "Open file into Right", onText: set.right });
@@ -129,6 +129,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
 
   const shortcuts: Shortcut[] = [{ keys: "Mod+Enter", label: "Swap Left and Right", run: swap }];
 
+  /** Selects `start..end` (offsets without a BOM) in one of the inputs. */
   function select(side: Side, start: number, end: number): void {
     const area = refs[side].current;
     if (!area) return;
