@@ -1,0 +1,277 @@
+/* @web-kit/ui: shared look of the web-kit utilities. Colors come from @web-kit/tokens when the app loads it;
+   the fallbacks match its light theme. The build joins src/styles/*.css into dist/styles.css, and every tool's
+   styles.css starts with that file. */
+
+.wk-ui-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.wk-ui-spacer {
+  flex: 1 1 auto;
+}
+.wk-ui-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--wk-border, rgba(31, 30, 29, 0.15));
+}
+.wk-ui-field {
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+.wk-ui-file {
+  display: none;
+}
+.wk-ui-icon {
+  flex: none;
+}
+
+/* ── Button ── */
+.wk-ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--wk-fg, #141413);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.wk-ui-button:focus-visible,
+.wk-ui-select:focus-visible,
+.wk-ui-segment:focus-visible {
+  outline: 2px solid var(--wk-accent, #b5532f);
+  outline-offset: 2px;
+}
+.wk-ui-button:disabled,
+.wk-ui-select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.wk-ui-button--quiet:hover:not(:disabled) {
+  background: var(--wk-surface-2, #f0eee6);
+}
+.wk-ui-button--primary {
+  background: var(--wk-primary, #141413);
+  color: var(--wk-primary-fg, #faf9f5);
+  font-weight: 500;
+}
+.wk-ui-button--outline {
+  border-color: var(--wk-border-strong, rgba(31, 30, 29, 0.3));
+  background: var(--wk-surface, #ffffff);
+}
+.wk-ui-button--outline:hover:not(:disabled) {
+  background: var(--wk-surface-2, #f0eee6);
+}
+.wk-ui-button--icon-only {
+  width: 32px;
+  padding: 0;
+}
+
+/* CopyButton: three labels in one grid cell, so the widest one sets the width. */
+.wk-ui-copy__labels {
+  display: inline-grid;
+}
+.wk-ui-copy__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  grid-area: 1 / 1;
+}
+.wk-ui-copy__label[data-shown="false"] {
+  visibility: hidden;
+}
+
+/* ── Segmented ── */
+.wk-ui-segmented {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--wk-surface-2, #f0eee6);
+}
+.wk-ui-segment {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--wk-muted, #5e5d59);
+  font: inherit;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.wk-ui-segment[aria-pressed="true"] {
+  background: var(--wk-surface, #ffffff);
+  color: var(--wk-fg, #141413);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(20, 20, 19, 0.1);
+}
+/* The invisible bold copy of the label reserves the selected width. */
+.wk-ui-segment__label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+.wk-ui-segment__label::after {
+  content: attr(data-label);
+  content: attr(data-label) / "";
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 600;
+  user-select: none;
+  pointer-events: none;
+}
+.wk-ui-segmented--sm {
+  padding: 2px;
+  border-radius: 8px;
+}
+.wk-ui-segmented--sm .wk-ui-segment {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+}
+
+/* ── Select ── */
+.wk-ui-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
+  border-radius: 10px;
+  background: var(--wk-surface, #ffffff);
+  color: var(--wk-fg, #141413);
+  font: inherit;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.wk-ui-select:hover:not(:disabled) {
+  background: var(--wk-surface-2, #f0eee6);
+}
+.wk-ui-select .wk-ui-icon {
+  color: var(--wk-muted, #5e5d59);
+}
+.wk-ui-select__list {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+  border-radius: 12px;
+  background: var(--wk-surface, #ffffff);
+  color: var(--wk-fg, #141413);
+  box-shadow:
+    0 12px 32px rgba(20, 20, 19, 0.12),
+    0 2px 6px rgba(20, 20, 19, 0.06);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  font-size: 0.875rem;
+}
+.wk-ui-select__list:focus {
+  outline: none;
+}
+.wk-ui-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 6px 10px 6px 12px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.wk-ui-option--active {
+  background: var(--wk-surface-2, #f0eee6);
+}
+.wk-ui-select__list:focus-visible .wk-ui-option--active {
+  box-shadow: inset 0 0 0 2px var(--wk-accent, #b5532f);
+}
+.wk-ui-option__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+.wk-ui-option__label {
+  white-space: nowrap;
+}
+.wk-ui-option__description {
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.75rem;
+}
+.wk-ui-option[aria-selected="true"] .wk-ui-option__label {
+  font-weight: 600;
+}
+
+/* ── Tooltip ── */
+.wk-ui-tooltip-anchor {
+  display: contents;
+}
+.wk-ui-tooltip {
+  position: fixed;
+  inset: auto;
+  z-index: 1001;
+  box-sizing: border-box;
+  max-width: min(280px, calc(100vw - 16px));
+  margin: 0;
+  padding: 6px 10px;
+  overflow: visible;
+  border: 0;
+  border-radius: 8px;
+  background: var(--wk-primary, #141413);
+  color: var(--wk-primary-fg, #faf9f5);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+.wk-ui-tooltip[data-state="closed"] {
+  display: none;
+}
+.wk-ui-tooltip::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--wk-ui-arrow-x, 50%) - 5px);
+  width: 10px;
+  height: 10px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.wk-ui-tooltip[data-side="top"]::after {
+  bottom: -4px;
+}
+.wk-ui-tooltip[data-side="bottom"]::after {
+  top: -4px;
+}

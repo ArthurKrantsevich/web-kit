@@ -1,0 +1,43 @@
+{
+  "name": "@web-kit/ui",
+  "version": "0.0.0",
+  "description": "Shared React pieces of the web-kit utilities: select, segmented control, tooltip, buttons, the editor layout, file open and download.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArthurKrantsevich/web-kit.git",
+    "directory": "packages/ui"
+  },
+  "keywords": ["react", "ui", "select", "tooltip", "popover"],
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "build": "tsdown && cat src/styles/*.css > dist/styles.css",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit"
+  },
+  "size-limit": [
+    {
+      "name": "ui",
+      "path": "dist/index.js",
+      "limit": "5 kB"
+    }
+  ],
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}
