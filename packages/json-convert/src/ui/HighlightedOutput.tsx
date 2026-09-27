@@ -12,7 +12,9 @@ export interface HighlightedOutputProps {
 /** The converted text with `wk-syntax-*` colors for its format; plain above 200,000 characters. */
 export function HighlightedOutput({ text, target, delimiter }: HighlightedOutputProps): ReactElement {
   // Highlighting a large output is slower than typing; let it lag behind the input.
-  const shown = useDeferredValue({ text, target, delimiter });
+  // One object per real change: a fresh literal on every render would defeat both the deferral and the memo.
+  const current = useMemo(() => ({ text, target, delimiter }), [text, target, delimiter]);
+  const shown = useDeferredValue(current);
   const lines = useMemo(
     () => (shown.text.length > HIGHLIGHT_LIMIT ? null : toLines(tokenizeOutput(shown.text, shown.target, shown.delimiter))),
     [shown],
