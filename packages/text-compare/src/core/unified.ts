@@ -1,7 +1,7 @@
 import { splitLines, type SplitText } from "./lines";
 import type { TextDiff, UnifiedDiffOptions } from "./types";
 
-/** One line of the patch: " " context (from the right side, as git prints it), "-" left, "+" right. */
+/** One line of the patch: " " context (from the left side, so the patch applies to the left file), "-" left, "+" right. */
 interface Op {
   sign: " " | "-" | "+";
   left: number;
@@ -13,7 +13,9 @@ interface Op {
 /**
  * The diff as a unified diff, as `git diff --no-index -U<context>` prints it without its `diff --git` and `index`
  * lines: `--- left`, `+++ right`, hunks `@@ -a,b +c,d @@`, and `\ No newline at end of file` after a last line
- * without a line break. Lines keep a CRLF ending; other endings are written as LF. Empty when nothing changed.
+ * without a line break. Context lines come from the left text, so the patch applies to it; with ignore options on, it
+ * gives the right text apart from the ignored differences. Lines keep a CRLF ending; other endings are written as LF.
+ * Empty when nothing changed.
  */
 export function toUnifiedDiff(left: string, right: string, diff: TextDiff, options: UnifiedDiffOptions = {}): string {
   const { context = 3, leftName = "left", rightName = "right" } = options;
@@ -69,7 +71,11 @@ export function toUnifiedDiff(left: string, right: string, diff: TextDiff, optio
         if (rightBefore < 0) rightBefore = op.right;
         rightCount++;
       }
-      body += op.sign === "-" ? line("-", a, op.left) : line(op.sign, b, op.right);
+      if (op.sign === " " && a.endings[op.left] === "" && k < ops.length - 1) {
+        // A context line without a line break cannot have lines after it: it is replaced, as git does when the break
+        // is what differs, so the lines that follow do not join it. Ignored differences can make this happen.
+        body += line("-", a, op.left) + line("+", b, op.right);
+      } else body += op.sign === "+" ? line("+", b, op.right) : line(op.sign, a, op.left);
     }
     if (leftBefore < 0) leftBefore = linesBefore(ops, from, "left");
     if (rightBefore < 0) rightBefore = linesBefore(ops, from, "right");

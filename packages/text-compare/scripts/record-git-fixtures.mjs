@@ -76,6 +76,28 @@ const CASES = [
   ["whitespace and a real change, with -w", lines("if (x)  {", "  y = 1;", "}"), lines("if (x) {", "    y = 2;", "}"), ["-w"]],
 ];
 
+/** `patch` with every context line replaced by the left file's line at that place. */
+function leftContext(patch, left) {
+  const lines = left.split(/(?<=\n)/);
+  const out = [];
+  let at = 0;
+  const rows = patch.split(/(?<=\n)/);
+  for (let k = 0; k < rows.length; k++) {
+    const row = rows[k];
+    const header = /^@@ -(\d+)(?:,(\d+))? /.exec(row);
+    if (header) at = Number(header[1]) - (header[2] === "0" ? 0 : 1);
+    if (row.startsWith(" ")) {
+      const line = lines[at++];
+      out.push(` ${line.endsWith("\n") ? line : `${line}\n\\ No newline at end of file\n`}`);
+      if (rows[k + 1]?.startsWith("\\ ")) k++;
+      continue;
+    }
+    if (row.startsWith("-")) at++;
+    out.push(row);
+  }
+  return out.join("");
+}
+
 const dir = mkdtempSync(join(tmpdir(), "text-compare-"));
 const fixtures = [];
 try {
@@ -95,7 +117,12 @@ try {
     }
     const start = out.indexOf("--- left\n");
     const patch = start < 0 ? "" : out.slice(start).replace(/^(@@ -\S+ \+\S+ @@).*$/gm, "$1");
-    fixtures.push({ name, left, right, ignoreWhitespace: flags.includes("-w"), patch });
+    const ignoreWhitespace = flags.includes("-w");
+    // git diff -w prints context lines from the right file; toUnifiedDiff prints them from the left one, so its patch
+    // applies to the left file. For -w the expected patch is git's with its context lines taken from the left file;
+    // git's own output is kept beside it.
+    const expected = ignoreWhitespace ? leftContext(patch, left) : patch;
+    fixtures.push({ name, left, right, ignoreWhitespace, patch: expected, ...(expected === patch ? {} : { git: patch }) });
   }
 } finally {
   rmSync(dir, { recursive: true, force: true });
@@ -112,8 +139,13 @@ export interface GitFixture {
   right: string;
   /** Recorded with git diff -w. */
   ignoreWhitespace: boolean;
-  /** git's output from the --- line on, without the function names after hunk headers. */
+  /**
+   * The expected patch: git's output from the --- line on, without the function names after hunk headers. For -w
+   * fixtures its context lines come from the left file, as toUnifiedDiff prints them (git takes them from the right).
+   */
   patch: string;
+  /** git's own output, where it differs from \`patch\` (the -w fixtures with a context line that differs). */
+  git?: string;
 }
 
 export const GIT_FIXTURES: GitFixture[] = ${JSON.stringify(fixtures, null, 2)};

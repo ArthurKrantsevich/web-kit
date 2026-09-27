@@ -72,8 +72,21 @@ describe("toUnifiedDiff", () => {
     expect(patch("a\r\nb\r\n", "a\r\nc\r\n", exact)).toBe("--- left\n+++ right\n@@ -1,2 +1,2 @@\n a\r\n-b\r\n+c\r\n");
   });
 
-  it("prints context lines from the right side, as git diff -w does", () => {
-    expect(patch("x  y\nold\n", "x y\nnew\n", { ignoreWhitespace: true })).toBe("--- left\n+++ right\n@@ -1,2 +1,2 @@\n x y\n-old\n+new\n");
+  it("prints context lines from the left side, so the patch applies to the left file", () => {
+    expect(patch("x  y\nold\n", "x y\nnew\n", { ignoreWhitespace: true })).toBe("--- left\n+++ right\n@@ -1,2 +1,2 @@\n x  y\n-old\n+new\n");
+  });
+
+  it("applies to a CRLF left file when the right one has LF, with the default options", () => {
+    const left = "a\r\nb\r\nc\r\n";
+    const right = "a\nB\nc\n";
+    const diff = patch(left, right, {});
+    expect(diff).toBe("--- left\n+++ right\n@@ -1,3 +1,3 @@\n a\r\n-b\r\n+B\n c\r\n");
+    expect(applyPatch(left, diff)).toBe("a\r\nB\nc\r\n");
+  });
+
+  it("does not glue lines onto a context line without a line break when the right side goes on", () => {
+    const diff = patch("x\na", "x\na\nb\n", {});
+    expect(applyPatch("x\na", diff)).toBe("x\na\nb\n");
   });
 
   it("gives a patch that turns the left text into the right one, on random texts (seeded)", () => {
@@ -87,4 +100,32 @@ describe("toUnifiedDiff", () => {
       expect([seed, applyPatch(left, diff)]).toEqual([seed, right]);
     }
   });
+
+  // Every combination of the four ignore options: the patch always applies to Left, and the text it gives equals
+  // Right under the same options (exactly Right when nothing is ignored).
+  const COMBINATIONS = Array.from({ length: 16 }, (_, bits) => ({
+    ignoreWhitespace: (bits & 1) !== 0,
+    ignoreCase: (bits & 2) !== 0,
+    ignoreBlankLines: (bits & 4) !== 0,
+    ignoreLineEndings: (bits & 8) !== 0,
+  }));
+  for (const options of COMBINATIONS) {
+    const on = Object.entries(options).filter(([, value]) => value).map(([key]) => key);
+    it(`applies to Left with ${on.length === 0 ? "nothing ignored" : on.join(", ")}, on random texts (seeded)`, () => {
+      for (let seed = 1; seed <= 300; seed++) {
+        const next = random(seed);
+        const left = randomText(next, 30).replace(/^\uFEFF/, "").replace(/\r(?!\n)/g, "\n");
+        const right = (next() < 0.75 ? editText(next, left) : randomText(next, 30)).replace(/^\uFEFF/, "").replace(/\r(?!\n)/g, "\n");
+        const diff = toUnifiedDiff(left, right, compareTexts(left, right, options));
+        let applied: string;
+        try {
+          applied = applyPatch(left, diff);
+        } catch (error) {
+          throw new Error(`seed ${seed}: ${(error as Error).message}`);
+        }
+        if (on.length === 0) expect([seed, applied]).toEqual([seed, right]);
+        else expect([seed, compareTexts(applied, right, options).blocks.filter((block) => block.kind === "change").length]).toEqual([seed, 0]);
+      }
+    });
+  }
 });

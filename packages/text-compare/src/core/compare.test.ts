@@ -60,6 +60,12 @@ describe("compareTexts", () => {
     expect(diff.counts).toEqual({ added: 0, removed: 0, changed: 0 });
   });
 
+  it("with ignoreBlankLines, pairs an equal block whose blank lines sit elsewhere on each side, even at one length", () => {
+    const diff = compareTexts("x\n\ny\nz\n", "x\ny\n\nz\n", { ignoreBlankLines: true });
+    expect(diff.blocks.map((block) => block.kind)).toEqual(["equal"]);
+    expect(diff.blocks[0]!.pairs).toEqual([{ left: 0, right: 0 }, { left: 1 }, { left: 2, right: 1 }, { right: 2 }, { left: 3, right: 3 }]);
+  });
+
   it("with ignoreBlankLines, moves blank lines at the edges of a change out of it", () => {
     expect(shape("a\nb\n", "a\n  \nc\n\n", { ignoreBlankLines: true })).toEqual(["equal 0-1 0-2", "change 1-2 2-3", "equal 2-2 3-4"]);
   });

@@ -30,8 +30,9 @@ export interface DiffBlock {
   left: LineRange;
   right: LineRange;
   /**
-   * For "change": every line of the block in order, similar lines paired. For "equal" only when the sides differ in
-   * length, which happens with `ignoreBlankLines`: equal lines paired, the extra blank lines alone.
+   * For "change": every line of the block in order, similar lines paired. For "equal" only with `ignoreBlankLines`,
+   * when the sides differ in length or have blank lines at different places: equal lines paired, the extra blank
+   * lines alone.
    */
   pairs?: LinePair[];
 }

@@ -6,8 +6,13 @@ export interface GitFixture {
   right: string;
   /** Recorded with git diff -w. */
   ignoreWhitespace: boolean;
-  /** git's output from the --- line on, without the function names after hunk headers. */
+  /**
+   * The expected patch: git's output from the --- line on, without the function names after hunk headers. For -w
+   * fixtures its context lines come from the left file, as toUnifiedDiff prints them (git takes them from the right).
+   */
   patch: string;
+  /** git's own output, where it differs from `patch` (the -w fixtures with a context line that differs). */
+  git?: string;
 }
 
 export const GIT_FIXTURES: GitFixture[] = [
@@ -191,6 +196,7 @@ export const GIT_FIXTURES: GitFixture[] = [
     "left": "if (x)  {\n  y = 1;\n}\n",
     "right": "if (x) {\n    y = 2;\n}\n",
     "ignoreWhitespace": true,
-    "patch": "--- left\n+++ right\n@@ -1,3 +1,3 @@\n if (x) {\n-  y = 1;\n+    y = 2;\n }\n"
+    "patch": "--- left\n+++ right\n@@ -1,3 +1,3 @@\n if (x)  {\n-  y = 1;\n+    y = 2;\n }\n",
+    "git": "--- left\n+++ right\n@@ -1,3 +1,3 @@\n if (x) {\n-  y = 1;\n+    y = 2;\n }\n"
   }
 ];

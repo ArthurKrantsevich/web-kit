@@ -24,9 +24,7 @@ export function compareTexts(left: string, right: string, options: CompareOption
   const counts = { added: 0, removed: 0, changed: 0 };
   for (const block of blocks) {
     if (block.kind === "equal") {
-      if (block.left.end - block.left.start !== block.right.end - block.right.start) {
-        block.pairs = alignBlank(block, blankA, blankB);
-      }
+      if (options.ignoreBlankLines && !sameBlanks(block, blankA, blankB)) block.pairs = alignBlank(block, blankA, blankB);
       continue;
     }
     const leftLines: string[] = [];
@@ -119,7 +117,18 @@ function withoutBlankChanges(blocks: DiffBlock[], blankA: Uint8Array, blankB: Ui
   return out;
 }
 
-/** Pairs the lines of an equal block whose sides differ in length: equal lines together, extra blank lines alone. */
+/** True when both sides of an equal block have the same length and their blank lines at the same places. */
+function sameBlanks(block: DiffBlock, blankA: Uint8Array, blankB: Uint8Array): boolean {
+  const length = block.left.end - block.left.start;
+  if (length !== block.right.end - block.right.start) return false;
+  for (let k = 0; k < length; k++) if (blankA[block.left.start + k] !== blankB[block.right.start + k]) return false;
+  return true;
+}
+
+/**
+ * Pairs the lines of an equal block whose blank lines differ in number or place: equal lines together, extra blank
+ * lines alone.
+ */
 function alignBlank(block: DiffBlock, blankA: Uint8Array, blankB: Uint8Array): LinePair[] {
   const pairs: LinePair[] = [];
   let i = block.left.start;

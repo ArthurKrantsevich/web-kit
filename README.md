@@ -66,7 +66,7 @@ Shared packages: `@web-kit/json-core` (a lossless JSON parser and AST, fixes, pa
 - options to ignore whitespace (as `git diff -w`), case, blank lines and line endings; the result says when texts are identical only because of them;
 - unchanged runs folded to three lines of context, Previous and Next change (Alt+↑/↓, F7), and at most 5,000 rows drawn at once;
 - "Use left" and "Use right" copy a change to the other side, and Ctrl+Z in that input undoes it;
-- counts (+ added, − removed, ~ changed lines) and a unified diff to copy or download as `compare.patch`, with the file names; it matches `git diff --no-index -U3` on the recorded examples, so `git apply` and `patch` accept it;
+- counts (+ added, − removed, ~ changed lines) and a unified diff to copy or download as `compare.patch`, with the file names. It always applies to Left with `git apply` or `patch`. With nothing ignored it gives Right exactly; with ignore options on it gives Right apart from the ignored differences (unchanged lines keep Left's spacing, case or line endings). It matches `git diff --no-index -U3` on the recorded examples, except that for `-w` git takes context lines from the right file;
 - notes on different line endings and a missing line break at the end; files opened or dropped on a side, up to 10 MB; texts over 1 MB compared in a Web Worker.
 
 ## Convenience in every tool
