@@ -75,7 +75,7 @@ This is a plan, not a shipped tool. `text-compare`, in the data category, will c
 - **Load from URL.** The browser fetches the address directly: `http:` and `https:` only, no cookies, up to 10 MB. The server must allow reading from other sites (CORS); nothing goes through a proxy.
 - **Share link.** The input and the options are compressed into the part of the link after `#`, which browsers never send to a server. Anyone with the link can see the data; the tool warns when a link is longer than messengers usually keep.
 - **Saved input.** Off by default. Turned on, the input is kept in this browser's storage for that tool until you turn it off or clear it.
-- **Keyboard shortcuts.** Ctrl+Enter (⌘+Enter on a Mac) runs each tool's main action; the formatter also has Ctrl+Shift+M (minify) and Ctrl+Shift+F (fix all). `?` shows the list. Browser shortcuts are left alone.
+- **Keyboard shortcuts.** Ctrl+Enter (⌘+Enter on a Mac) formats in the formatter, swaps direction in the converter (JSON → CSV and CSV → JSON), swaps Left and Right in the diff, and generates a schema from the data in the validator; the formatter also has Ctrl+Shift+M (minify) and Ctrl+Shift+F (fix all). `?` shows the list. Browser shortcuts are left alone.
 - **Large inputs.** The formatter works on inputs over 1 MB in a Web Worker, so the page stays responsive, and says so while it works.
 - **One interface.** The same actions look the same in every tool: Open file and Paste in the header of each input, Download and Copy in the header of the output, Sample, Clear and "More actions" in the toolbar. Every button has a tooltip that says what it will do, and nothing moves when a label changes or the page finishes loading.
 - **Light and dark themes**, following the system until you choose.
@@ -134,7 +134,7 @@ pnpm verify                            # typecheck, unit tests, package checks, 
 pnpm test:generator                    # generates a throwaway tool and runs every check on it
 ```
 
-`pnpm verify` runs, for every package, TypeScript, Vitest with Testing Library, publint, @arethetypeswrong, size-limit and a check that `/core` imports no React; for the dashboard, a check of the static export and the Playwright tests; and a WCAG contrast check of the tokens in both themes. The e2e tests serve the export on port 4173; set `PORT` to use another.
+`pnpm verify` runs, for every package, TypeScript, Vitest with Testing Library, publint, @arethetypeswrong, size-limit and a check that `/core` imports no React; for the dashboard, Vitest unit tests (the catalog and the registry), a check of the static export and the Playwright tests; and a WCAG contrast check of the tokens in both themes. The e2e tests serve the export on port 4173; set `PORT` to use another.
 
 ### Add a utility
 
