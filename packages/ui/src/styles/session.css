@@ -141,3 +141,28 @@
 .wk-ui-pane[data-dragging="true"] > .wk-ui-pane__drop {
   display: flex;
 }
+
+.wk-ui-keys {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 16px;
+  margin: 0;
+}
+.wk-ui-keys dt {
+  display: flex;
+  gap: 4px;
+}
+.wk-ui-keys dd {
+  margin: 0;
+}
+.wk-ui-keys kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--wk-border-strong, #8c8a84);
+  border-radius: 6px;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+}
+
+.wk-ui-tool-menu {
+  display: contents;
+}

@@ -40,3 +40,4 @@ export {
 } from "./share";
 export { NOT_SAVED, SAVE_DELAY, usePersistentState, type PersistentState } from "./storage";
 export { formatHotkey, isApplePlatform, matchHotkey, useApplePlatform, useHotkeys, type HotkeyMap } from "./hotkeys";
+export { ToolMenu, type Shortcut, type ToolMenuProps, type UrlTarget } from "./ToolMenu";

@@ -1,7 +1,7 @@
 {
   "name": "@web-kit/ui",
   "version": "0.0.0",
-  "description": "Shared React pieces of the web-kit utilities: select, segmented control, tooltip, buttons, the editor layout, file open and download.",
+  "description": "Shared React pieces of the web-kit utilities: select, segmented control, tooltip, buttons, menu, dialog, the editor layout, files by picker, drop or URL, share links, saved input and keyboard shortcuts.",
   "license": "MIT",
   "repository": {
     "type": "git",
