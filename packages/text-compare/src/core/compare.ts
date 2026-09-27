@@ -1,5 +1,5 @@
 import { isBlank, lineKeys, normalizeLine, splitLines, type SplitText } from "./lines";
-import { defaultCost, diffKeys, indentOf } from "./myers";
+import { defaultCost, diffKeys, indentOf, type KeyDiff } from "./myers";
 import { pairBudget, pairLines } from "./pair";
 import type { CompareOptions, DiffBlock, LinePair, TextDiff } from "./types";
 
@@ -15,7 +15,9 @@ export function compareTexts(left: string, right: string, options: CompareOption
   const blankA = blankMarks(a);
   const blankB = blankMarks(b);
   const cost = maxCost ?? defaultCost(keysA.length, keysB.length);
-  const marks = diffKeys(keysA, keysB, cost, indents(a), indents(b));
+  const marks = options.ignoreBlankLines
+    ? diffWithoutBlanks(keysA, keysB, blankA, blankB, cost, indents(a), indents(b))
+    : diffKeys(keysA, keysB, cost, indents(a), indents(b));
   let blocks = toBlocks(marks.left, marks.right);
   if (options.ignoreBlankLines) blocks = withoutBlankChanges(blocks, blankA, blankB);
 
@@ -50,6 +52,36 @@ export function compareTexts(left: string, right: string, options: CompareOption
 
 function indents(split: SplitText): Int32Array {
   return Int32Array.from(split.lines, indentOf);
+}
+
+/**
+ * The diff of the lines that are not blank, so that a blank line can never decide what matches. Blank lines come back
+ * marked as changed; withoutBlankChanges then moves them into the equal blocks around them.
+ */
+function diffWithoutBlanks(
+  keysA: Int32Array,
+  keysB: Int32Array,
+  blankA: Uint8Array,
+  blankB: Uint8Array,
+  cost: number,
+  indentA: Int32Array,
+  indentB: Int32Array,
+): KeyDiff {
+  const kept = (blank: Uint8Array): Int32Array => {
+    const at: number[] = [];
+    for (let i = 0; i < blank.length; i++) if (!blank[i]) at.push(i);
+    return Int32Array.from(at);
+  };
+  const keptA = kept(blankA);
+  const keptB = kept(blankB);
+  const pick = (from: Int32Array, at: Int32Array): Int32Array => at.map((i) => from[i]!);
+  const inner = diffKeys(pick(keysA, keptA), pick(keysB, keptB), cost, pick(indentA, keptA), pick(indentB, keptB));
+  const spread = (blank: Uint8Array, at: Int32Array, marks: Uint8Array): Uint8Array => {
+    const out = Uint8Array.from(blank);
+    at.forEach((i, k) => (out[i] = marks[k]!));
+    return out;
+  };
+  return { left: spread(blankA, keptA, inner.left), right: spread(blankB, keptB, inner.right), approximate: inner.approximate };
 }
 
 function blankMarks(split: SplitText): Uint8Array {

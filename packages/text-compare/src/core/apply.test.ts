@@ -45,6 +45,17 @@ describe("applyBlock", () => {
     expect(use("x\r\r\ny\n", "x\ry\n", "to-right")).toBe("x\r\ry\n");
   });
 
+  it("with blank lines ignored and exact line endings, ends like the source after a merge at the end", () => {
+    const options = { ignoreBlankLines: true, ignoreLineEndings: false };
+    const left = "a\nb\n\n";
+    const right = "a\nc";
+    const diff = compareTexts(left, right, options);
+    for (const index of changeIndexes(diff).reverse()) {
+      const merged = applyBlock(left, right, diff, index, "to-left", options);
+      expect(changeIndexes(compareTexts(merged, right, options))).toEqual([]);
+    }
+  });
+
   it("keeps the target's BOM", () => {
     expect(use("\uFEFFa\nb\n", "a\nc\n", "to-left")).toBe("\uFEFFa\nc\n");
   });
@@ -56,7 +67,15 @@ describe("applyBlock", () => {
   });
 
   describe("on random texts (seeded)", () => {
-    const OPTION_SETS: CompareOptions[] = [{}, { ignoreLineEndings: false }, { ignoreWhitespace: true }, { ignoreCase: true }, { ignoreBlankLines: true }];
+    const OPTION_SETS: CompareOptions[] = [
+      {},
+      { ignoreLineEndings: false },
+      { ignoreWhitespace: true },
+      { ignoreCase: true },
+      { ignoreBlankLines: true },
+      { ignoreBlankLines: true, ignoreLineEndings: false },
+      { ignoreBlankLines: true, ignoreCase: true, ignoreLineEndings: false },
+    ];
     const changes = (left: string, right: string, options: CompareOptions) => changeIndexes(compareTexts(left, right, options)).length;
 
     for (const direction of ["to-left", "to-right"] as const) {
@@ -76,7 +95,7 @@ describe("applyBlock", () => {
           }
           const [newLeft, newRight] = direction === "to-left" ? [target, right] : [left, target];
           expect([seed, changes(newLeft, newRight, options)]).toEqual([seed, 0]);
-          if (options.ignoreLineEndings === false) expect([seed, newLeft.replace(/^\uFEFF/, "")]).toEqual([seed, newRight.replace(/^\uFEFF/, "")]);
+          if (options.ignoreLineEndings === false && !options.ignoreBlankLines) expect([seed, newLeft.replace(/^\uFEFF/, "")]).toEqual([seed, newRight.replace(/^\uFEFF/, "")]);
         }
       });
     }

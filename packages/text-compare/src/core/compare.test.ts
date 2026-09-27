@@ -66,6 +66,10 @@ describe("compareTexts", () => {
     expect(diff.blocks[0]!.pairs).toEqual([{ left: 0, right: 0 }, { left: 1 }, { left: 2, right: 1 }, { right: 2 }, { left: 3, right: 3 }]);
   });
 
+  it("with ignoreBlankLines, finds no change when only blank lines moved, even across other lines", () => {
+    expect(shape("x\nb\n{\n  \n", "x\nb\n  \n{\n", { ignoreBlankLines: true, ignoreLineEndings: false })).toEqual(["equal 0-4 0-4"]);
+  });
+
   it("with ignoreBlankLines, moves blank lines at the edges of a change out of it", () => {
     expect(shape("a\nb\n", "a\n  \nc\n\n", { ignoreBlankLines: true })).toEqual(["equal 0-1 0-2", "change 1-2 2-3", "equal 2-2 3-4"]);
   });
