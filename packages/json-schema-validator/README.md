@@ -37,7 +37,7 @@ export function Page() {
 }
 ```
 
-Data and Schema each have Paste and Open file; Schema also has Download (`schema.json`) and Copy. `useJsonSchemaValidator()` gives the same state without markup. Set `--wk-schema-height` to change the height of the two inputs.
+The component is built with `@web-kit/ui`. Data and Schema each have Open file and Paste in their header (or drop a file on them); Schema also has Download (`schema.json`) and Copy, since a generated schema appears there. The toolbar has Generate schema from data, Sample, Clear and More actions (load Data or Schema from a URL, share link, saved input, keyboard shortcuts; Ctrl/⌘+Enter generates the schema); Undo generate appears in the status line. A click on an error selects it in Data or Schema. `useJsonSchemaValidator()` gives the same state without markup. Set `--wk-schema-height` to change the height of the two inputs.
 
 ## License
 

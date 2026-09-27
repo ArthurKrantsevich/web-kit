@@ -27,7 +27,9 @@ export function Page() {
 }
 ```
 
-The component is an editor built with `@web-kit/ui`: one toolbar (modes, Indent, Sort keys, Open file, Sample, Clear), input and output side by side when the component is at least 1024 px wide, errors with checked fixes inside the output pane, and a status line. Every button has a tooltip that says what it will do. Set `--wk-json-height` (or `--wk-editor-height`) on it or a parent to change the pane height (default `max(420px, 70vh)`).
+The component is an editor built with `@web-kit/ui`: a toolbar (modes, Indent, Sort keys, Sample, Clear, More actions), the input with Open file and Paste in its header (or drop a file on it), the output with Text | Tree, To input, Download and Copy in its header, errors with checked fixes inside the output pane, and a status line. Input and output sit side by side when the component is at least 1024 px wide; below 640 px the action buttons show only their icons. Every button has a tooltip that says what it will do. Set `--wk-json-height` (or `--wk-editor-height`) on it or a parent to change the pane height (default `max(420px, 70vh)`).
+
+More actions loads the input from a URL, makes a share link (the data goes into the link's `#` part), saves the input in this browser (off by default) and lists the keyboard shortcuts: Ctrl/⌘+Enter formats, Ctrl/⌘+Shift+M minifies, Ctrl/⌘+Shift+F applies the checked fix, `?` shows the list. Files and URLs are read up to 10 MB.
 
 ## Large inputs
 

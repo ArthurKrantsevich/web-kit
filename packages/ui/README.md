@@ -1,6 +1,6 @@
 # @web-kit/ui
 
-The shared React pieces of the web-kit utilities: one look and one behavior for every tool, plus opening files by drag and drop or from a URL, share links, saving the input in the browser and keyboard shortcuts.
+The shared React pieces of the web-kit utilities: one look and one behavior for every tool, the table of shared actions, empty states, plus opening files by drag and drop or from a URL, share links, saving the input in the browser and keyboard shortcuts.
 
 > Not published to npm yet. The package name will change before the first release.
 
@@ -19,7 +19,33 @@ import "@web-kit/ui/styles.css";
 - **Tooltip** describes its element (`aria-describedby`); it appears after 400 ms of mouse hover or at once on keyboard focus, hides on leave, blur, Escape and click, and never appears for touch.
 - **CopyButton** shows "Copy", "✓ Copied" or "Copy failed" in one fixed width and announces the change through a polite live region.
 - **EditorShell**, **EditorToolbar**, **EditorPanes**, **EditorPane** and **StatusLine** build the editor layout: a toolbar named "Options", two panes side by side from 1024 px of component width, and a status line. Pane height: `--wk-editor-height` (default `max(420px, 70vh)`).
-- **OpenFileButton** and **PasteButton** read a file (UTF-8, BOM removed, size limit) or the clipboard; `onReadStart` on OpenFileButton lets a tool drop a file that finishes reading after the user changed the input. `downloadText(text, filename, mime)` saves text as a file; `readTextFile(file, maxBytes)` returns `{ ok, value }` or `{ ok: false, error: { message } }`.
+- **OpenFileButton** and **PasteButton** read a file (UTF-8, BOM removed, size limit) or the clipboard; `onReadStart` on OpenFileButton lets a tool drop a file that finishes reading after the user changed the input. Both show "Open file" / "Paste" and take a longer `aria-label` ("Paste into Left") and `words` for their tooltip. Paste keeps its place hidden until the page knows the clipboard can be read, so nothing next to it moves. `downloadText(text, filename, mime)` saves text as a file; `readTextFile(file, maxBytes)` returns `{ ok, value }` or `{ ok: false, error: { message } }`.
+- **EditorPane** `kind` (`"input"`, `"output"` or `"input output"`) says what the pane holds; it is written as `data-pane`.
+- **EmptyState** shows an empty result the same way everywhere: an icon in a circle, a title, a muted line and one next step (`size="sm"` inside a tool's pane).
+
+### Shared actions
+
+`ACTIONS` is the one table of the actions every tool has: its label, icon, tooltip template, where it sits and in which order.
+
+| Action | Where | Label | Icon |
+|---|---|---|---|
+| `open` | header of an input pane | Open file | `open` |
+| `paste` | header of an input pane, after Open file | Paste | `paste` |
+| `custom` | header of the output or the toolbar, before Download | the tool's own (To input, Swap…) | the tool's own |
+| `download` | header of the output, before Copy | Download | `download` |
+| `copy` | header of the output, last | Copy | `copy` |
+| `sample`, `clear` | toolbar | Sample, Clear | `sample`, `clear` |
+| `more` | toolbar, last | icon only (More actions) | `more` |
+
+```tsx
+import { ActionButton, actionTooltip, CopyButton } from "@web-kit/ui";
+
+<ActionButton action="clear" words={{ target: "both sides" }} onClick={clear} />; // "Clear", tooltip "Empty both sides"
+<ActionButton action="download" words={{ what: "the output", file: "formatted.json" }} onClick={save} />;
+<CopyButton text={output} tooltip={actionTooltip("copy", { what: "the output" })} variant="quiet" icon />;
+```
+
+`ActionButton`, `OpenFileButton`, `PasteButton`, `CopyButton` and the More actions menu carry `data-action="<id>"`, so a test can compare any tool's rows with the table. All of them are quiet buttons with an icon and a label; below 640 px of component width only the icon shows, and the label stays the accessible name.
 
 ### Files, links, saving and keys
 
@@ -33,6 +59,8 @@ import "@web-kit/ui/styles.css";
 - **ToolMenu** puts it together for a tool: a "More actions" menu with Load from URL, Share link, Save input in this browser, Clear saved input and Keyboard shortcuts, the dialogs, restoring a link or the saved input once, saving while on, and the tool's hotkeys.
 
 Browsers without the Popover API (and jsdom) show the list and the tooltip as plain fixed elements; the list may then be clipped by a parent with `overflow: hidden`.
+
+Scrolling areas of the editor, menus, lists and dialogs get thin scrollbars with a rounded thumb in `--wk-scrollbar` (`--wk-scrollbar-hover` while hovered) and no track. One-line option fields in the toolbar are 8 to 12 rem wide (`--wk-ui-input-width`, default 10 rem) and never stretch.
 
 Every web-kit utility's `styles.css` starts with this package's styles, so an app imports one file per utility. Colors come from `@web-kit/tokens` (`--wk-*`), with light-theme fallbacks.
 

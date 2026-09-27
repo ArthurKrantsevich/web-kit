@@ -2,6 +2,8 @@
 
 Compare two JSON documents exactly. Every change has its path, the old and new value as written, and its position in both texts. Arrays are compared by index or matched by a key. The result exports to JSON Patch (RFC 6902).
 
+> Not published to npm yet. The package name will change before the first release.
+
 ## Logic only (no React)
 
 ```ts
@@ -33,4 +35,8 @@ export function Page() {
 }
 ```
 
-Each side has Paste and Open file; the list of changes has Download (`patch.json`) and Copy JSON Patch. `useJsonDiff()` gives the same state without markup. Set `--wk-diff-height` to change the height of the two inputs.
+The component is built with `@web-kit/ui`. Each side's header has Open file and Paste (or drop a file on the side); the list of changes has Download (`patch.json`) and Copy JSON Patch in its header, and a click on a change selects it in the input; the toolbar has the array and number options (the array key takes up to 64 characters), Swap, Sample, Clear and More actions (load either side from a URL, share link, saved input, keyboard shortcuts; Ctrl/⌘+Enter swaps Left and Right). `useJsonDiff()` gives the same state without markup. Set `--wk-diff-height` to change the height of the two inputs.
+
+## License
+
+MIT
