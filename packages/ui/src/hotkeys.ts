@@ -1,0 +1,90 @@
+import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
+
+/**
+ * Key combinations: "Mod+Enter", "Mod+Shift+M", "?". "Mod" is ⌘ on Apple systems and Ctrl elsewhere. Letters are
+ * matched by the physical key (event.code), so they work with any keyboard layout; "?" is matched by the character.
+ */
+export type HotkeyMap = Record<string, () => void>;
+
+interface KeyLike {
+  key: string;
+  code: string;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  altKey: boolean;
+  shiftKey: boolean;
+}
+
+export function isApplePlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const platform = (navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform ?? navigator.platform ?? "";
+  return /mac|iphone|ipad|ipod/i.test(platform);
+}
+
+const noSubscription = (): (() => void) => () => {};
+
+/** True on Apple systems; false during the server render and hydration, so the markup matches. */
+export function useApplePlatform(): boolean {
+  return useSyncExternalStore(noSubscription, isApplePlatform, () => false);
+}
+
+/** Whether `event` is the combination `combo`. Extra modifiers never match, so browser shortcuts pass through. */
+export function matchHotkey(combo: string, event: KeyLike, apple: boolean): boolean {
+  const parts = combo.split("+");
+  const key = parts.pop()!;
+  const mod = parts.includes("Mod");
+  const shift = parts.includes("Shift");
+  if (key === "?") return event.key === "?" && !event.ctrlKey && !event.metaKey && !event.altKey;
+  if (event.altKey || event.shiftKey !== shift) return false;
+  if (mod !== (apple ? event.metaKey : event.ctrlKey) || (apple ? event.ctrlKey : event.metaKey)) return false;
+  return /^[A-Z]$/.test(key) ? event.code === `Key${key}` : event.key === key;
+}
+
+/** The keys of a combination, for lists of shortcuts: ["⌘", "Enter"], or ["Ctrl", "Shift", "M"] elsewhere. */
+export function formatHotkey(combo: string, apple: boolean): string[] {
+  return combo.split("+").map((part) => (part === "Mod" ? (apple ? "⌘" : "Ctrl") : part === "Shift" && apple ? "⇧" : part));
+}
+
+function isEditable(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName);
+}
+
+/** Tools with hotkeys, in mount order. When nothing on the page has focus, the first one gets the keys. */
+const scopes: RefObject<HTMLElement | null>[] = [];
+
+/**
+ * Keyboard shortcuts for one tool. A combination works while focus is inside `scope`, or when nothing has focus and
+ * this is the first tool on the page. "?" works only outside text fields. Keys inside a dialog, during IME
+ * composition, or already handled by a control (a Select's Enter, for example) are left alone, and so is every
+ * combination that is not in the map.
+ */
+export function useHotkeys(map: HotkeyMap, scope: RefObject<HTMLElement | null>): void {
+  const latest = useRef(map);
+  latest.current = map;
+
+  useEffect(() => {
+    scopes.push(scope);
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented || event.isComposing) return;
+      const target = event.target instanceof Node ? event.target : null;
+      const root = scope.current;
+      const unfocused = target === null || target === document.body || target === document.documentElement;
+      if (!root || !(unfocused ? scopes[0] === scope : root.contains(target))) return;
+      if (target instanceof Element && target.closest("dialog, [role='dialog']")) return;
+      const apple = isApplePlatform();
+      for (const [combo, run] of Object.entries(latest.current)) {
+        if (!matchHotkey(combo, event, apple)) continue;
+        if (combo === "?" && isEditable(event.target)) return;
+        event.preventDefault();
+        run();
+        return;
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      scopes.splice(scopes.indexOf(scope), 1);
+    };
+  }, [scope]);
+}

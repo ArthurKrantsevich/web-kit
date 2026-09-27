@@ -28,3 +28,15 @@ export {
   type UseFileDropOptions,
 } from "./drop";
 export { Menu, type MenuItem, type MenuProps } from "./Menu";
+export { loadFromUrl, UNREACHABLE, type LoadFromUrlOptions } from "./url";
+export {
+  canShare,
+  compressText,
+  decompressText,
+  SHARE_MAX_LENGTH,
+  SHARE_WARNING_LENGTH,
+  useShareHash,
+  type ShareHash,
+} from "./share";
+export { NOT_SAVED, SAVE_DELAY, usePersistentState, type PersistentState } from "./storage";
+export { formatHotkey, isApplePlatform, matchHotkey, useApplePlatform, useHotkeys, type HotkeyMap } from "./hotkeys";
