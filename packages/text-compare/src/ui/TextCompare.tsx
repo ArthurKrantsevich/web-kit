@@ -158,13 +158,22 @@ export function TextCompare(props: TextCompareProps): ReactElement {
   const refs = { left: leftRef, right: rightRef };
   const text = { left, right };
   const names = { left: state.leftName, right: state.rightName };
+  /** True while a merge edits a field: its input keeps the current change and the opened folds. */
+  const merging = useRef(false);
+  // New texts start over: no current change, every long unchanged run folded again.
+  const input = (): void => {
+    setNotice("");
+    if (merging.current) return;
+    setCurrent(null);
+    setExpanded(new Set());
+  };
   const set = {
     left: (value: string, name?: string | null) => {
-      setNotice("");
+      input();
       state.setLeft(value, name);
     },
     right: (value: string, name?: string | null) => {
-      setNotice("");
+      input();
       state.setRight(value, name);
     },
   };
@@ -247,7 +256,12 @@ export function TextCompare(props: TextCompareProps): ReactElement {
     const side: Side = direction === "to-left" ? "left" : "right";
     refocus.current = { index: model?.changes.indexOf(block) ?? 0, direction };
     const result = applyBlock(comparison.left, comparison.right, comparison.diff, block, direction, comparison.options);
-    replaceText(refs[side].current, text[side], result, (value) => set[side](value));
+    merging.current = true;
+    try {
+      replaceText(refs[side].current, text[side], result, (value) => set[side](value));
+    } finally {
+      merging.current = false;
+    }
     body.current?.focus({ preventScroll: true });
   }
 
@@ -366,8 +380,6 @@ export function TextCompare(props: TextCompareProps): ReactElement {
         onClick={() => {
           set.left("", null);
           set.right("", null);
-          setCurrent(null);
-          setExpanded(new Set());
         }}
       />
       <ToolMenu

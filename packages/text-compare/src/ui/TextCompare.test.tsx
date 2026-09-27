@@ -240,6 +240,40 @@ describe("TextCompare navigation", () => {
   });
 });
 
+describe("TextCompare starts over on new texts", () => {
+  const current = () => groups().findIndex((group) => group.hasAttribute("data-current"));
+  const folds = () => within(body()).queryAllByRole("button", { name: /unchanged lines$/ }).length;
+  const setUp = () => {
+    render(<TextCompare initialLeft={numbered(40)} initialRight={numbered(40, { 20: "line 20 changed" })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Next change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Show 16 unchanged lines" }));
+    expect([current(), folds()]).toEqual([0, 1]);
+  };
+
+  it("forgets the current change and the opened folds when a text is typed", () => {
+    setUp();
+    type("Left", numbered(41));
+    expect([current(), folds()]).toEqual([-1, 2]);
+  });
+
+  for (const action of ["Swap", "Sample"]) {
+    it(`forgets them on ${action}`, () => {
+      setUp();
+      fireEvent.click(screen.getByRole("button", { name: action }));
+      expect(current()).toBe(-1);
+      expect(folds()).toBeGreaterThanOrEqual(action === "Swap" ? 2 : 1);
+    });
+  }
+
+  it("keeps them after a merge", () => {
+    render(<TextCompare initialLeft={numbered(40)} initialRight={numbered(40, { 20: "line 20 changed", 35: "line 35 changed" })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Next change" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next change" }));
+    fireEvent.click(within(groups()[0]!).getByRole("button", { name: "Use right" }));
+    expect(current()).toBe(0);
+  });
+});
+
 describe("TextCompare keeps the current change in view", () => {
   const LEFT = numbered(40, {});
   const RIGHT = numbered(40, { 2: "line 2 x", 20: "line 20 y", 38: "line 38 z" });
