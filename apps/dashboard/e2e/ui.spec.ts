@@ -330,3 +330,21 @@ test("a tooltip does not change the accessible name", async ({ page }) => {
   const copy = page.getByRole("button", { name: "Copy JSON Patch" });
   await expect(copy).toHaveAccessibleDescription("Copy RFC 6902 operations that turn Left into Right");
 });
+
+for (const width of [390, 700, 900, 1024, 1280]) {
+  test(`json-convert at ${width} px: choosing another format moves nothing below the toolbar`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("tools/json-convert/");
+    await expect(page.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+    const seen: string[] = [];
+    for (const format of ["YAML", "CSV", "XML", "TypeScript", "YAML"]) {
+      await page.getByRole("button", { name: "Convert to" }).click();
+      await page.getByRole("option", { name: format }).click();
+      await expect(page.getByRole("button", { name: "Convert to" })).toContainText(format);
+      const toolbar = (await page.locator(".wk-ui-editor__toolbar").boundingBox())!;
+      const pane = (await page.locator('[data-pane="input"]').boundingBox())!;
+      seen.push(`${format}: toolbar ${Math.round(toolbar.height)}, input at ${Math.round(pane.y)}`);
+    }
+    expect(new Set(seen.map((entry) => entry.split(": ")[1])).size, seen.join("; ")).toBe(1);
+  });
+}

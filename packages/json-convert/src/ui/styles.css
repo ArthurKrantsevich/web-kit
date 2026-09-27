@@ -4,6 +4,28 @@
 .wk-convert__name {
   --wk-ui-input-width: 10rem;
 }
+/* "Convert to" is as wide with "YAML" as with "TypeScript". */
+.wk-convert__format {
+  min-width: 7.5rem;
+}
+/* The slot of the format's options (Delimiter, Root element, Type name) keeps the room of the widest one, empty or
+   not, so choosing a format never re-wraps the toolbar and never moves the panes below it. */
+.wk-convert__options {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 17rem;
+  min-height: 34px;
+}
+/* Narrow: the field labels hide (ui), the widest option is the 10rem name field. */
+@container wk-ui-editor (max-width: 639px) {
+  .wk-convert__options {
+    gap: 8px 6px;
+    min-width: 10rem;
+  }
+}
 /* The output keeps its line breaks and is colored by format (HighlightedOutput). */
 .wk-convert__output {
   white-space: pre;

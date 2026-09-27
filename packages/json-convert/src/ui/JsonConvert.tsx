@@ -207,63 +207,66 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
           <span className="wk-ui-field" aria-hidden="true">
             To
           </span>
-          <Select label="Convert to" value={jsonTarget} options={FORMATS} onChange={chooseFormat} />
+          <Select className="wk-convert__format" label="Convert to" value={jsonTarget} options={FORMATS} onChange={chooseFormat} />
         </>
       )}
-      {(target === "csv" || target === "csv-to-json") && (
-        <>
-          <span className="wk-ui-field" aria-hidden="true">
-            Delimiter
-          </span>
-          <Select
-            label="Delimiter"
-            value={options.delimiter}
-            options={DELIMITERS}
-            onChange={(delimiter) => setOptions({ delimiter })}
-          />
-        </>
-      )}
-      {target === "csv-to-json" && (
-        <label className="wk-ui-switch">
-          <input
-            type="checkbox"
-            role="switch"
-            checked={options.inferTypes}
-            onChange={(e) => setOptions({ inferTypes: e.target.checked })}
-          />
-          Detect numbers and booleans
-        </label>
-      )}
-      {target === "xml" && (
-        <>
-          <span className="wk-ui-field" aria-hidden="true">
-            Root element
-          </span>
-          <input
-            className="wk-ui-input wk-convert__name"
-            aria-label="Root element"
-            value={options.xmlRoot}
-            maxLength={NAME_MAX_LENGTH}
-            spellCheck={false}
-            onChange={(e) => setOptions({ xmlRoot: e.target.value })}
-          />
-        </>
-      )}
-      {target === "typescript" && (
-        <>
-          <span className="wk-ui-field" aria-hidden="true">
-            Type name
-          </span>
-          <input
-            className="wk-ui-input wk-convert__name"
-            aria-label="Type name"
-            value={options.typeName}
-            maxLength={NAME_MAX_LENGTH}
-            spellCheck={false}
-            onChange={(e) => setOptions({ typeName: e.target.value })}
-          />
-        </>
-      )}
+      {/* The format's options, in a slot as wide as the widest of them: choosing a format moves nothing. */}
+      <span className="wk-convert__options">
+        {(target === "csv" || target === "csv-to-json") && (
+          <>
+            <span className="wk-ui-field" aria-hidden="true">
+              Delimiter
+            </span>
+            <Select
+              label="Delimiter"
+              value={options.delimiter}
+              options={DELIMITERS}
+              onChange={(delimiter) => setOptions({ delimiter })}
+            />
+          </>
+        )}
+        {target === "csv-to-json" && (
+          <label className="wk-ui-switch">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={options.inferTypes}
+              onChange={(e) => setOptions({ inferTypes: e.target.checked })}
+            />
+            Detect numbers and booleans
+          </label>
+        )}
+        {target === "xml" && (
+          <>
+            <span className="wk-ui-field" aria-hidden="true">
+              Root element
+            </span>
+            <input
+              className="wk-ui-input wk-convert__name"
+              aria-label="Root element"
+              value={options.xmlRoot}
+              maxLength={NAME_MAX_LENGTH}
+              spellCheck={false}
+              onChange={(e) => setOptions({ xmlRoot: e.target.value })}
+            />
+          </>
+        )}
+        {target === "typescript" && (
+          <>
+            <span className="wk-ui-field" aria-hidden="true">
+              Type name
+            </span>
+            <input
+              className="wk-ui-input wk-convert__name"
+              aria-label="Type name"
+              value={options.typeName}
+              maxLength={NAME_MAX_LENGTH}
+              spellCheck={false}
+              onChange={(e) => setOptions({ typeName: e.target.value })}
+            />
+          </>
+        )}
+      </span>
       <span className="wk-ui-spacer" />
       <ActionButton
         action="sample"
