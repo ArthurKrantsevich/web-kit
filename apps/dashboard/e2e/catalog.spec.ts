@@ -14,12 +14,18 @@ test.describe("home: empty states and planned tools", () => {
     const empty = page.locator(".wk-ui-empty");
     await expect(empty).toContainText("Nothing matches “zzz”");
     await expect(empty).toContainText("Try a shorter word, or browse every tool.");
+    // A screen reader hears it too, from a polite live region.
+    const status = page.locator('#tools [role="status"]');
+    await expect(status).toHaveAttribute("aria-live", "polite");
+    await expect(status).toHaveText("Nothing matches “zzz”. Try a shorter word, or browse every tool.");
     await expect(cards).toHaveCount(0);
     await empty.getByRole("button", { name: "Clear search" }).click();
     await expect(search(page)).toHaveValue("");
     await expect(search(page)).toBeFocused();
     await expect(cards).toHaveCount(all);
     await expect(empty).toHaveCount(0);
+    await search(page).fill("json");
+    await expect(status).toHaveText(`${tools.length} tools ready, 0 planned`);
   });
 
   test("a category without ready tools says so and keeps its planned cards", async ({ page }) => {

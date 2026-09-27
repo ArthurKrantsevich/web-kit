@@ -18,7 +18,7 @@ test("home lists utilities and filters them", async ({ page }) => {
   await expect(main.getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
 
   await search.fill("zzz-no-match");
-  await expect(main.getByText("Nothing matches “zzz-no-match”")).toBeVisible();
+  await expect(main.getByText("Nothing matches “zzz-no-match”", { exact: true })).toBeVisible();
 
   await search.fill("json");
   await main.getByRole("link", { name: /JSON Formatter/ }).click();

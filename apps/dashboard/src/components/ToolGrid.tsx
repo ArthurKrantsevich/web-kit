@@ -3,7 +3,7 @@
 import { Button, EmptyState } from "@web-kit/ui";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { selectCatalog, type EmptyReason, type Filter } from "@/catalog";
+import { announceCatalog, emptyText, emptyTitle, selectCatalog, type EmptyReason, type Filter } from "@/catalog";
 import { CATEGORIES, CATEGORY_LABELS, type ToolMeta, type UpcomingTool } from "@/registry";
 
 export function ToolGrid({ tools, upcoming }: { tools: ToolMeta[]; upcoming: UpcomingTool[] }) {
@@ -37,6 +37,10 @@ export function ToolGrid({ tools, upcoming }: { tools: ToolMeta[]; upcoming: Upc
         </div>
       </div>
 
+      {/* Heard, not seen: what a search or a category change found, or that it found nothing. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {announceCatalog({ ready, soon, empty }, query, filter)}
+      </p>
       {empty && <Empty reason={empty} onClearSearch={clearSearch} onShowAll={() => setFilter("all")} />}
 
       {ready.length + soon.length > 0 && (
@@ -79,22 +83,22 @@ function Empty({ reason, onClearSearch, onShowAll }: { reason: EmptyReason; onCl
     return (
       <EmptyState
         icon="search"
-        title={`Nothing matches “${reason.query}”`}
+        title={emptyTitle(reason)}
         action={
           <Button variant="outline" onClick={onClearSearch}>
             Clear search
           </Button>
         }
       >
-        Try a shorter word, or browse every tool.
+        {emptyText(reason)}
       </EmptyState>
     );
   }
-  const { category, planned } = reason;
+  const { planned } = reason;
   return (
     <EmptyState
       icon="generate"
-      title={`No ${CATEGORY_LABELS[category]} tools yet`}
+      title={emptyTitle(reason)}
       action={
         planned === 0 ? (
           <Button variant="outline" onClick={onShowAll}>
@@ -103,7 +107,7 @@ function Empty({ reason, onClearSearch, onShowAll }: { reason: EmptyReason; onCl
         ) : undefined
       }
     >
-      {planned === 0 ? "Nothing is planned here yet." : `${planned} ${planned === 1 ? "is" : "are"} planned — see ${planned === 1 ? "it" : "them"} below.`}
+      {emptyText(reason)}
     </EmptyState>
   );
 }

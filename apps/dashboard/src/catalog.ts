@@ -1,4 +1,4 @@
-import type { Category, ToolMeta, UpcomingTool } from "./registry";
+import { CATEGORY_LABELS, type Category, type ToolMeta, type UpcomingTool } from "./registry";
 
 export type Filter = Category | "all";
 
@@ -33,4 +33,28 @@ export function selectCatalog(tools: ToolMeta[], upcoming: UpcomingTool[], query
   if (ready.length === 0 && soon.length === 0 && needle !== "") empty = { kind: "search", query: words };
   else if (ready.length === 0 && needle === "" && filter !== "all") empty = { kind: "category", category: filter, planned: soon.length };
   return { ready, soon, empty };
+}
+
+/** The empty message's words, shared by the page and the announcement. */
+export function emptyTitle(reason: EmptyReason): string {
+  return reason.kind === "search" ? `Nothing matches “${reason.query}”` : `No ${CATEGORY_LABELS[reason.category]} tools yet`;
+}
+
+export function emptyText(reason: EmptyReason): string {
+  if (reason.kind === "search") return "Try a shorter word, or browse every tool.";
+  const { planned } = reason;
+  return planned === 0 ? "Nothing is planned here yet." : `${planned} ${planned === 1 ? "is" : "are"} planned — see ${planned === 1 ? "it" : "them"} below.`;
+}
+
+/**
+ * What a screen reader hears after a search or a category change (a polite live region): the counts, or the empty
+ * message. Nothing before the user has searched or picked a category.
+ */
+export function announceCatalog({ ready, soon, empty }: Catalog, query: string, filter: Filter): string {
+  if (query.trim() === "" && filter === "all") return "";
+  if (empty?.kind === "search") return `${emptyTitle(empty)}. ${emptyText(empty)}`;
+  if (empty?.kind === "category") {
+    return `${emptyTitle(empty)}. ${empty.planned === 0 ? emptyText(empty) : `${empty.planned} ${empty.planned === 1 ? "is" : "are"} planned.`}`;
+  }
+  return `${ready.length} ${ready.length === 1 ? "tool" : "tools"} ready, ${soon.length} planned`;
 }

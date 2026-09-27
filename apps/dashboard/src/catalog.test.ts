@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { selectCatalog } from "./catalog";
+import { announceCatalog, selectCatalog } from "./catalog";
 import type { ToolMeta, UpcomingTool } from "./registry";
 
 const tool = (id: string, category: ToolMeta["category"], tags: string[] = []): ToolMeta => ({
@@ -55,5 +55,25 @@ describe("selectCatalog", () => {
 
   it("does not explain a category search that finds a planned tool", () => {
     expect(selectCatalog(TOOLS, UPCOMING, "uuid", "generators").empty).toBeNull();
+  });
+});
+
+describe("announceCatalog", () => {
+  const say = (query: string, filter: Parameters<typeof selectCatalog>[3]) => announceCatalog(selectCatalog(TOOLS, UPCOMING, query, filter), query, filter);
+
+  it("says nothing before the user searches or picks a category", () => {
+    expect(say("", "all")).toBe("");
+  });
+
+  it("counts what a search or a category finds", () => {
+    expect(say("json", "all")).toBe("1 tool ready, 0 planned");
+    expect(say("", "data")).toBe("2 tools ready, 1 planned");
+    expect(say("hash", "all")).toBe("0 tools ready, 1 planned");
+  });
+
+  it("reads the empty message aloud", () => {
+    expect(say("  zzz ", "all")).toBe("Nothing matches “zzz”. Try a shorter word, or browse every tool.");
+    expect(say("", "generators")).toBe("No Generators tools yet. 2 are planned.");
+    expect(say("", "media")).toBe("No Media tools yet. Nothing is planned here yet.");
   });
 });
