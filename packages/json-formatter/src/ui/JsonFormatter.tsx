@@ -1,4 +1,6 @@
 import {
+  ActionButton,
+  actionTooltip,
   Button,
   CopyButton,
   downloadText,
@@ -6,6 +8,7 @@ import {
   EditorPanes,
   EditorShell,
   EditorToolbar,
+  EmptyState,
   OpenFileButton,
   PasteButton,
   Segmented,
@@ -216,13 +219,8 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         Sort keys
       </label>
       <span className="wk-ui-spacer" />
-      <OpenFileButton tooltip="Open a .json or .txt file (up to 10 MB), or drop it on the input" drop={drop} />
-      <Button icon="sample" tooltip="Replace the input with an example" onClick={() => replaceInput(SAMPLE)}>
-        Sample
-      </Button>
-      <Button icon="clear" tooltip="Empty the input" onClick={() => replaceInput("")}>
-        Clear
-      </Button>
+      <ActionButton action="sample" words={{ target: "the input" }} onClick={() => replaceInput(SAMPLE)} />
+      <ActionButton action="clear" words={{ target: "the input" }} onClick={() => replaceInput("")} />
       <ToolMenu
         toolKey="json-formatter"
         state={shared}
@@ -281,12 +279,16 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
       <EditorPanes>
         <EditorPane
           className="wk-json__pane--input"
+          kind="input"
           title="Input"
           drop={drop}
           labelFor={`${id}-input`}
           meta={<span className="wk-json__size">{formatBytes(inputBytes)}</span>}
           actions={
-            <PasteButton tooltip="Paste from the clipboard" onText={replaceInput} onError={setMessage} />
+            <>
+              <OpenFileButton drop={drop} />
+              <PasteButton onText={replaceInput} onError={setMessage} />
+            </>
           }
         >
           <textarea
@@ -303,10 +305,12 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
 
         <EditorPane
           className="wk-json__pane--output"
+          kind="output"
           title={<Segmented label="Output view" size="sm" value={view} options={VIEWS} onChange={setView} />}
           actions={
             <>
-              <Button
+              <ActionButton
+                action="custom"
                 icon="to-input"
                 tooltip="Replace the input with the output"
                 aria-label="Use output as input"
@@ -314,16 +318,14 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
                 onClick={() => replaceInput(output)}
               >
                 To input
-              </Button>
-              <Button
-                icon="download"
-                tooltip={`Save the output as ${fileName}`}
+              </ActionButton>
+              <ActionButton
+                action="download"
+                words={{ what: "the output", file: fileName }}
                 disabled={output === ""}
                 onClick={() => downloadText(output, fileName, fileName.endsWith(".json") ? "application/json" : "text/plain")}
-              >
-                Download
-              </Button>
-              <CopyButton text={output} tooltip="Copy the output to the clipboard" />
+              />
+              <CopyButton text={output} tooltip={actionTooltip("copy", { what: "the output" })} variant="quiet" icon />
             </>
           }
         >
@@ -390,14 +392,12 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
                   onShowInInput={selectInInput}
                   showInInputDisabled={!treeFresh}
                 />
+              ) : !jsonMode ? (
+                <EmptyState size="sm" className="wk-json__placeholder" title="The tree is available in Format and Minify modes." />
+              ) : input.trim() === "" ? (
+                <EmptyState size="sm" icon="paste" className="wk-json__placeholder" title="Enter JSON to see the tree." />
               ) : (
-                <p className="wk-json__placeholder">
-                  {!jsonMode
-                    ? "The tree is available in Format and Minify modes."
-                    : input.trim() === ""
-                      ? "Enter JSON to see the tree."
-                      : "Updating…"}
-                </p>
+                <p className="wk-json__placeholder">Updating…</p>
               )}
             </div>
           </div>

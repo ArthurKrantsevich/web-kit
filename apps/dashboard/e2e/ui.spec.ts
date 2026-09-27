@@ -316,7 +316,7 @@ test("tooltips appear on hover after a delay and at once on keyboard focus", asy
   await page.mouse.move(0, 0);
   await expect(tip).toBeHidden();
 
-  await page.getByRole("button", { name: "Open file" }).focus();
+  await page.getByRole("switch", { name: "Sort keys" }).focus();
   await page.keyboard.press("Tab");
   await expect(sample).toBeFocused();
   await expect(tip).toBeVisible({ timeout: 300 });

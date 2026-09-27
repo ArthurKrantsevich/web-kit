@@ -62,12 +62,23 @@ test("formatter page loads without console errors", async ({ page }) => {
 test("formatter: file actions stay on one row on a phone", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("tools/json-formatter/");
-  const tops = await page
-    .getByRole("group", { name: "Options" })
-    .getByRole("button", { name: /^(Open file|Sample|Clear)$/ })
-    .evaluateAll((buttons) => buttons.map((button) => Math.round(button.getBoundingClientRect().top)));
-  expect(tops).toHaveLength(3);
-  expect(new Set(tops).size).toBe(1);
+  await expect(page.getByRole("button", { name: "Paste" })).toBeVisible();
+  // Open file and Paste in the input's header, next to its title; Sample and Clear in the toolbar. Compared by their
+  // vertical middle: a title is shorter than a button.
+  const top = (locator: ReturnType<typeof page.locator>) =>
+    locator.evaluateAll((elements) =>
+      elements.map((element) => {
+        const box = element.getBoundingClientRect();
+        return Math.round(box.top + box.height / 2);
+      }),
+    );
+  const head = page.locator(".wk-json__pane--input > .wk-ui-pane__head");
+  const input = await top(head.locator(".wk-ui-pane__title, button"));
+  expect(input).toHaveLength(3);
+  expect(new Set(input).size).toBe(1);
+  const toolbar = await top(page.getByRole("group", { name: "Options" }).getByRole("button", { name: /^(Sample|Clear)$/ }));
+  expect(toolbar).toHaveLength(2);
+  expect(new Set(toolbar).size).toBe(1);
 });
 
 test("formatter: keyboard focus on the output is visible inside the pane", async ({ page }) => {

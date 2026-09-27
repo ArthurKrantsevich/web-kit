@@ -531,6 +531,27 @@ describe("JsonFormatter tooltips", () => {
   });
 });
 
+/** The shared actions of a row, in order. */
+const actions = (row: Element | null) => [...(row?.querySelectorAll("[data-action]") ?? [])].map((button) => button.getAttribute("data-action"));
+
+describe("JsonFormatter actions", () => {
+  it("puts Open file and Paste in the input's header; To input, Download and Copy in the output's; Sample, Clear and More in the toolbar", () => {
+    setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
+    const { container } = render(<JsonFormatter initialInput="[1]" />);
+    expect(actions(container.querySelector('[data-pane="input"] > .wk-ui-pane__head'))).toEqual(["open", "paste"]);
+    expect(actions(container.querySelector('[data-pane="output"] > .wk-ui-pane__head'))).toEqual(["custom", "download", "copy"]);
+    expect(actions(screen.getByRole("group", { name: "Options" }))).toEqual(["sample", "clear", "more"]);
+  });
+
+  it("has Paste in the server HTML already, hidden, so nothing moves when it appears", () => {
+    const page = document.createElement("div");
+    page.innerHTML = renderToString(<JsonFormatter />);
+    const paste = page.querySelector('[data-pane="input"] [data-action="paste"]')!;
+    expect(paste.className).toContain("wk-ui-button--pending");
+    expect(paste.getAttribute("aria-hidden")).toBe("true");
+  });
+});
+
 describe("JsonFormatter test isolation", () => {
   // Runs last: earlier tests replaced these globals, and each must have been put back.
   it("leaves navigator.clipboard and the object URL functions as they were", () => {
