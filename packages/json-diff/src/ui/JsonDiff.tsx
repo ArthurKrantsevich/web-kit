@@ -1,12 +1,13 @@
 import { formatPath, type JsonError } from "@web-kit/json-core";
 import {
-  Button,
+  ActionButton,
   CopyButton,
   downloadText,
   EditorPane,
   EditorPanes,
   EditorShell,
   EditorToolbar,
+  EmptyState,
   OpenFileButton,
   PasteButton,
   Segmented,
@@ -40,6 +41,9 @@ const LIST_LIMIT = 1000;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 const ACCEPT = ".json,application/json,.txt,text/plain";
+
+/** Longest array key that can be typed; a shared or saved longer one is kept as it is. */
+const KEY_MAX_LENGTH = 64;
 
 const ARRAY_MODES: SegmentedOption<"index" | "key">[] = [
   { value: "index", label: "By index", tooltip: "Compare array items at the same position" },
@@ -172,6 +176,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
         aria-label="Array key"
         placeholder="id"
         value={state.arrayKey}
+        maxLength={KEY_MAX_LENGTH}
         disabled={state.arrayMode !== "key"}
         spellCheck={false}
         onChange={(e) => state.setArrayKey(e.target.value)}
@@ -182,29 +187,25 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
       </span>
       <Segmented label="Compare numbers" value={state.numbers} options={NUMBER_MODES} onChange={state.setNumbers} />
       <span className="wk-ui-spacer" />
-      <Button icon="swap" tooltip="Swap Left and Right" onClick={swap}>
+      <ActionButton action="custom" icon="swap" tooltip="Swap Left and Right" onClick={swap}>
         Swap
-      </Button>
-      <Button
-        icon="sample"
-        tooltip="Replace both sides with an example"
+      </ActionButton>
+      <ActionButton
+        action="sample"
+        words={{ target: "both sides" }}
         onClick={() => {
           set.left(SAMPLE_LEFT);
           set.right(SAMPLE_RIGHT);
         }}
-      >
-        Sample
-      </Button>
-      <Button
-        icon="clear"
-        tooltip="Empty both sides"
+      />
+      <ActionButton
+        action="clear"
+        words={{ target: "both sides" }}
         onClick={() => {
           set.left("");
           set.right("");
         }}
-      >
-        Clear
-      </Button>
+      />
       <ToolMenu
         toolKey="json-diff"
         state={shared}
@@ -250,6 +251,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
         {(["left", "right"] as const).map((side) => (
           <EditorPane
             key={side}
+            kind="input"
             className={`wk-diff__pane--${side}`}
             title={LABEL[side]}
             labelFor={`${id}-${side}`}
@@ -258,19 +260,17 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
             dropLabel={`Drop the file to open it in ${LABEL[side]}`}
             actions={
               <>
-                {/* Paste comes first: it appears after hydration, and nothing to its right may move. */}
+                <OpenFileButton
+                  aria-label={`Open file into ${LABEL[side]}`}
+                  words={{ into: ` into ${LABEL[side]}`, target: LABEL[side] }}
+                  drop={drops[side]}
+                />
+                {/* Its place is kept until hydration, so it may come last: nothing moves when it appears. */}
                 <PasteButton
-                  label={`Paste into ${LABEL[side]}`}
-                  tooltip={`Paste from the clipboard into ${LABEL[side]}`}
-                  iconOnly
+                  aria-label={`Paste into ${LABEL[side]}`}
+                  words={{ into: ` into ${LABEL[side]}` }}
                   onText={set[side]}
                   onError={setNotice}
-                />
-                <OpenFileButton
-                  label={`Open file into ${LABEL[side]}`}
-                  tooltip={`Open a .json or .txt file into ${LABEL[side]} (up to 10 MB), or drop it on ${LABEL[side]}`}
-                  iconOnly
-                  drop={drops[side]}
                 />
               </>
             }
@@ -289,7 +289,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
         ))}
       </EditorPanes>
 
-      <section className="wk-diff__result" aria-label="Differences">
+      <section className="wk-diff__result" aria-label="Differences" data-pane="output">
         <div className="wk-ui-pane__head wk-diff__result-head">
           <span className="wk-ui-pane__title">Changes</span>
           {diff && (
@@ -300,22 +300,26 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
             </span>
           )}
           <span className="wk-ui-spacer" />
-          <Button
-            icon="download"
-            tooltip="Save the JSON Patch as patch.json"
+          <ActionButton
+            action="download"
+            words={{ what: "the JSON Patch", file: "patch.json" }}
             disabled={freshPatch === ""}
             onClick={() => downloadText(freshPatch, "patch.json", "application/json")}
-          >
-            Download
-          </Button>
-          <CopyButton text={freshPatch} label="Copy JSON Patch" tooltip="Copy RFC 6902 operations that turn Left into Right" />
+          />
+          <CopyButton
+            text={freshPatch}
+            label="Copy JSON Patch"
+            tooltip="Copy RFC 6902 operations that turn Left into Right"
+            variant="quiet"
+            icon
+          />
         </div>
         <p role="status" aria-live="polite" className="wk-ui-sr-only">
           {announcement}
         </p>
         <div className="wk-diff__body">
           {result === null ? (
-            <p className="wk-diff__placeholder">Paste JSON into both sides to compare.</p>
+            <EmptyState size="sm" icon="paste" className="wk-diff__placeholder" title="Paste JSON into both sides to compare." />
           ) : !result.ok ? (
             <div className="wk-diff__problem">
               <p className="wk-diff__error">{formatError(result.side, result.error)}</p>
@@ -331,9 +335,12 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
               </Tooltip>
             </div>
           ) : result.value.changes.length === 0 ? (
-            <p className="wk-diff__same">
-              {result.value.wholeArrays.length > 0 ? "Only the order of array items differs." : "No differences."}
-            </p>
+            <EmptyState
+              size="sm"
+              icon="check"
+              className="wk-diff__same"
+              title={result.value.wholeArrays.length > 0 ? "Only the order of array items differs." : "No differences."}
+            />
           ) : (
             <>
               <ul className="wk-diff__changes" aria-label="Changes">

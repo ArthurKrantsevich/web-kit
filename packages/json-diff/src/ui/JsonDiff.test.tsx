@@ -128,7 +128,8 @@ describe("JsonDiff", () => {
 
 function openInto(name: string, file: File) {
   return act(async () => {
-    fireEvent.change(screen.getByLabelText(name), { target: { files: [file] } });
+    // The hidden file input: the Open file button has the same name.
+    fireEvent.change(screen.getByLabelText(name, { selector: 'input[type="file"]' }), { target: { files: [file] } });
   });
 }
 
@@ -159,14 +160,38 @@ describe("JsonDiff actions", () => {
     expect(screen.queryByText("File is larger than 10 MB")).toBeNull();
   });
 
-  it("puts Paste first in a pane header, so its late appearance moves no other button", () => {
+  it("puts Open file, then Paste in each side's header, both with their labels", () => {
     Object.defineProperty(navigator, "clipboard", { value: { readText: () => Promise.resolve("") }, configurable: true });
     render(<JsonDiff />);
-    const head = screen.getByLabelText("Left").closest("section")!.firstElementChild as HTMLElement;
-    expect(within(head).getAllByRole("button").map((button) => button.textContent)).toEqual([
-      "Paste into Left",
-      "Open file into Left",
+    const head = screen.getByLabelText("Left", { selector: "textarea" }).closest("section")!.firstElementChild as HTMLElement;
+    const buttons = within(head).getAllByRole("button");
+    expect(buttons.map((button) => [button.getAttribute("aria-label"), button.textContent])).toEqual([
+      ["Open file into Left", "Open file"],
+      ["Paste into Left", "Paste"],
     ]);
+  });
+
+  it("has Paste's place in the server HTML already, hidden, so nothing moves when it appears", () => {
+    const page = document.createElement("div");
+    page.innerHTML = renderToString(<JsonDiff />);
+    const heads = [...page.querySelectorAll('[data-pane="input"] > .wk-ui-pane__head')];
+    expect(heads.map((head) => [...head.querySelectorAll("[data-action]")].map((button) => button.getAttribute("data-action")))).toEqual([
+      ["open", "paste"],
+      ["open", "paste"],
+    ]);
+    for (const head of heads) expect(head.querySelector('[data-action="paste"]')!.className).toContain("wk-ui-button--pending");
+  });
+
+  it("puts Swap, Sample, Clear and More in the toolbar, Download and Copy JSON Patch over the changes", () => {
+    const { container } = render(<JsonDiff />);
+    const actions = (row: Element | null) => [...(row?.querySelectorAll("[data-action]") ?? [])].map((button) => button.getAttribute("data-action"));
+    expect(actions(screen.getByRole("group", { name: "Options" }))).toEqual(["custom", "sample", "clear", "more"]);
+    expect(actions(container.querySelector('[data-pane="output"] > .wk-ui-pane__head'))).toEqual(["download", "copy"]);
+  });
+
+  it("takes at most 64 characters as the array key", () => {
+    render(<JsonDiff />);
+    expect((screen.getByRole("textbox", { name: "Array key" }) as HTMLInputElement).maxLength).toBe(64);
   });
 
   it("pastes into one side", async () => {

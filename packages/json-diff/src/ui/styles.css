@@ -4,8 +4,9 @@
   /* --wk-diff-height still sets the pane height; the list of changes sits under the panes. */
   --wk-ui-panes-height: var(--wk-diff-height, var(--wk-editor-height, max(360px, 45vh)));
 }
+/* Array key: room for a usual key such as "id" or "sku"; longer ones scroll inside the field. */
 .wk-diff__key {
-  width: 7rem;
+  --wk-ui-input-width: 8rem;
 }
 .wk-diff__result {
   border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
@@ -35,8 +36,6 @@
   max-height: 24rem;
   overflow: auto;
 }
-.wk-diff__placeholder,
-.wk-diff__same,
 .wk-diff__more {
   margin: 0;
   padding: 16px;
