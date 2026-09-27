@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonConvert } from "./JsonConvert";
 
@@ -272,5 +273,16 @@ describe("JsonConvert editor", () => {
       ["More actions", "Load from a URL, share, save, keyboard shortcuts"],
     ];
     for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
+  });
+});
+
+describe("JsonConvert before hydration", () => {
+  it("renders its text fields read-only in the server HTML, so nothing typed before hydration is silently lost", () => {
+    const html = renderToString(<JsonConvert />);
+    const areas = html.match(/<textarea[^>]*>/g) ?? [];
+    expect(areas.length).toBeGreaterThan(0);
+    for (const area of areas) expect(area).toContain('readOnly=""');
+    const { container } = render(<JsonConvert />);
+    for (const area of container.querySelectorAll("textarea")) expect(area.readOnly).toBe(false);
   });
 });

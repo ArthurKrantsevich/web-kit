@@ -17,6 +17,7 @@ import {
   type SegmentedOption,
   type SelectOption,
   type Shortcut,
+  useHydrated,
 } from "@web-kit/ui";
 import { useDeferredValue, useId, useMemo, useRef, useState, type ReactElement } from "react";
 import { utf8Length } from "@web-kit/json-core";
@@ -120,6 +121,8 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
   const [message, setMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
+  // Read-only until hydration: React would replace anything typed earlier with its own state.
+  const hydrated = useHydrated();
   const output = result?.ok ? result.value : "";
   const error = result && !result.ok ? result.error : null;
   // Highlighting a large output is slower than typing; let it lag behind the input.
@@ -289,6 +292,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
             ref={inputRef}
             id={`${id}-input`}
             className="wk-ui-area"
+            readOnly={!hydrated}
             value={input}
             onChange={(e) => replaceInput(e.target.value)}
             spellCheck={false}

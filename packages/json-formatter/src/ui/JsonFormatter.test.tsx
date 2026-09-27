@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonFormatter } from "./JsonFormatter";
 
@@ -536,5 +537,16 @@ describe("JsonFormatter test isolation", () => {
     expect(Object.getOwnPropertyDescriptor(navigator, "clipboard")).toEqual(originalClipboard);
     expect(Object.getOwnPropertyDescriptor(URL, "createObjectURL")).toEqual(originalCreateObjectURL);
     expect(Object.getOwnPropertyDescriptor(URL, "revokeObjectURL")).toEqual(originalRevokeObjectURL);
+  });
+});
+
+describe("JsonFormatter before hydration", () => {
+  it("renders its text fields read-only in the server HTML, so nothing typed before hydration is silently lost", () => {
+    const html = renderToString(<JsonFormatter />);
+    const areas = html.match(/<textarea[^>]*>/g) ?? [];
+    expect(areas.length).toBeGreaterThan(0);
+    for (const area of areas) expect(area).toContain('readOnly=""');
+    const { container } = render(<JsonFormatter />);
+    for (const area of container.querySelectorAll("textarea")) expect(area.readOnly).toBe(false);
   });
 });

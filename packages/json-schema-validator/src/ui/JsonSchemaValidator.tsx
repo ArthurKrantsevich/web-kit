@@ -15,6 +15,7 @@ import {
   useFileDrop,
   type Shortcut,
   type StatusState,
+  useHydrated,
 } from "@web-kit/ui";
 import { useId, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import type { SchemaResult, TextRange } from "../core/types";
@@ -118,6 +119,8 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
   const dataRef = useRef<HTMLTextAreaElement>(null);
   const schemaRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
+  // Read-only until hydration: React would replace anything typed earlier with its own state.
+  const hydrated = useHydrated();
   const refs = { data: dataRef, schema: schemaRef };
   const text = { data, schema };
   const set = {
@@ -323,6 +326,7 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
               ref={refs[input]}
               id={`${id}-${input}`}
               className="wk-ui-area"
+              readOnly={!hydrated}
               value={text[input]}
               onChange={(e) => set[input](e.target.value)}
               spellCheck={false}

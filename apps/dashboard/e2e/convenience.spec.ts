@@ -273,3 +273,36 @@ test.describe("loading from a URL", () => {
     await expect(dialog.getByRole("status")).toHaveText("Only http: and https: addresses can be loaded");
   });
 });
+
+test.describe("before hydration", () => {
+  for (const [tool, field] of [
+    ["json-formatter", "Input"],
+    ["json-convert", "Input"],
+    ["json-diff", "Left"],
+    ["json-schema-validator", "Data"],
+  ] as const) {
+    test(`${tool}: typing before hydration is refused, never silently undone, and works after it`, async ({ page }) => {
+      // Hold every script back until the test has tried to type.
+      let release!: () => void;
+      const released = new Promise<void>((resolve) => (release = resolve));
+      await page.route("**/_next/static/chunks/*.js", async (route) => {
+        await released;
+        await route.continue();
+      });
+      await page.goto(`tools/${tool}/`, { waitUntil: "domcontentloaded" });
+      const area = page.getByLabel(field, { exact: true });
+      await expect(area).toHaveAttribute("readonly", "");
+      const before = await area.inputValue();
+      await area.click();
+      await page.keyboard.type("typed early");
+      expect(await area.inputValue()).toBe(before);
+
+      release();
+      await expect(page.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+      await expect(area).not.toHaveAttribute("readonly");
+      expect(await area.inputValue()).toBe(before);
+      await area.fill('{"typed":"late"}');
+      await expect(area).toHaveValue('{"typed":"late"}');
+    });
+  }
+});

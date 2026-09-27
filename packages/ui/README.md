@@ -28,6 +28,7 @@ import "@web-kit/ui/styles.css";
 - **useShareHash(key)** reads `#key=…` once after hydration (then removes the hash from the address bar) and builds links with the text compressed by `CompressionStream("deflate-raw")` and encoded as base64url. The hash never reaches a server. A link expands to at most 32 MB.
 - **usePersistentState(key)** keeps a tool's input in `localStorage` (`wk:<key>:input`) while the user has saving on (`wk:<key>:autosave`); off by default, and turning it off deletes both.
 - **useHotkeys(map, scope)** runs `Mod+Enter`-style combinations (⌘ on Apple systems, Ctrl elsewhere; a letter by the Latin letter it types, or by physical key on a non-Latin layout; held-key repeats ignored) while focus is inside `scope`; `?` only outside text fields. Other combinations, keys in dialogs and keys a control already handled are left alone.
+- **useHydrated()** is false in the server HTML and true once React runs; give text fields `readOnly={!hydrated}` so nothing typed before hydration is silently replaced.
 - **Dialog** is a modal dialog (`showModal()` where available): Tab stays inside, Escape closes, focus goes back. **Menu** is a menu button with `menuitem` and `menuitemcheckbox` items.
 - **ToolMenu** puts it together for a tool: a "More actions" menu with Load from URL, Share link, Save input in this browser, Clear saved input and Keyboard shortcuts, the dialogs, restoring a link or the saved input once, saving while on, and the tool's hotkeys.
 

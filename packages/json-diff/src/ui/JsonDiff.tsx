@@ -16,6 +16,7 @@ import {
   useFileDrop,
   type SegmentedOption,
   type Shortcut,
+  useHydrated,
 } from "@web-kit/ui";
 import { useId, useMemo, useRef, useState, type ReactElement } from "react";
 import type { JsonChange, JsonSpan } from "../core/types";
@@ -89,6 +90,8 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
   const leftRef = useRef<HTMLTextAreaElement>(null);
   const rightRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
+  // Read-only until hydration: React would replace anything typed earlier with its own state.
+  const hydrated = useHydrated();
   const refs = { left: leftRef, right: rightRef };
   const text = { left, right };
   const set = {
@@ -275,6 +278,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
               ref={refs[side]}
               id={`${id}-${side}`}
               className="wk-ui-area"
+              readOnly={!hydrated}
               value={text[side]}
               onChange={(e) => set[side](e.target.value)}
               spellCheck={false}

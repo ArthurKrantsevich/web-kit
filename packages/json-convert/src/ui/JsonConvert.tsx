@@ -16,6 +16,7 @@ import {
   type SegmentedOption,
   type SelectOption,
   type Shortcut,
+  useHydrated,
 } from "@web-kit/ui";
 import { parseJson } from "@web-kit/json-core";
 import { useId, useMemo, useState, type ReactElement } from "react";
@@ -131,6 +132,8 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
   const [jsonTarget, setJsonTarget] = useState<JsonTarget>(target === "csv-to-json" ? "yaml" : target);
   const [message, setMessage] = useState<string | null>(null);
   const id = useId();
+  // Read-only until hydration: React would replace anything typed earlier with its own state.
+  const hydrated = useHydrated();
   const direction: Direction = target === "csv-to-json" ? "csv" : "json";
   const output = result?.ok ? result.value : "";
   const outputInfo = OUTPUTS[target];
@@ -322,6 +325,7 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
           <textarea
             id={`${id}-input`}
             className="wk-ui-area"
+            readOnly={!hydrated}
             value={input}
             onChange={(e) => replaceInput(e.target.value)}
             spellCheck={false}
