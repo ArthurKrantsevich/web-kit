@@ -139,7 +139,8 @@ describe("JsonSchemaValidator", () => {
 
 function openInto(name: string, file: File) {
   return act(async () => {
-    fireEvent.change(screen.getByLabelText(name), { target: { files: [file] } });
+    // The hidden file input: the Open file button has the same name.
+    fireEvent.change(screen.getByLabelText(name, { selector: 'input[type="file"]' }), { target: { files: [file] } });
   });
 }
 
@@ -171,16 +172,25 @@ describe("JsonSchemaValidator actions", () => {
     expect(status()).toBe("Nothing to check yet.File is larger than 10 MB");
   });
 
-  it("puts Paste before Open file, so its late appearance moves no other button", () => {
+  it("puts Open file, Paste, Download and Copy in the Schema header, each with its label", () => {
     setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
     render(<JsonSchemaValidator initialSchema="{}" />);
     const head = area("Schema").closest("section")!.firstElementChild as HTMLElement;
-    expect(within(head).getAllByRole("button").map((button) => button.textContent)).toEqual([
-      "Paste into Schema",
-      "Open file into Schema",
-      "Download",
-      "CopyCopiedCopy failed",
+    expect(within(head).getAllByRole("button").map((button) => [button.getAttribute("aria-label"), button.textContent])).toEqual([
+      ["Open file into Schema", "Open file"],
+      ["Paste into Schema", "Paste"],
+      [null, "Download"],
+      [null, "CopyCopiedCopy failed"],
     ]);
+  });
+
+  it("marks Data as an input and Schema as an input that also receives the generated schema", () => {
+    const { container } = render(<JsonSchemaValidator />);
+    const actions = (row: Element | null) => [...(row?.querySelectorAll("[data-action]") ?? [])].map((button) => button.getAttribute("data-action"));
+    expect([...container.querySelectorAll("[data-pane]")].map((pane) => pane.getAttribute("data-pane"))).toEqual(["input", "input output"]);
+    expect(actions(container.querySelector('[data-pane="input"] > .wk-ui-pane__head'))).toEqual(["open", "paste"]);
+    expect(actions(container.querySelector('[data-pane="input output"] > .wk-ui-pane__head'))).toEqual(["open", "paste", "download", "copy"]);
+    expect(actions(screen.getByRole("group", { name: "Options" }))).toEqual(["sample", "clear", "more"]);
   });
 
   it("pastes into Schema", async () => {

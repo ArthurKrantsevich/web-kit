@@ -30,8 +30,6 @@
   max-height: 24rem;
   overflow: auto;
 }
-.wk-schema__placeholder,
-.wk-schema__same,
 .wk-schema__more {
   margin: 0;
   padding: 16px;

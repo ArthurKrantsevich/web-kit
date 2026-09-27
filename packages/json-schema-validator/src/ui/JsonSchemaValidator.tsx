@@ -1,5 +1,7 @@
 import { formatPath, type JsonError } from "@web-kit/json-core";
 import {
+  ActionButton,
+  actionTooltip,
   Button,
   CopyButton,
   downloadText,
@@ -7,6 +9,7 @@ import {
   EditorPanes,
   EditorShell,
   EditorToolbar,
+  EmptyState,
   OpenFileButton,
   PasteButton,
   StatusLine,
@@ -219,26 +222,22 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
         Generate schema from data
       </Button>
       <span className="wk-ui-spacer" />
-      <Button
-        icon="sample"
-        tooltip="Replace data and schema with an example"
+      <ActionButton
+        action="sample"
+        words={{ target: "data and schema" }}
         onClick={() => {
           set.data(SAMPLE_DATA);
           set.schema(SAMPLE_SCHEMA);
         }}
-      >
-        Sample
-      </Button>
-      <Button
-        icon="clear"
-        tooltip="Empty data and schema"
+      />
+      <ActionButton
+        action="clear"
+        words={{ target: "data and schema" }}
         onClick={() => {
           set.data("");
           set.schema("");
         }}
-      >
-        Clear
-      </Button>
+      />
       <ToolMenu
         toolKey="json-schema-validator"
         state={shared}
@@ -284,6 +283,8 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
         {(["data", "schema"] as const).map((input) => (
           <EditorPane
             key={input}
+            // The Schema pane also receives the generated schema, so it has the output's Download and Copy.
+            kind={input === "schema" ? "input output" : "input"}
             className={`wk-schema__pane--${input}`}
             title={LABEL[input]}
             labelFor={`${id}-${input}`}
@@ -292,32 +293,27 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
             dropLabel={`Drop the file to open it in ${LABEL[input]}`}
             actions={
               <>
-                {/* Paste comes before Open file: it appears after hydration, and nothing to its right may move. */}
+                <OpenFileButton
+                  aria-label={`Open file into ${LABEL[input]}`}
+                  words={{ into: ` into ${LABEL[input]}`, target: LABEL[input] }}
+                  drop={drops[input]}
+                />
+                {/* Its place is kept until hydration, so nothing to its right moves when it appears. */}
                 <PasteButton
-                  label={`Paste into ${LABEL[input]}`}
-                  tooltip={`Paste from the clipboard into ${LABEL[input]}`}
-                  iconOnly
+                  aria-label={`Paste into ${LABEL[input]}`}
+                  words={{ into: ` into ${LABEL[input]}` }}
                   onText={set[input]}
                   onError={setNotice}
                 />
-                <OpenFileButton
-                  label={`Open file into ${LABEL[input]}`}
-                  tooltip={`Open a .json or .txt file into ${LABEL[input]} (up to 10 MB), or drop it on ${LABEL[input]}`}
-                  iconOnly
-                  drop={drops[input]}
-                />
                 {input === "schema" && (
                   <>
-                    <Button
-                      icon="download"
-                      iconOnly
-                      tooltip="Save the schema as schema.json"
+                    <ActionButton
+                      action="download"
+                      words={{ what: "the schema", file: "schema.json" }}
                       disabled={schema === ""}
                       onClick={() => downloadText(schema, "schema.json", "application/schema+json")}
-                    >
-                      Download
-                    </Button>
-                    <CopyButton text={schema} tooltip="Copy the schema to the clipboard" />
+                    />
+                    <CopyButton text={schema} tooltip={actionTooltip("copy", { what: "the schema" })} variant="quiet" icon />
                   </>
                 )}
               </>
@@ -352,7 +348,7 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
         </p>
         <div className="wk-schema__body">
           {result === null ? (
-            <p className="wk-schema__placeholder">{placeholder(data, schema)}</p>
+            <EmptyState size="sm" icon="paste" className="wk-schema__placeholder" title={placeholder(data, schema)} />
           ) : !result.ok && result.stage === "parse" ? (
             <div className="wk-schema__problem">
               {result.parseErrors.map(({ input, error }) => (
@@ -391,11 +387,14 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
                   where: error.schemaPath,
                 }))}
               {result.ok && errors.length === 0 && (
-                <p className="wk-schema__same">
-                  {warnings.length === 0
-                    ? "The data matches the schema."
-                    : "No errors found, but the keywords below were not checked."}
-                </p>
+                <EmptyState
+                  size="sm"
+                  icon="check"
+                  className="wk-schema__same"
+                  title={
+                    warnings.length === 0 ? "The data matches the schema." : "No errors found, but the keywords below were not checked."
+                  }
+                />
               )}
               {warnings.length > 0 &&
                 rows(warnings, "warning", "warning", (warning) => ({
