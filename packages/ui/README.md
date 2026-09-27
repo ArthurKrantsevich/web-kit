@@ -15,7 +15,7 @@ import "@web-kit/ui/styles.css";
 ```
 
 - **Select** is a button with `aria-haspopup="listbox"`; its label is the accessible name and the current value is its description. The list opens in the top layer (Popover API), so no `overflow: hidden` parent clips it, and opens upward when there is no room below. Keyboard: ↓/↑ or Enter/Space open; ↓/↑, Home/End move; Enter/Space pick; a letter jumps to the next option that starts with it; Escape closes and returns focus; Tab closes.
-- **Segmented** is a group of `aria-pressed` buttons. Each label reserves the width of its bold form, so picking a segment never changes any button's width.
+- **Segmented** is a group of `aria-pressed` buttons. Each label reserves the width of its bold form, so picking a segment never changes any button's width. An option with `disabled` stays in its place and keeps focus, marked `aria-disabled`, and ignores clicks; its `tooltip` says why.
 - **Tooltip** describes its element (`aria-describedby`); it appears after 400 ms of mouse hover or at once on keyboard focus, hides on leave, blur, Escape and click, and never appears for touch.
 - **CopyButton** shows "Copy", "✓ Copied" or "Copy failed" in one fixed width and announces the change through a polite live region.
 - **EditorShell**, **EditorToolbar**, **EditorPanes**, **EditorPane** and **StatusLine** build the editor layout: a toolbar named "Options", two panes side by side from 1024 px of component width, and a status line. Pane height: `--wk-editor-height` (default `max(420px, 70vh)`).

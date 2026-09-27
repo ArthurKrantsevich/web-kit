@@ -248,6 +248,53 @@ describe("TextCompare navigation", () => {
   });
 });
 
+describe("TextCompare on a narrow result", () => {
+  /** jsdom has no ResizeObserver: this one reports the width a test gives. */
+  class Sizes {
+    static all: Sizes[] = [];
+    constructor(private readonly callback: ResizeObserverCallback) {
+      Sizes.all.push(this);
+    }
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+    static width(width: number): void {
+      act(() => {
+        for (const observer of Sizes.all) observer.callback([{ contentRect: { width } } as ResizeObserverEntry], observer as unknown as ResizeObserver);
+      });
+    }
+  }
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Sizes.all = [];
+  });
+
+  it("shows one column below 640 px of result, keeps Side by side in place but inert, and brings the chosen layout back", () => {
+    vi.stubGlobal("ResizeObserver", Sizes);
+    render(<TextCompare initialLeft={"a\nold\n"} initialRight={"a\nnew\n"} />);
+    const split = screen.getByRole("button", { name: "Side by side" });
+    expect(body().querySelector(".wk-compare__rows--split")).not.toBeNull();
+    Sizes.width(500);
+    expect(body().querySelector(".wk-compare__rows--inline")).not.toBeNull();
+    expect([pressed("Side by side"), pressed("Inline"), split.getAttribute("aria-disabled")]).toEqual(["false", "true", "true"]);
+    expect(tooltipOf(split)).toBe("Needs a wider screen");
+    fireEvent.click(split);
+    expect(body().querySelector(".wk-compare__rows--inline")).not.toBeNull();
+    Sizes.width(900);
+    expect(body().querySelector(".wk-compare__rows--split")).not.toBeNull();
+    expect([pressed("Side by side"), split.getAttribute("aria-disabled")]).toEqual(["true", null]);
+  });
+
+  it("keeps Inline when it was chosen, at any width", () => {
+    vi.stubGlobal("ResizeObserver", Sizes);
+    render(<TextCompare initialLeft={"a\nold\n"} initialRight={"a\nnew\n"} />);
+    fireEvent.click(screen.getByRole("button", { name: "Inline" }));
+    Sizes.width(500);
+    Sizes.width(900);
+    expect(pressed("Inline")).toBe("true");
+  });
+});
+
 describe("TextCompare starts over on new texts", () => {
   const current = () => groups().findIndex((group) => group.hasAttribute("data-current"));
   const folds = () => within(body()).queryAllByRole("button", { name: /unchanged lines$/ }).length;

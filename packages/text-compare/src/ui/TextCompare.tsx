@@ -51,6 +51,9 @@ const LAYOUTS: SegmentedOption<Layout>[] = [
   { value: "inline", label: "Inline", tooltip: "One column: removed lines above added ones" },
 ];
 
+/** Below this width of the result two columns are too narrow to read: it shows one column, whatever was chosen. */
+const SPLIT_MIN_WIDTH = 640;
+
 const GRANULARITIES: SegmentedOption<Granularity>[] = [
   { value: "word", label: "Words", tooltip: "Highlight changed words in changed lines" },
   { value: "char", label: "Characters", tooltip: "Highlight changed characters in changed lines" },
@@ -139,7 +142,7 @@ function replaceText(area: HTMLTextAreaElement | null, old: string, next: string
 /** Ready-made text compare UI. Import "@web-kit/text-compare/styles.css" once for the default look. */
 export function TextCompare(props: TextCompareProps): ReactElement {
   const state = useTextCompare(props);
-  const { left, right, comparison, fresh, layout, granularity, options } = state;
+  const { left, right, comparison, fresh, layout: chosen, granularity, options } = state;
   const [notice, setNotice] = useState("");
   const [current, setCurrent] = useState<number | null>(null);
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(() => new Set());
@@ -149,6 +152,10 @@ export function TextCompare(props: TextCompareProps): ReactElement {
   const leftRef = useRef<HTMLTextAreaElement>(null);
   const rightRef = useRef<HTMLTextAreaElement>(null);
   const body = useRef<HTMLDivElement>(null);
+  const resultPane = useRef<HTMLElement>(null);
+  // A narrow result shows one column; the chosen layout comes back when it is wide again.
+  const [narrow, setNarrow] = useState(false);
+  const layout: Layout = narrow ? "inline" : chosen;
   const centre = useRef(false);
   const nextButton = useRef<HTMLButtonElement>(null);
   /** After a merge: the place of the merged change among the changes, and the button used, for the focus. */
@@ -217,6 +224,25 @@ export function TextCompare(props: TextCompareProps): ReactElement {
     body.current.scrollTop = Math.max(0, top);
   }, [current, model, limit]);
 
+  useLayoutEffect(() => {
+    const element = resultPane.current;
+    if (!element || typeof ResizeObserver !== "function") return;
+    const update = (width: number): void => {
+      if (width <= 0) return;
+      setNarrow((before) => {
+        const next = width < SPLIT_MIN_WIDTH;
+        // Rows change with the layout: the current change is centred again.
+        if (next !== before) centre.current = true;
+        return next;
+      });
+    };
+    // Measured before the first paint, so a phone does not show two columns first.
+    update(element.getBoundingClientRect().width);
+    const observer = new ResizeObserver((entries) => update(entries.at(-1)?.contentRect.width ?? 0));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   // After a merge, once the result is fresh again, focus moves to the same button of the change that took the merged
   // one's place, or to Next when none is left; the button that had it is gone.
   useLayoutEffect(() => {
@@ -267,8 +293,8 @@ export function TextCompare(props: TextCompareProps): ReactElement {
 
   // What a share link carries and what "Save input in this browser" keeps.
   const shared = useMemo(
-    () => ({ left, right, leftName: names.left, rightName: names.right, layout, granularity, options }),
-    [left, right, names.left, names.right, layout, granularity, options],
+    () => ({ left, right, leftName: names.left, rightName: names.right, layout: chosen, granularity, options }),
+    [left, right, names.left, names.right, chosen, granularity, options],
   );
 
   /** Puts back a shared or saved state. It comes from outside, so every field is checked. */
@@ -358,7 +384,12 @@ export function TextCompare(props: TextCompareProps): ReactElement {
 
   const toolbar = (
     <EditorToolbar>
-      <Segmented label="Layout" value={layout} options={LAYOUTS} onChange={changeLayout} />
+      <Segmented
+        label="Layout"
+        value={layout}
+        options={narrow ? LAYOUTS.map((option) => (option.value === "split" ? { ...option, disabled: true, tooltip: "Needs a wider screen" } : option)) : LAYOUTS}
+        onChange={changeLayout}
+      />
       <Segmented label="Highlight" value={granularity} options={GRANULARITIES} onChange={state.setGranularity} />
       <Menu
         look="field"
@@ -477,7 +508,7 @@ export function TextCompare(props: TextCompareProps): ReactElement {
         ))}
       </EditorPanes>
 
-      <section className="wk-ui-pane wk-compare__result" aria-label="Changes" data-pane="output">
+      <section ref={resultPane} className="wk-ui-pane wk-compare__result" aria-label="Changes" data-pane="output">
         <div className="wk-ui-pane__head">
           <span className="wk-ui-pane__title">Changes</span>
           {diff && (

@@ -7,6 +7,11 @@ export interface SegmentedOption<T extends string> {
   label: string;
   /** Optional tooltip for this segment. */
   tooltip?: string;
+  /**
+   * Inert for now (say why in `tooltip`): marked aria-disabled and ignores clicks, but keeps its place and its focus,
+   * so nothing moves when it comes back.
+   */
+  disabled?: boolean;
 }
 
 export interface SegmentedProps<T extends string> {
@@ -40,7 +45,10 @@ export function Segmented<T extends string>({
             type="button"
             className="wk-ui-segment"
             aria-pressed={option.value === value}
-            onClick={() => onChange(option.value)}
+            aria-disabled={option.disabled || undefined}
+            onClick={() => {
+              if (!option.disabled) onChange(option.value);
+            }}
           >
             <span className="wk-ui-segment__label" data-label={option.label}>
               {option.label}

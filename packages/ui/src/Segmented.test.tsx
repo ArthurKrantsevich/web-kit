@@ -23,6 +23,24 @@ describe("Segmented", () => {
     expect(onChange).toHaveBeenCalledWith("minify");
   });
 
+  it("keeps an inert option in its place: aria-disabled, focusable, and a click does nothing", () => {
+    const onChange = vi.fn();
+    render(
+      <Segmented
+        label="Mode"
+        value="minify"
+        options={[{ value: "format", label: "Format", disabled: true, tooltip: "Needs a wider screen" }, OPTIONS[1]]}
+        onChange={onChange}
+      />,
+    );
+    const inert = screen.getByRole("button", { name: "Format" }) as HTMLButtonElement;
+    expect([inert.disabled, inert.getAttribute("aria-disabled")]).toEqual([false, "true"]);
+    fireEvent.click(inert);
+    expect(onChange).not.toHaveBeenCalled();
+    const tip = document.getElementById(inert.getAttribute("aria-describedby")!.split(" ")[0]!);
+    expect(tip?.textContent).toBe("Needs a wider screen");
+  });
+
   it("reserves the width of each bold label", () => {
     render(<Segmented label="Mode" value="format" options={[...OPTIONS]} onChange={() => {}} />);
     for (const label of ["Format", "Minify"]) {

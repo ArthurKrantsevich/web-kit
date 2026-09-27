@@ -75,7 +75,8 @@ for (const [width, height] of [
       const steps: [string, () => Promise<unknown>][] = [
         ["Inline", () => page.getByRole("button", { name: "Inline" }).click()],
         ["Characters", () => page.getByRole("button", { name: "Characters" }).click()],
-        ["Side by side", () => page.getByRole("button", { name: "Side by side" }).click()],
+        // Inert below 640 px of result (one column there): the click must still move nothing.
+        ["Side by side", () => page.getByRole("button", { name: "Side by side" }).click({ force: true })],
         ["Words", () => page.getByRole("button", { name: "Words" }).click()],
         ["Next", () => page.getByRole("button", { name: "Next change" }).click()],
         ["Next again", () => page.getByRole("button", { name: "Next change" }).click()],
@@ -241,6 +242,52 @@ test("the result's counts are never cut, from 320 px up and with five-digit coun
     expect(await cut()).toBe(`${width}: `);
   }
   await expect(page.getByRole("region", { name: "Changes" })).toBeVisible();
+});
+
+test("at 390 px the result is one column; Side by side keeps its place, inert, and says why", async ({ page }) => {
+  await open(page, 390);
+  const split = page.getByRole("button", { name: "Side by side" });
+  await expect(page.locator(".wk-compare__rows--inline")).toBeVisible();
+  await expect(split).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByRole("button", { name: "Inline" })).toHaveAttribute("aria-pressed", "true");
+  const before = await boxes(page);
+  await split.hover();
+  await expect(page.getByRole("tooltip").filter({ hasText: "Needs a wider screen" })).toBeVisible();
+  // Playwright waits for an aria-disabled button to become enabled; this click is meant to find it inert.
+  await split.click({ force: true });
+  await expect(page.locator(".wk-compare__rows--inline")).toBeVisible();
+  await page.mouse.move(0, 0);
+  expectSame(before, await boxes(page), "a click on the inert Side by side");
+  // Wide again: the chosen layout (Side by side, the default) comes back.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.locator(".wk-compare__rows--split")).toBeVisible();
+  await expect(split).not.toHaveAttribute("aria-disabled", "true");
+});
+
+test("from 320 to 1920 px the layout follows the width alone: resized up, down or loaded there, nothing jumps", async ({ page }) => {
+  const widths = [320, 390, 480, 600, 640, 700, 768, 1024, 1280, 1920];
+  const state = async () => ({ boxes: await boxes(page), rows: await page.locator(".wk-compare__rows").getAttribute("class") });
+  await open(page, widths[0]);
+  const up: Record<number, Awaited<ReturnType<typeof state>>> = {};
+  for (const width of widths) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    up[width] = await state();
+  }
+  for (const width of [...widths].reverse()) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const down = await state();
+    expect([width, down.rows]).toEqual([width, up[width]!.rows]);
+    expectSame(up[width]!.boxes, down.boxes, `${width} px, resized down`);
+  }
+  for (const width of [390, 700]) {
+    await open(page, width);
+    const loaded = await state();
+    expect([width, loaded.rows]).toEqual([width, up[width]!.rows]);
+    expectSame(up[width]!.boxes, loaded.boxes, `${width} px, loaded there`);
+  }
+  expect([up[390]!.rows, up[1280]!.rows]).toEqual(["wk-compare__rows wk-compare__rows--inline", "wk-compare__rows wk-compare__rows--split"]);
 });
 
 test("the status line keeps one height from 320 to 768 px, whatever it notes", async ({ page }) => {
