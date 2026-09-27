@@ -194,7 +194,8 @@ export function TextCompare(props: TextCompareProps): ReactElement {
     setSaid("");
   }
 
-  // Centre the current change after Previous or Next, never after other updates (a merge keeps the scroll as it is).
+  // Centre the current change after Previous or Next, a layout switch or Show all, never after other updates (a merge
+  // keeps the scroll as it is).
   useLayoutEffect(() => {
     if (!centre.current || current === null || !model) return;
     centre.current = false;
@@ -214,6 +215,12 @@ export function TextCompare(props: TextCompareProps): ReactElement {
   }
   const next = (): void => go(current === null ? 0 : current + 1);
   const previous = (): void => go(current === null ? -1 : current - 1);
+
+  // Rows move when the layout or the folds change: the current change is centred again.
+  function changeLayout(next: Layout): void {
+    centre.current = true;
+    state.setLayout(next);
+  }
 
   function swap(): void {
     set.left(right, names.right);
@@ -269,7 +276,10 @@ export function TextCompare(props: TextCompareProps): ReactElement {
     label: "Show all unchanged lines",
     description: showAll ? "On: every line is drawn" : "Off: long unchanged runs are folded",
     checked: showAll,
-    onSelect: () => setShowAll(!showAll),
+    onSelect: () => {
+      centre.current = true;
+      setShowAll(!showAll);
+    },
   };
 
   const diff = comparison?.diff ?? null;
@@ -308,7 +318,7 @@ export function TextCompare(props: TextCompareProps): ReactElement {
 
   const toolbar = (
     <EditorToolbar>
-      <Segmented label="Layout" value={layout} options={LAYOUTS} onChange={state.setLayout} />
+      <Segmented label="Layout" value={layout} options={LAYOUTS} onChange={changeLayout} />
       <Segmented label="Highlight" value={granularity} options={GRANULARITIES} onChange={state.setGranularity} />
       <Menu
         look="field"

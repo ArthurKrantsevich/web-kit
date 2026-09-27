@@ -231,6 +231,46 @@ describe("TextCompare navigation", () => {
   });
 });
 
+describe("TextCompare keeps the current change in view", () => {
+  const LEFT = numbered(40, {});
+  const RIGHT = numbered(40, { 2: "line 2 x", 20: "line 20 y", 38: "line 38 z" });
+  // jsdom has no layout: the current change sits 900 px down, 40 px tall, in a result 300 px tall.
+  const place = (element: HTMLElement) => (element.dataset.current ? 900 : 0);
+  let restore: () => void = () => {};
+  function fakeLayout() {
+    const top = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetTop")!;
+    const height = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")!;
+    Object.defineProperty(HTMLElement.prototype, "offsetTop", { configurable: true, get(this: HTMLElement) { return place(this); } });
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", { configurable: true, get() { return 40; } });
+    restore = () => {
+      Object.defineProperty(HTMLElement.prototype, "offsetTop", top);
+      Object.defineProperty(HTMLElement.prototype, "offsetHeight", height);
+    };
+  }
+  afterEach(() => restore());
+
+  it("centres it again after the layout changes", () => {
+    render(<TextCompare initialLeft={LEFT} initialRight={RIGHT} />);
+    fakeLayout();
+    Object.defineProperty(body(), "clientHeight", { value: 300, configurable: true });
+    fireEvent.click(screen.getByRole("button", { name: "Next change" }));
+    body().scrollTop = 0;
+    fireEvent.click(screen.getByRole("button", { name: "Inline" }));
+    expect(body().scrollTop).toBe(900 - (300 - 40) / 2);
+  });
+
+  it("centres it again after Show all unchanged lines", () => {
+    render(<TextCompare initialLeft={LEFT} initialRight={RIGHT} />);
+    fakeLayout();
+    Object.defineProperty(body(), "clientHeight", { value: 300, configurable: true });
+    fireEvent.click(screen.getByRole("button", { name: "Next change" }));
+    body().scrollTop = 0;
+    fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Show all unchanged lines" }));
+    expect(body().scrollTop).toBe(900 - (300 - 40) / 2);
+  });
+});
+
 describe("TextCompare merges", () => {
   it("Use right copies a change to the left side, Use left to the right one", () => {
     render(<TextCompare initialLeft={"a\nold\nc\nx\n"} initialRight={"a\nnew\nc\ny\n"} />);
