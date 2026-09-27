@@ -114,14 +114,45 @@ describe("JsonConvert editor", () => {
     ]);
   });
 
-  it("says what was checked: parsing back for CSV, nothing it did not do for YAML", () => {
+  it("says what the CSV reads back as, and nothing it did not do for YAML", () => {
     render(<JsonConvert initialInput='[{"a":1}]' />);
     expect(status()).toBe("Converted·YAML 1.2; numbers keep their spelling");
     choose("Convert to", "CSV");
-    expect(status()).toBe("Converted·checked by parsing back");
-    fireEvent.click(screen.getByRole("button", { name: "CSV → JSON" }));
+    expect(status()).toBe("Converted·Reads back as 1 row × 1 column");
+    type('[{"a":1,"b":"x"},{"a":2,"b":"y"}]');
+    expect(status()).toBe("Converted·Reads back as 2 rows × 2 columns");
+  });
+
+  it("says when nested objects or arrays were flattened into CSV cells", () => {
+    render(<JsonConvert initialTarget="csv" />);
+    type('[{"a":1,"b":{"c":true}},{"a":2,"b":{"c":false}}]');
+    expect(status()).toBe("Converted·Reads back as 2 rows × 2 columns · nested values are flattened");
+    type('[{"a":[1,2]}]');
+    expect(status()).toBe("Converted·Reads back as 1 row × 1 column · nested values are flattened");
+    type('[{"a":{}}]');
+    expect(status()).toBe("Converted·Reads back as 1 row × 1 column · nested values are flattened");
+  });
+
+  it("counts the rows of CSV → JSON without claiming a check", () => {
+    render(<JsonConvert initialTarget="csv-to-json" />);
     type("a\n1\n");
-    expect(status()).toBe("Converted·checked by parsing back");
+    expect(status()).toBe("Converted·1 row");
+    type("a,b\n1,2\n3,4\n");
+    expect(status()).toBe("Converted·2 rows");
+    type("a,b\n");
+    expect(status()).toBe("Converted·0 rows");
+  });
+
+  it("shows the XML one-way note whenever XML is the target, before and after a conversion", () => {
+    const note = "one-way: XML has no arrays or types, so it cannot be turned back into the same JSON";
+    render(<JsonConvert initialTarget="xml" />);
+    expect(status()).toBe(`Paste JSON, open a file or load a sample.·${note}`);
+    type('{"a":}');
+    expect(status()).toBe(`Line 1, column 6: Unexpected character '}'·${note}`);
+    type('{"a":1}');
+    expect(status()).toBe(`Converted·${note}`);
+    choose("Convert to", "YAML");
+    expect(screen.queryByText(/one-way/)).toBeNull();
   });
 
   it("converts an empty array to empty CSV and says why there are no rows", () => {
@@ -178,7 +209,7 @@ describe("JsonConvert editor", () => {
     fireEvent.click(screen.getByRole("button", { name: "CSV → JSON" }));
     fireEvent.click(screen.getByRole("button", { name: "Sample" }));
     expect(inputArea().value.split("\n")[0]).toBe("id,name,active,score");
-    expect(status()).toBe("Converted·checked by parsing back");
+    expect(status()).toBe("Converted·2 rows");
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
     expect(inputArea().value).toBe("");
     expect(status()).toBe("Paste CSV, open a file or load a sample.");

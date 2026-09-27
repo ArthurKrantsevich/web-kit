@@ -14,6 +14,7 @@ import {
   type SegmentedOption,
   type SelectOption,
 } from "@web-kit/ui";
+import { parseJson } from "@web-kit/json-core";
 import { useId, useMemo, useState, type ReactElement } from "react";
 import { fromCsv, type CsvDelimiter } from "../core/csv";
 import { describeError, type ConvertOptions, type ConvertTarget } from "./convert";
@@ -68,25 +69,50 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const XML_NOTE = "one-way: XML has no arrays or types, so it cannot be turned back into the same JSON";
+
+function count(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;
+}
+
+/** True when some row of the JSON input has an object or array value, which CSV flattens into columns or a JSON cell. */
+function hasNestedValues(input: string): boolean {
+  const parsed = parseJson(input);
+  if (!parsed.ok || parsed.value.type !== "array") return false;
+  return parsed.value.items.some(
+    (item) =>
+      item.type === "object" && item.members.some((member) => member.value.type === "object" || member.value.type === "array"),
+  );
+}
+
 /**
- * What the status line says about a successful conversion. Only claims what was done: CSV output is parsed back
- * with fromCsv here, and CSV → JSON output was already parsed by the formatter that printed it.
+ * What the status line says about a successful conversion. Only claims what was done: CSV output is read back with
+ * fromCsv here and its size reported; the other targets say what they are, not that they were checked.
  */
-function successNote(target: ConvertTarget, output: string, options: ConvertOptions): { ok: boolean; note: string } {
+function successNote(
+  target: ConvertTarget,
+  input: string,
+  output: string,
+  options: ConvertOptions,
+): { ok: boolean; note: string } {
   switch (target) {
     case "yaml":
       return { ok: true, note: "YAML 1.2; numbers keep their spelling" };
-    case "csv":
+    case "csv": {
       if (output === "") return { ok: true, note: "the array is empty, so there are no rows" };
-      return fromCsv(output, { delimiter: options.delimiter }).ok
-        ? { ok: true, note: "checked by parsing back" }
-        : { ok: false, note: "the CSV could not be read back; please report this input" };
+      const back = fromCsv(output, { delimiter: options.delimiter });
+      if (!back.ok) return { ok: false, note: "the CSV could not be read back; please report this input" };
+      const rows = JSON.parse(back.value) as Record<string, unknown>[];
+      const columns = rows[0] === undefined ? 0 : Object.keys(rows[0]).length;
+      const size = `Reads back as ${count(rows.length, "row")} × ${count(columns, "column")}`;
+      return { ok: true, note: hasNestedValues(input) ? `${size} · nested values are flattened` : size };
+    }
     case "xml":
-      return { ok: true, note: "one-way: XML has no arrays or types, so it cannot be turned back into the same JSON" };
+      return { ok: true, note: XML_NOTE };
     case "typescript":
       return { ok: true, note: "types inferred from the data" };
     case "csv-to-json":
-      return { ok: true, note: "checked by parsing back" };
+      return { ok: true, note: count((JSON.parse(output) as unknown[]).length, "row") };
   }
 }
 
@@ -100,8 +126,8 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
   const output = result?.ok ? result.value : "";
   const outputInfo = OUTPUTS[target];
   const success = useMemo(
-    () => (result?.ok ? successNote(target, result.value, options) : null),
-    [result, target, options],
+    () => (result?.ok ? successNote(target, input, result.value, options) : null),
+    [result, target, input, options],
   );
   const inputBytes = useMemo(() => encoder.encode(input).length, [input]);
   const outputBytes = useMemo(() => encoder.encode(output).length, [output]);
@@ -215,15 +241,24 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
   );
 
   const notice = message && <span className="wk-convert__message">{message}</span>;
+  /** Shown whenever XML is the target, not only after a conversion. */
+  const xmlNote = target === "xml" && (
+    <>
+      <span aria-hidden="true">·</span>
+      <span>{XML_NOTE}</span>
+    </>
+  );
   const status =
     result === null ? (
       <StatusLine state="idle">
         <span>{direction === "csv" ? "Paste CSV, open a file or load a sample." : "Paste JSON, open a file or load a sample."}</span>
+        {xmlNote}
         {notice}
       </StatusLine>
     ) : !result.ok ? (
       <StatusLine state="error">
         <span role="status">{describeError(result.error)}</span>
+        {xmlNote}
         {notice}
       </StatusLine>
     ) : (
