@@ -99,6 +99,18 @@ describe("CopyButton", () => {
     expect(live().textContent).toBe("Copy failed");
   });
 
+  it("builds the text only when clicked, and can be disabled", async () => {
+    const writeText = vi.fn((_text: string) => Promise.resolve());
+    mockClipboard(writeText);
+    const build = vi.fn(() => "[1,2]");
+    const { rerender } = render(<CopyButton text={build} label="Copy results" tooltip="Copy the matches" variant="quiet" />);
+    expect(build).not.toHaveBeenCalled();
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy results" })));
+    expect(writeText).toHaveBeenCalledWith("[1,2]");
+    rerender(<CopyButton text={build} label="Copy results" tooltip="Copy the matches" disabled />);
+    expect((screen.getByRole("button", { name: "Copied" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
   it("is disabled while there is nothing to copy", () => {
     render(<CopyButton text="" tooltip="Copy the output" />);
     expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(true);

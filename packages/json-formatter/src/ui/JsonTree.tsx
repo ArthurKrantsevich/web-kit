@@ -8,6 +8,7 @@ import {
   type JsonPath,
   type QueryMatch,
 } from "@web-kit/json-core";
+import { Button, CopyButton } from "@web-kit/ui";
 import {
   useDeferredValue,
   useEffect,
@@ -19,7 +20,6 @@ import {
   type ReactElement,
 } from "react";
 import { CHILD_PAGE, EXPAND_ALL_LIMIT, expandBreadthFirst, hasChildren, visibleRows, type TreeRow } from "./tree-model";
-import { useCopy } from "./useCopy";
 
 export interface JsonTreeProps {
   root: JsonNode;
@@ -27,6 +27,8 @@ export interface JsonTreeProps {
   source: string;
   /** Called with the node's range in `source` when the user asks to see it in the input. Omit to hide the button. */
   onShowInInput?: (start: number, end: number) => void;
+  /** True while the tree may not match the input (a newer parse is pending): Show in input stays in place, disabled. */
+  showInInputDisabled?: boolean;
   /** Levels expanded at first. Default 2. */
   initialDepth?: number;
   /** Most rows "Expand all" may show. Default 5000. */
@@ -118,8 +120,6 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
     selected: "$",
     note: null,
   }));
-  const [pathLabel, copyPath] = useCopy("Copy path");
-  const [resultsLabel, copyResults] = useCopy("Copy results");
   const [query, setQuery] = useState("");
   const [pausedQuery, setPausedQuery] = useState("");
   const large = source.length > LARGE_SOURCE;
@@ -149,7 +149,6 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
     setSeen({ found, query: deferredQuery });
     setCurrent(next);
   }
-  const [valueLabel, copyValue] = useCopy("Copy value");
 
   const rows = useMemo(
     () => visibleRows(root, state.expanded, state.shown, pageSize),
@@ -310,45 +309,54 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
                 step(e.shiftKey ? -1 : 1);
               }}
             />
-            <span id={`${baseId}-query-status`} className="wk-tree__count" aria-live="polite">
-              {status}
-            </span>
-            <button
-              type="button"
-              className="wk-tree__tool"
-              aria-label="Previous match"
+            <Button
+              icon="chevron-up"
+              iconOnly
+              tooltip="Go to the previous match (Shift+Enter in the search field)"
               disabled={found.matches.length < 2}
               onClick={() => step(-1)}
             >
-              ↑
-            </button>
-            <button
-              type="button"
-              className="wk-tree__tool"
-              aria-label="Next match"
+              Previous match
+            </Button>
+            <Button
+              icon="chevron-down"
+              iconOnly
+              tooltip="Go to the next match (Enter in the search field)"
               disabled={found.matches.length < 2}
               onClick={() => step(1)}
             >
-              ↓
-            </button>
-            {found.mode === "path" && found.matches.length > 0 && (
-              <button type="button" className="wk-tree__tool" onClick={() => copyResults(resultsText())}>
-                {resultsLabel}
-              </button>
-            )}
+              Next match
+            </Button>
+            <CopyButton
+              variant="quiet"
+              label="Copy results"
+              tooltip="Copy the matching values as a JSON array"
+              disabled={found.matches.length === 0}
+              text={resultsText}
+            />
+            {/* Takes the free room and cuts long messages, so no button moves when the text changes. */}
+            <span id={`${baseId}-query-status`} className="wk-tree__count" aria-live="polite" title={status || undefined}>
+              {status}
+            </span>
           </>
         )}
-        <span className="wk-tree__spacer" />
-        <button type="button" className="wk-tree__tool" onClick={expandAll}>
+        {props.searchable === false && <span className="wk-tree__spacer" />}
+        <Button
+          icon="expand"
+          className="wk-tree__fold"
+          tooltip={`Expand every node, up to ${(props.expandAllLimit ?? EXPAND_ALL_LIMIT).toLocaleString("en-US")} rows`}
+          onClick={expandAll}
+        >
           Expand all
-        </button>
-        <button
-          type="button"
-          className="wk-tree__tool"
+        </Button>
+        <Button
+          icon="collapse"
+          className="wk-tree__fold"
+          tooltip="Collapse every node"
           onClick={() => update({ expanded: new Set(), shown: new Map(), selected: "$", note: null })}
         >
           Collapse all
-        </button>
+        </Button>
       </div>
       {state.note && (
         <p className="wk-tree__note" role="status">
@@ -420,16 +428,21 @@ export function JsonTree(props: JsonTreeProps): ReactElement {
         <code className="wk-tree__path" aria-label="Selected path">
           {path}
         </code>
-        <button type="button" className="wk-tree__tool" onClick={() => copyPath(path)}>
-          {pathLabel}
-        </button>
-        <button type="button" className="wk-tree__tool" onClick={() => copyValue(source.slice(target.start, target.end))}>
-          {valueLabel}
-        </button>
+        <CopyButton variant="quiet" label="Copy path" tooltip="Copy the path of the selected node" text={path} />
+        <CopyButton
+          variant="quiet"
+          label="Copy value"
+          tooltip="Copy the selected node's JSON, exactly as written"
+          text={() => source.slice(target.start, target.end)}
+        />
         {onShowInInput && (
-          <button type="button" className="wk-tree__tool" onClick={() => onShowInInput(target.start, target.end)}>
+          <Button
+            tooltip="Select this node's text in the input"
+            disabled={props.showInInputDisabled === true}
+            onClick={() => onShowInInput(target.start, target.end)}
+          >
             Show in input
-          </button>
+          </Button>
         )}
       </div>
     </div>

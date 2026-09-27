@@ -51,12 +51,17 @@ export const Button: ForwardRefExoticComponent<ButtonProps & RefAttributes<HTMLB
 });
 
 export interface CopyButtonProps {
-  /** Copied as is. The button is disabled while it is empty. */
-  text: string;
+  /**
+   * Copied as is. The button is disabled while it is empty. A function is called only on click, for text that is
+   * costly to build.
+   */
+  text: string | (() => string);
   /** Idle label and accessible name. Default "Copy". */
   label?: string;
   tooltip: string;
   variant?: "primary" | "quiet";
+  /** Default: disabled while `text` is "". */
+  disabled?: boolean;
 }
 
 type CopyState = "idle" | "copied" | "failed";
@@ -68,7 +73,7 @@ export const COPY_FEEDBACK_MS = 1500;
  * Copies `text`. The label changes to "Copied" or "Copy failed" for 1.5 s without changing the button's width: all
  * three labels share one grid cell and only one is visible. The change is announced through a polite live region.
  */
-export function CopyButton({ text, label = "Copy", tooltip, variant = "primary" }: CopyButtonProps): ReactElement {
+export function CopyButton({ text, label = "Copy", tooltip, variant = "primary", disabled }: CopyButtonProps): ReactElement {
   const [state, setState] = useState<CopyState>("idle");
 
   useEffect(() => {
@@ -79,7 +84,7 @@ export function CopyButton({ text, label = "Copy", tooltip, variant = "primary" 
 
   async function copy(): Promise<void> {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(typeof text === "function" ? text() : text);
       setState("copied");
     } catch {
       setState("failed");
@@ -104,7 +109,7 @@ export function CopyButton({ text, label = "Copy", tooltip, variant = "primary" 
         <button
           type="button"
           className={cx("wk-ui-button", `wk-ui-button--${variant}`, "wk-ui-copy")}
-          disabled={text === ""}
+          disabled={disabled ?? text === ""}
           onClick={() => void copy()}
         >
           <span className="wk-ui-copy__labels">

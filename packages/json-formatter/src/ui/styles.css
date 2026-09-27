@@ -121,8 +121,11 @@
 }
 .wk-json__fix-all {
   height: 38px;
+  min-width: 11.5rem;
   padding: 0 16px;
   border-radius: 10px;
+  /* The count changes while typing: equal-width digits and a minimum width keep the button's size. */
+  font-variant-numeric: tabular-nums;
 }
 .wk-json__message {
   color: var(--wk-fg, #141413);
@@ -225,23 +228,13 @@
 .wk-tree__spacer {
   flex: 1 1 auto;
 }
-.wk-tree__tool {
+/* The tree's buttons come from @web-kit/ui, a little smaller. */
+.wk-tree .wk-ui-button {
   height: 30px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--wk-fg, #141413);
-  font: inherit;
   font-size: 0.8125rem;
-  cursor: pointer;
 }
-.wk-tree__tool:hover:not(:disabled) {
-  background: var(--wk-surface-2, #f0eee6);
-}
-.wk-tree__tool:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.wk-tree .wk-ui-button--icon-only {
+  width: 30px;
 }
 .wk-tree__search {
   flex: 1 1 14rem;
@@ -255,10 +248,16 @@
   font-family: var(--wk-font-mono, ui-monospace, monospace);
   font-size: 0.8125rem;
 }
+/* The match count takes the free room of the toolbar and cuts long messages (the full text is its title and the
+   search field's description), so the buttons around it never move. */
 .wk-tree__count {
-  min-width: 4rem;
+  flex: 1 1 3rem;
+  min-width: 0;
+  overflow: hidden;
   color: var(--wk-muted, #5e5d59);
   font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .wk-tree__note {
   margin: 0;
@@ -307,10 +306,19 @@
   font-size: 0.8125rem;
 }
 
-/* Inside JsonFormatter the tree fills the output pane: toolbar on top, details at the bottom. */
+/* Inside JsonFormatter the tree fills the output pane: toolbar on top, details at the bottom. The body is a flex
+   column, so the list (not the details) gives up height when the pane is short. */
+.wk-json__body:has(> .wk-tree) {
+  display: flex;
+  flex-direction: column;
+}
 .wk-json__body > .wk-tree {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 0;
+}
+.wk-json__body > .wk-tree > :not(.wk-tree__list) {
+  flex: none;
 }
 .wk-json__body > .wk-tree > .wk-tree__toolbar {
   padding: 8px 8px 8px 12px;
@@ -335,10 +343,23 @@
   overflow: hidden;
 }
 
-/* Narrow component: the search field and the selected path get their own rows. */
+/* Narrow component: the search field and the selected path get their own rows; Expand all and Collapse all keep
+   only their icons (the label stays the accessible name, the tooltip says more), so the toolbar needs two rows. */
 @container (max-width: 639px) {
   .wk-tree__search,
   .wk-tree__path {
     flex-basis: 100%;
+  }
+  .wk-tree .wk-tree__fold {
+    width: 30px;
+    padding: 0;
+  }
+  .wk-tree .wk-tree__fold .wk-ui-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 }

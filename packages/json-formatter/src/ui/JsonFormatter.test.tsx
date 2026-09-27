@@ -512,6 +512,16 @@ describe("JsonFormatter tooltips", () => {
     for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
   });
 
+  it("the error's actions say what they do", () => {
+    render(<JsonFormatter initialInput="{a: 1, b: [True,]}" />);
+    expect(tooltipOf(screen.getByRole("button", { name: "Show in input" }))).toBe("Select the error in the input");
+    expect(tooltipOf(screen.getByRole("button", { name: "Fix all (4 changes)" }))).toBe(
+      "Make all 4 changes; the result was checked to be valid JSON",
+    );
+    type("[1,]");
+    expect(tooltipOf(screen.getByRole("button", { name: /^Apply: / }))).toBe("Replace the input with this fix; the result was checked");
+  });
+
   it("names the download in the Download tooltip", () => {
     render(<JsonFormatter initialInput="[1]" />);
     fireEvent.click(screen.getByRole("button", { name: "Escape" }));

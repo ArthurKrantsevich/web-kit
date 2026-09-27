@@ -241,3 +241,59 @@ describe("JsonTree toolbar", () => {
     expect(screen.getByRole("button", { name: "Expand all" })).toBeTruthy();
   });
 });
+
+const tooltipOf = (element: HTMLElement) =>
+  element
+    .getAttribute("aria-describedby")
+    ?.split(" ")
+    .map((id) => document.getElementById(id)?.textContent)
+    .join(" ");
+
+describe("JsonTree buttons", () => {
+  it("every button says what it does", () => {
+    render(<JsonTree {...props(SRC, { onShowInInput: () => {} })} />);
+    const expected: [string, string][] = [
+      ["Previous match", "Go to the previous match (Shift+Enter in the search field)"],
+      ["Next match", "Go to the next match (Enter in the search field)"],
+      ["Copy results", "Copy the matching values as a JSON array"],
+      ["Expand all", "Expand every node, up to 5,000 rows"],
+      ["Collapse all", "Collapse every node"],
+      ["Copy path", "Copy the path of the selected node"],
+      ["Copy value", "Copy the selected node's JSON, exactly as written"],
+      ["Show in input", "Select this node's text in the input"],
+    ];
+    for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
+  });
+
+  it("keeps the width of Copy path, Copy value and Copy results: every label they can show is in one cell", () => {
+    render(<JsonTree {...props()} />);
+    for (const name of ["Copy path", "Copy value", "Copy results"]) {
+      const labels = [...screen.getByRole("button", { name }).querySelectorAll(".wk-ui-copy__label")];
+      expect(labels.map((label) => label.textContent)).toEqual([name, "Copied", "Copy failed"]);
+    }
+  });
+
+  it("keeps Copy results in place, disabled until something matches, for a search too", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    render(<JsonTree {...props()} />);
+    const copy = () => screen.getByRole("button", { name: /^Copy results|Copied$/ }) as HTMLButtonElement;
+    expect(copy().disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "bob" } });
+    expect(copy().disabled).toBe(false);
+    await act(async () => fireEvent.click(copy()));
+    expect(writeText).toHaveBeenCalledWith('[\n  "Bob"\n]');
+  });
+
+  it("keeps Show in input in place, disabled while the tree may not match the input", () => {
+    render(<JsonTree {...props(SRC, { onShowInInput: () => {}, showInInputDisabled: true })} />);
+    expect((screen.getByRole("button", { name: "Show in input" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("gives the whole message of the count as its title, since a long one is cut", () => {
+    render(<JsonTree {...props()} />);
+    fireEvent.change(screen.getByLabelText("Search or JSONPath"), { target: { value: "$[?length(@) > 1]" } });
+    const count = document.querySelector(".wk-tree__count")!;
+    expect(count.getAttribute("title")).toBe("Column 4: Function extensions like length() are not supported");
+  });
+});

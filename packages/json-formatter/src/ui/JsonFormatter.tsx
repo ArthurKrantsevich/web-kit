@@ -11,6 +11,7 @@ import {
   Segmented,
   Select,
   StatusLine,
+  Tooltip,
   type SegmentedOption,
   type SelectOption,
 } from "@web-kit/ui";
@@ -287,9 +288,11 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
                   <pre className="wk-json__frame" role="region" aria-label="Error location">
                     {codeFrame(input, error)}
                   </pre>
-                  <button type="button" className="wk-json__link" onClick={showError}>
-                    Show in input
-                  </button>
+                  <Tooltip content="Select the error in the input">
+                    <button type="button" className="wk-json__link" onClick={showError}>
+                      Show in input
+                    </button>
+                  </Tooltip>
                   {fixes.length > 0 && (
                     <div className="wk-json__fixbox">
                       <p className="wk-json__fixes-title">Suggested fixes · each one is checked</p>
@@ -300,6 +303,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
                             <Button
                               variant="outline"
                               aria-label={`Apply: ${fix.description}`}
+                              tooltip="Replace the input with this fix; the result was checked"
                               onClick={() => replaceInput(fix.text)}
                             >
                               Apply
@@ -310,7 +314,12 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
                     </div>
                   )}
                   {repair && (
-                    <Button variant="primary" className="wk-json__fix-all" onClick={() => replaceInput(repair.value)}>
+                    <Button
+                      variant="primary"
+                      className="wk-json__fix-all"
+                      tooltip={`Make all ${repair.changes.length} changes; the result was checked to be valid JSON`}
+                      onClick={() => replaceInput(repair.value)}
+                    >
                       {`Fix all (${repair.changes.length} changes)`}
                     </Button>
                   )}
@@ -318,7 +327,12 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
               ) : view === "text" ? (
                 <HighlightedJson text={highlighted} aria-label="Output" />
               ) : tree ? (
-                <JsonTree root={tree} source={treeSource} onShowInInput={treeFresh ? selectInInput : undefined} />
+                <JsonTree
+                  root={tree}
+                  source={treeSource}
+                  onShowInInput={selectInInput}
+                  showInInputDisabled={!treeFresh}
+                />
               ) : (
                 <p className="wk-json__placeholder">
                   {!jsonMode
