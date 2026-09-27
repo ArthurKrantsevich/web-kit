@@ -1,8 +1,9 @@
 import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 
 /**
- * Key combinations: "Mod+Enter", "Mod+Shift+M", "?". "Mod" is ⌘ on Apple systems and Ctrl elsewhere. Letters are
- * matched by the physical key (event.code), so they work with any keyboard layout; "?" is matched by the character.
+ * Key combinations: "Mod+Enter", "Mod+Shift+M", "?". "Mod" is ⌘ on Apple systems and Ctrl elsewhere. A letter is
+ * matched by the Latin letter the key types (so the key labelled M works on AZERTY), and by the physical key
+ * (event.code) when the layout types a non-Latin letter there (Cyrillic, Greek…); "?" is matched by the character.
  */
 export type HotkeyMap = Record<string, () => void>;
 
@@ -37,7 +38,10 @@ export function matchHotkey(combo: string, event: KeyLike, apple: boolean): bool
   if (key === "?") return event.key === "?" && !event.ctrlKey && !event.metaKey && !event.altKey;
   if (event.altKey || event.shiftKey !== shift) return false;
   if (mod !== (apple ? event.metaKey : event.ctrlKey) || (apple ? event.ctrlKey : event.metaKey)) return false;
-  return /^[A-Z]$/.test(key) ? event.code === `Key${key}` : event.key === key;
+  if (!/^[A-Z]$/.test(key)) return event.key === key;
+  if (/^[a-z]$/i.test(event.key)) return event.key.toUpperCase() === key;
+  // A non-Latin letter (Cyrillic, Greek…): fall back to the physical key. Punctuation and digits never match.
+  return /^\p{L}$/u.test(event.key) && event.code === `Key${key}`;
 }
 
 /** The keys of a combination, for lists of shortcuts: ["⌘", "Enter"], or ["Ctrl", "Shift", "M"] elsewhere. */
@@ -66,7 +70,7 @@ export function useHotkeys(map: HotkeyMap, scope: RefObject<HTMLElement | null>)
   useEffect(() => {
     scopes.push(scope);
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.defaultPrevented || event.isComposing) return;
+      if (event.defaultPrevented || event.isComposing || event.repeat) return;
       const target = event.target instanceof Node ? event.target : null;
       const root = scope.current;
       const unfocused = target === null || target === document.body || target === document.documentElement;

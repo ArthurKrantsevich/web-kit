@@ -38,6 +38,13 @@ describe("matchHotkey", () => {
     expect(matchHotkey("Mod+Shift+F", press({ key: "А", code: "KeyF", ctrlKey: true, shiftKey: true }), false)).toBe(true);
   });
 
+  it("matches a Latin letter by the character it types, so the key labelled M works on AZERTY", () => {
+    // AZERTY: the key labelled M sits where QWERTY has ";" (code Semicolon); the key at KeyM types ",".
+    expect(matchHotkey("Mod+Shift+M", press({ key: "M", code: "Semicolon", ctrlKey: true, shiftKey: true }), false)).toBe(true);
+    expect(matchHotkey("Mod+Shift+M", press({ key: "?", code: "KeyM", ctrlKey: true, shiftKey: true }), false)).toBe(false);
+    expect(matchHotkey("Mod+Shift+M", press({ key: "m", code: "KeyM", metaKey: true, shiftKey: true }), true)).toBe(true);
+  });
+
   it("matches ? by the character, with Shift or without, but not with Ctrl, ⌘ or Alt", () => {
     expect(matchHotkey("?", press({ key: "?", shiftKey: true }), false)).toBe(true);
     expect(matchHotkey("?", press({ key: "?", ctrlKey: true }), false)).toBe(false);
@@ -70,6 +77,16 @@ describe("useHotkeys", () => {
     const handled = !fireEvent.keyDown(screen.getByLabelText("A input"), { key: "Enter", ctrlKey: true });
     expect(format).toHaveBeenCalledTimes(1);
     expect(handled).toBe(true);
+  });
+
+  it("ignores a held key's repeats, so a combination runs once", () => {
+    const run = vi.fn();
+    render(<Tool name="A" map={{ "Mod+Enter": run }} />);
+    const field = screen.getByLabelText("A input");
+    fireEvent.keyDown(field, { key: "Enter", ctrlKey: true });
+    fireEvent.keyDown(field, { key: "Enter", ctrlKey: true, repeat: true });
+    fireEvent.keyDown(field, { key: "Enter", ctrlKey: true, repeat: true });
+    expect(run).toHaveBeenCalledTimes(1);
   });
 
   it("leaves other combinations alone", () => {
