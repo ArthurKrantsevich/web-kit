@@ -32,9 +32,22 @@
 .wk-diff__change--changed .wk-diff__sign {
   color: var(--wk-syntax-number, #9a5210);
 }
+/* One height for "no differences", one change and a short error: nothing under it jumps as the result flips. */
 .wk-diff__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 4.5rem;
   max-height: 24rem;
   overflow: auto;
+}
+.wk-diff__body > .wk-ui-empty {
+  flex: 1 0 auto;
+}
+/* On a phone a short error takes two lines, and so does its room. */
+@container wk-ui-editor (max-width: 639px) {
+  .wk-diff__body {
+    min-height: 6rem;
+  }
 }
 .wk-diff__more {
   margin: 0;
@@ -46,8 +59,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
-  padding: 16px;
+  gap: 4px;
+  padding: 12px 16px;
 }
 .wk-diff__error {
   margin: 0;
