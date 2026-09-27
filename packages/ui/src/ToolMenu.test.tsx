@@ -75,6 +75,32 @@ describe("ToolMenu", () => {
     expect(screen.getByRole("menuitem", { name: "Clear saved input" }).getAttribute("aria-disabled")).toBe("true");
   });
 
+  it("lists the tool's own items after the URL items", () => {
+    const onSelect = vi.fn();
+    function Extra() {
+      const state = useMemo(() => ({}), []);
+      return (
+        <div className="wk-ui-editor">
+          <ToolMenu
+            toolKey="text-compare"
+            state={state}
+            onRestore={() => {}}
+            urlTargets={[{ label: "Load Left from URL…", onText: () => {} }]}
+            extraItems={[{ label: "Show all unchanged lines", checked: false, onSelect }]}
+            shortcuts={[]}
+            onNotice={() => {}}
+          />
+        </div>
+      );
+    }
+    render(<Extra />);
+    fireEvent.click(menuButton());
+    const labels = [...screen.getByRole("menu").querySelectorAll(".wk-ui-option__label")].map((label) => label.textContent);
+    expect(labels.slice(0, 3)).toEqual(["Load Left from URL…", "Show all unchanged lines", "Share link…"]);
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Show all unchanged lines" }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it("makes a share link that opens the same state, with the privacy warning", async () => {
     render(<Harness />);
     fireEvent.change(input(), { target: { value: '{"shared":1}' } });

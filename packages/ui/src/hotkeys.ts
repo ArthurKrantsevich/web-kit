@@ -1,7 +1,8 @@
 import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 
 /**
- * Key combinations: "Mod+Enter", "Mod+Shift+M", "?". "Mod" is ⌘ on Apple systems and Ctrl elsewhere. A letter is
+ * Key combinations: "Mod+Enter", "Mod+Shift+M", "Alt+ArrowDown", "Shift+F7", "?". "Mod" is ⌘ on Apple systems and
+ * Ctrl elsewhere; "Alt" is ⌥ there. Other keys are named as KeyboardEvent.key names them ("ArrowDown", "F7"). A letter is
  * matched by the Latin letter the key types (so the key labelled M works on AZERTY), and by the physical key
  * (event.code) when the layout types a non-Latin letter there (Cyrillic, Greek…); "?" is matched by the character.
  */
@@ -35,8 +36,9 @@ export function matchHotkey(combo: string, event: KeyLike, apple: boolean): bool
   const key = parts.pop()!;
   const mod = parts.includes("Mod");
   const shift = parts.includes("Shift");
+  const alt = parts.includes("Alt");
   if (key === "?") return event.key === "?" && !event.ctrlKey && !event.metaKey && !event.altKey;
-  if (event.altKey || event.shiftKey !== shift) return false;
+  if (event.altKey !== alt || event.shiftKey !== shift) return false;
   if (mod !== (apple ? event.metaKey : event.ctrlKey) || (apple ? event.ctrlKey : event.metaKey)) return false;
   if (!/^[A-Z]$/.test(key)) return event.key === key;
   if (/^[a-z]$/i.test(event.key)) return event.key.toUpperCase() === key;
@@ -44,9 +46,16 @@ export function matchHotkey(combo: string, event: KeyLike, apple: boolean): bool
   return /^\p{L}$/u.test(event.key) && event.code === `Key${key}`;
 }
 
-/** The keys of a combination, for lists of shortcuts: ["⌘", "Enter"], or ["Ctrl", "Shift", "M"] elsewhere. */
+const ARROWS: Record<string, string> = { ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" };
+
+/** The keys of a combination, for lists of shortcuts: ["⌘", "Enter"], ["⌥", "↓"], or ["Ctrl", "Shift", "M"] elsewhere. */
 export function formatHotkey(combo: string, apple: boolean): string[] {
-  return combo.split("+").map((part) => (part === "Mod" ? (apple ? "⌘" : "Ctrl") : part === "Shift" && apple ? "⇧" : part));
+  return combo.split("+").map((part) => {
+    if (part === "Mod") return apple ? "⌘" : "Ctrl";
+    if (part === "Shift" && apple) return "⇧";
+    if (part === "Alt" && apple) return "⌥";
+    return ARROWS[part] ?? part;
+  });
 }
 
 function isEditable(target: EventTarget | null): boolean {

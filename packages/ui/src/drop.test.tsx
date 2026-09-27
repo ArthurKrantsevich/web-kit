@@ -84,6 +84,23 @@ describe("useFileDrop", () => {
     expect(pane().getAttribute("data-dragging")).toBe("false");
   });
 
+  it("passes the file's name with its text", async () => {
+    const onText = vi.fn();
+    function Named() {
+      const drop = useFileDrop({ accept: ACCEPT, maxBytes: 16, onText, onError: () => {} });
+      return (
+        <EditorPane title="Left" drop={drop}>
+          <textarea aria-label="Left" readOnly />
+        </EditorPane>
+      );
+    }
+    render(<Named />);
+    await act(async () => {
+      fireEvent.drop(pane(), files(new File(["[1]"], "report.json")));
+    });
+    expect(onText).toHaveBeenCalledWith("[1]", { name: "report.json" });
+  });
+
   it("refuses a file of another type and a file over the limit", async () => {
     render(<Harness />);
     await act(async () => {

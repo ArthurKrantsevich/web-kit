@@ -24,7 +24,7 @@ describe("OpenFileButton", () => {
     await act(async () => {
       fireEvent.change(input, { target: { files: [new File(["﻿[1]"], "a.json")] } });
     });
-    expect(onText).toHaveBeenCalledWith("[1]");
+    expect(onText).toHaveBeenCalledWith("[1]", { name: "a.json" });
     expect(input.value).toBe("");
   });
 

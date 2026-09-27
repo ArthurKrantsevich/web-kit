@@ -100,6 +100,30 @@ describe("Menu", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
+  it("keeps the menu open for an item that asks for it", () => {
+    const onSelect = vi.fn();
+    renderMenu([{}, { keepOpen: true, onSelect }]);
+    fireEvent.click(trigger());
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Save input in this browser" }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("menu")).toBeTruthy();
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "ArrowDown" });
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("menu"), { key: " " });
+    expect(onSelect).toHaveBeenCalledTimes(3);
+    expect(screen.getByRole("menu")).toBeTruthy();
+  });
+
+  it("looks like a field when asked: its text, then a chevron", () => {
+    render(<Menu look="field" label="Ignore" content="Ignore (2)" tooltip="What to ignore" items={[]} className="own" />);
+    const button = screen.getByRole("button", { name: "Ignore (2)" });
+    expect(button.className).toBe("wk-ui-select wk-ui-menu-button own");
+    expect(button.querySelector(".wk-ui-select__value")?.textContent).toBe("Ignore (2)");
+    expect(button.querySelectorAll("svg")).toHaveLength(1);
+    fireEvent.click(button);
+    expect(screen.getByRole("menu", { name: "Ignore" })).toBeTruthy();
+  });
+
   it("chooses an item with a click", () => {
     const onSelect = vi.fn();
     renderMenu([{ onSelect }]);

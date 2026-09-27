@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactElement, type ReactNode } from "react";
 import type { ActionId } from "./actions";
 import { Icon, type IconName } from "./Icon";
 import { clampLeft, cx, showInTopLayer, useIsomorphicLayoutEffect, usePopoverSupport } from "./popover";
@@ -14,6 +14,8 @@ export interface MenuItem {
   checked?: boolean;
   /** A key shown at the right, e.g. "?". */
   shortcut?: string;
+  /** Choosing it leaves the menu open, as for one of several options to tick. */
+  keepOpen?: boolean;
 }
 
 export interface MenuProps {
@@ -26,6 +28,14 @@ export interface MenuProps {
   iconOnly?: boolean;
   /** Marks the button as one of the shared actions (`data-action`), e.g. "more". */
   action?: ActionId;
+  /**
+   * "field": an outlined button with its text and a chevron, like a Select, for a menu of options; `icon` and
+   * `iconOnly` do not apply. Default "icon".
+   */
+  look?: "icon" | "field";
+  /** What a "field" button shows; default `label`. Its text is the button's accessible name. */
+  content?: ReactNode;
+  className?: string;
 }
 
 /**
@@ -33,7 +43,17 @@ export interface MenuProps {
  * room below). Keyboard: Enter, Space or ↓ open on the first item, ↑ on the last; ↓/↑, Home/End move; Enter/Space
  * choose; Escape closes and returns focus; Tab closes. A click outside, page scroll or a resize closes it.
  */
-export function Menu({ label, tooltip, items, icon = "more", iconOnly = true, action }: MenuProps): ReactElement {
+export function Menu({
+  label,
+  tooltip,
+  items,
+  icon = "more",
+  iconOnly = true,
+  action,
+  look = "icon",
+  content,
+  className,
+}: MenuProps): ReactElement {
   const id = useId();
   const popover = usePopoverSupport();
   const [open, setOpen] = useState(false);
@@ -54,6 +74,10 @@ export function Menu({ label, tooltip, items, icon = "more", iconOnly = true, ac
   function choose(index: number): void {
     const item = items[index];
     if (!item || item.disabled) return;
+    if (item.keepOpen) {
+      item.onSelect();
+      return;
+    }
     // Focus goes back to the button first, so a dialog opened by the item returns focus there when it closes.
     close(true);
     item.onSelect();
@@ -138,7 +162,18 @@ export function Menu({ label, tooltip, items, icon = "more", iconOnly = true, ac
         <button
           ref={button}
           type="button"
-          className={cx("wk-ui-button", "wk-ui-button--quiet", "wk-ui-button--has-icon", iconOnly && "wk-ui-button--icon-only", "wk-ui-menu-button")}
+          className={
+            look === "field"
+              ? cx("wk-ui-select", "wk-ui-menu-button", className)
+              : cx(
+                  "wk-ui-button",
+                  "wk-ui-button--quiet",
+                  "wk-ui-button--has-icon",
+                  iconOnly && "wk-ui-button--icon-only",
+                  "wk-ui-menu-button",
+                  className,
+                )
+          }
           aria-haspopup="menu"
           aria-expanded={open}
           aria-controls={open ? `${id}-menu` : undefined}
@@ -150,8 +185,17 @@ export function Menu({ label, tooltip, items, icon = "more", iconOnly = true, ac
           }}
           onKeyDown={onButtonKeyDown}
         >
-          <Icon name={icon} />
-          <span className={iconOnly ? "wk-ui-sr-only" : "wk-ui-button__label"}>{label}</span>
+          {look === "field" ? (
+            <>
+              <span className="wk-ui-select__value">{content ?? label}</span>
+              <Icon name="chevron-down" size={14} />
+            </>
+          ) : (
+            <>
+              <Icon name={icon} />
+              <span className={iconOnly ? "wk-ui-sr-only" : "wk-ui-button__label"}>{label}</span>
+            </>
+          )}
         </button>
       </Tooltip>
       {open && (

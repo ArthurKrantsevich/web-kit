@@ -36,6 +36,8 @@ export interface ToolMenuProps {
   onRestore: (state: Record<string, unknown>) => void;
   /** One menu item per field that can be loaded from a URL. */
   urlTargets: UrlTarget[];
+  /** The tool's own items, listed after the URL items, e.g. "Show all unchanged lines". */
+  extraItems?: MenuItem[];
   /** The tool's keyboard shortcuts. "?" is added: it shows the list. */
   shortcuts: Shortcut[];
   /** Short messages for the tool's status line, e.g. "Saved input cleared". */
@@ -122,6 +124,7 @@ export function ToolMenu({
   state,
   onRestore,
   urlTargets,
+  extraItems = [],
   shortcuts,
   onNotice,
   maxBytes = DEFAULT_MAX_BYTES,
@@ -198,6 +201,7 @@ export function ToolMenu({
         setDialog("url");
       },
     })),
+    ...extraItems,
     {
       label: "Share link…",
       description: share.available ? "The data goes into the link; nothing is uploaded" : "This browser cannot make share links",

@@ -9,8 +9,8 @@ export interface FileReadOptions {
    * text that arrives after the user changed the input.
    */
   onReadStart?: () => void;
-  /** The file's text, without a BOM. */
-  onText: (text: string) => void;
+  /** The file's text, without a BOM, and the file's name (a tool can show it, or use it in a download's name). */
+  onText: (text: string, file: { name: string }) => void;
   /** A message such as "File is larger than 10 MB". */
   onError: (message: string) => void;
 }
@@ -89,7 +89,7 @@ export function useFileDrop(options: UseFileDropOptions): FileDrop {
     void readTextFile(file, latest.current.maxBytes).then((result) => {
       // Only the file chosen last counts: an earlier, slower read that finishes after it is dropped.
       if (id !== reads.current) return;
-      if (result.ok) latest.current.onText(result.value);
+      if (result.ok) latest.current.onText(result.value, { name: file.name });
       else latest.current.onError(result.error.message);
     });
   }

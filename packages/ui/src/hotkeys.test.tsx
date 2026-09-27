@@ -50,9 +50,24 @@ describe("matchHotkey", () => {
     expect(matchHotkey("?", press({ key: "?", ctrlKey: true }), false)).toBe(false);
   });
 
+  it("matches Alt with arrows, and function keys by name", () => {
+    expect(matchHotkey("Alt+ArrowDown", press({ key: "ArrowDown", altKey: true }), false)).toBe(true);
+    expect(matchHotkey("Alt+ArrowDown", press({ key: "ArrowDown" }), false)).toBe(false);
+    expect(matchHotkey("Alt+ArrowDown", press({ key: "ArrowDown", altKey: true, ctrlKey: true }), false)).toBe(false);
+    expect(matchHotkey("Alt+ArrowDown", press({ key: "ArrowDown", altKey: true }), true)).toBe(true);
+    expect(matchHotkey("F7", press({ key: "F7" }), false)).toBe(true);
+    expect(matchHotkey("F7", press({ key: "F7", shiftKey: true }), false)).toBe(false);
+    expect(matchHotkey("Shift+F7", press({ key: "F7", shiftKey: true }), false)).toBe(true);
+    // Without Alt in the combination, Alt still keeps it from matching.
+    expect(matchHotkey("Mod+Enter", press({ key: "Enter", ctrlKey: true, altKey: true }), false)).toBe(false);
+  });
+
   it("formats combinations for each system", () => {
     expect(formatHotkey("Mod+Shift+M", false)).toEqual(["Ctrl", "Shift", "M"]);
     expect(formatHotkey("Mod+Shift+M", true)).toEqual(["⌘", "⇧", "M"]);
+    expect(formatHotkey("Alt+ArrowDown", false)).toEqual(["Alt", "↓"]);
+    expect(formatHotkey("Alt+ArrowUp", true)).toEqual(["⌥", "↑"]);
+    expect(formatHotkey("Shift+F7", false)).toEqual(["Shift", "F7"]);
   });
 });
 
