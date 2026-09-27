@@ -94,7 +94,7 @@
   height: 34px;
   padding: 0 10px;
   box-sizing: border-box;
-  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
+  border: 1px solid var(--wk-border-strong, #8c8a84);
   border-radius: 10px;
   background: var(--wk-surface, #ffffff);
   color: inherit;
@@ -125,7 +125,7 @@
   height: 18px;
   margin: 0;
   border-radius: 999px;
-  background: var(--wk-border-strong, rgba(31, 30, 29, 0.3));
+  background: var(--wk-border-strong, #8c8a84);
   cursor: pointer;
 }
 .wk-ui-switch input::before {

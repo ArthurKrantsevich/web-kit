@@ -305,6 +305,10 @@ importers:
       react:
         specifier: '>=18'
         version: 19.3.0
+    devDependencies:
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
 
   packages/json-schema-validator:
     dependencies:

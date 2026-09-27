@@ -58,5 +58,8 @@
   "dependencies": {
     "@web-kit/json-core": "workspace:*",
     "@web-kit/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2"
   }
 }

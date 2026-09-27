@@ -1,5 +1,6 @@
-// Fails when a text/background token pair in tokens.css is below WCAG AA (4.5:1) in either theme,
-// or when the two dark blocks (system dark and data-theme="dark") differ.
+// Fails when a text/background token pair in tokens.css is below WCAG AA (4.5:1) in either theme, when a UI
+// component boundary (a border) is below 3:1 against the backgrounds it sits on (WCAG 1.4.11), or when the two dark
+// blocks (system dark and data-theme="dark") differ. An rgba() color is measured over the background it is paired with.
 import { readFileSync } from "node:fs";
 
 const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
@@ -14,18 +15,32 @@ function block(selector) {
   return Object.fromEntries([...body.matchAll(/(--wk-[\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
 }
 
-function luminance(hex) {
+/** [r, g, b] in 0..255 of a #rrggbb color. */
+function rgb(hex) {
   const match = /^#([0-9a-f]{6})$/i.exec(hex);
   if (!match) throw new Error(`not a #rrggbb color: ${hex}`);
-  const [r, g, b] = [0, 2, 4].map((i) => {
-    const c = parseInt(match[1].slice(i, i + 2), 16) / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return [0, 2, 4].map((i) => parseInt(match[1].slice(i, i + 2), 16));
 }
 
-function ratio(a, b) {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+/** [r, g, b] of `color` (#rrggbb or rgba(r, g, b, a)) painted over the #rrggbb `background`. */
+function over(color, background) {
+  const match = /^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/.exec(color);
+  if (!match) return rgb(color);
+  const alpha = Number(match[4]);
+  const under = rgb(background);
+  return [1, 2, 3].map((i, k) => Number(match[i]) * alpha + under[k] * (1 - alpha));
+}
+
+function luminance([r, g, b]) {
+  const [lr, lg, lb] = [r, g, b].map((value) => {
+    const c = value / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+}
+
+function ratio(color, background) {
+  const [hi, lo] = [luminance(over(color, background)), luminance(rgb(background))].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
 
@@ -40,6 +55,9 @@ const PAIRS = [
   ["syntax-literal", "surface"], ["syntax-punct", "surface"],
 ];
 
+// [component boundary, background]: 3:1 (WCAG 1.4.11, non-text contrast).
+const NON_TEXT_PAIRS = [["border-strong", "surface"], ["border-strong", "bg"]];
+
 const light = block(":root {");
 const systemDark = block(':root:not([data-theme="light"]) {');
 const forcedDark = block(':root[data-theme="dark"] {');
@@ -49,16 +67,18 @@ if (JSON.stringify(systemDark) !== JSON.stringify(forcedDark)) {
 
 let checked = 0;
 for (const [theme, tokens] of [["light", light], ["dark", { ...light, ...forcedDark }]]) {
-  for (const [text, background] of PAIRS) {
-    const fg = tokens[`--wk-${text}`];
-    const bg = tokens[`--wk-${background}`];
-    if (!fg || !bg) {
-      failures.push(`${theme}: missing --wk-${fg ? background : text}`);
-      continue;
+  for (const [pairs, needed] of [[PAIRS, 4.5], [NON_TEXT_PAIRS, 3]]) {
+    for (const [text, background] of pairs) {
+      const fg = tokens[`--wk-${text}`];
+      const bg = tokens[`--wk-${background}`];
+      if (!fg || !bg) {
+        failures.push(`${theme}: missing --wk-${fg ? background : text}`);
+        continue;
+      }
+      const value = ratio(fg, bg);
+      checked += 1;
+      if (value < needed) failures.push(`${theme}: --wk-${text} on --wk-${background} is ${value.toFixed(2)}:1, needs ${needed}:1`);
     }
-    const value = ratio(fg, bg);
-    checked += 1;
-    if (value < 4.5) failures.push(`${theme}: --wk-${text} on --wk-${background} is ${value.toFixed(2)}:1, needs 4.5:1`);
   }
 }
 
