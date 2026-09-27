@@ -13,13 +13,15 @@ async function openTool(page: Page, path: string): Promise<void> {
 test("home lists utilities and filters them", async ({ page }) => {
   await page.goto("./");
   const search = page.getByRole("searchbox", { name: "Search utilities" });
-  await expect(page.getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
+  // The footer links every tool too; the cards are in main.
+  const main = page.getByRole("main");
+  await expect(main.getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
 
   await search.fill("zzz-no-match");
-  await expect(page.getByText("No utilities match your search.")).toBeVisible();
+  await expect(main.getByText("Nothing matches “zzz-no-match”")).toBeVisible();
 
   await search.fill("json");
-  await page.getByRole("link", { name: /JSON Formatter/ }).click();
+  await main.getByRole("link", { name: /JSON Formatter/ }).click();
   await expect(page).toHaveURL(/\/web-kit\/tools\/json-formatter\/$/);
 });
 
@@ -123,19 +125,21 @@ test("JSONPath in the tree selects the match", async ({ page }) => {
   await expect(page.getByLabel("Selected path")).toHaveText("$.list[1]");
 });
 
-test("coming-soon cards follow the registry and hide during a search", async ({ page }) => {
+test("coming-soon cards follow the registry and are found by search, but never become links", async ({ page }) => {
   await page.goto("./");
-  // `upcoming` is empty after the schema validator shipped; this still checks that no stale "Soon" card is shown,
-  // and checks each card's title and missing link again as soon as a planned tool is added.
   await expect(page.locator(".card--soon")).toHaveCount(upcoming.length);
   for (const tool of upcoming) {
-    await expect(page.getByText(tool.title, { exact: true })).toBeVisible();
+    await expect(page.locator(".card--soon").getByText(tool.title, { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: tool.title })).toHaveCount(0);
   }
 
+  // "json" names no planned tool: only the ready JSON tools remain.
   await page.getByRole("searchbox", { name: "Search utilities" }).fill("json");
   await expect(page.locator(".card--soon")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: /JSON Formatter/ })).toBeVisible();
+  // A planned tool's description is searched too.
+  await page.getByRole("searchbox", { name: "Search utilities" }).fill("picture-in-picture");
+  await expect(page.locator(".card--soon")).toHaveText([/Video Player/]);
 });
 
 test("tool cards show a preview", async ({ page }) => {
@@ -180,7 +184,7 @@ test("json-diff compares and copies a JSON Patch", async ({ page, context }) => 
 
 test("json-schema-validator lists errors and selects them in the data", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByRole("link", { name: /JSON Schema Validator/ })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: /JSON Schema Validator/ })).toBeVisible();
 
   await page.goto("tools/json-schema-validator/");
   const data = page.getByLabel("Data", { exact: true });

@@ -1,0 +1,33 @@
+import { describe, expect, it } from "vitest";
+import { CATEGORIES, tools, upcoming } from "./registry";
+
+describe("registry", () => {
+  it("gives every planned tool a kebab-case id, a category, a title and a description", () => {
+    for (const tool of upcoming) {
+      expect([tool.id, /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(tool.id)]).toEqual([tool.id, true]);
+      expect([tool.id, CATEGORIES.includes(tool.category)]).toEqual([tool.id, true]);
+      expect([tool.id, tool.title.trim() !== "", tool.description.trim() !== ""]).toEqual([tool.id, true, true]);
+    }
+  });
+
+  it("has no id twice, among ready and planned tools together", () => {
+    const ids = [...tools, ...upcoming].map((tool) => tool.id);
+    expect(ids.filter((id, index) => ids.indexOf(id) !== index)).toEqual([]);
+  });
+
+  it("plans the tools of the first release that are not ready yet, and Text Compare", () => {
+    expect(upcoming.map((tool) => `${tool.category}:${tool.id}`)).toEqual([
+      "data:base64",
+      "data:url-encoder",
+      "data:jwt-decoder",
+      "data:text-compare",
+      "generators:uuid-generator",
+      "generators:password-generator",
+      "generators:hash-generator",
+      "generators:qr-generator",
+      "generators:palette-generator",
+      "media:image-converter",
+      "media:video-player",
+    ]);
+  });
+});

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Instrument_Sans, JetBrains_Mono, Newsreader } from "next/font/google";
 import "@web-kit/tokens/tokens.css";
+// The ui styles (empty states, buttons) for the pages; each tool's own styles.css repeats them, which is harmless.
+import "@web-kit/ui/styles.css";
 import "./globals.css";
 import { SiteHeader } from "@/components/SiteHeader";
 import { THEME_SCRIPT } from "@/theme";

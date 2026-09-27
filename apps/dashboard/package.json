@@ -7,6 +7,7 @@
     "build": "next build",
     "check": "node scripts/check-export.mjs",
     "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
     "e2e": "playwright test"
   },
   "dependencies": {

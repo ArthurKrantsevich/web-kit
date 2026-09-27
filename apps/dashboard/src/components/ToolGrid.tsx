@@ -1,32 +1,27 @@
 "use client";
 
+import { Button, EmptyState } from "@web-kit/ui";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { CATEGORIES, CATEGORY_LABELS, type Category, type ToolMeta, type UpcomingTool } from "@/registry";
-
-type Filter = Category | "all";
+import { useMemo, useRef, useState } from "react";
+import { selectCatalog, type EmptyReason, type Filter } from "@/catalog";
+import { CATEGORIES, CATEGORY_LABELS, type ToolMeta, type UpcomingTool } from "@/registry";
 
 export function ToolGrid({ tools, upcoming }: { tools: ToolMeta[]; upcoming: UpcomingTool[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const search = useRef<HTMLInputElement>(null);
+  const { ready, soon, empty } = useMemo(() => selectCatalog(tools, upcoming, query, filter), [tools, upcoming, query, filter]);
 
-  const q = query.trim().toLowerCase();
-  const visible = useMemo(
-    () =>
-      tools.filter(
-        (tool) =>
-          (filter === "all" || tool.category === filter) &&
-          (q === "" || [tool.title, tool.description, ...tool.tags].some((text) => text.toLowerCase().includes(q))),
-      ),
-    [tools, q, filter],
-  );
-  // "Soon" cards only on the unfiltered catalog: they are not searchable.
-  const soon = q === "" && filter === "all" ? upcoming : [];
+  function clearSearch() {
+    setQuery("");
+    search.current?.focus();
+  }
 
   return (
-    <section className="catalog">
+    <section id="tools" className="catalog" aria-label="Tools">
       <div className="catalog__toolbar">
         <input
+          ref={search}
           type="search"
           aria-label="Search utilities"
           placeholder="Search utilities…"
@@ -42,11 +37,11 @@ export function ToolGrid({ tools, upcoming }: { tools: ToolMeta[]; upcoming: Upc
         </div>
       </div>
 
-      {visible.length === 0 ? (
-        <p className="empty">No utilities match your search.</p>
-      ) : (
+      {empty && <Empty reason={empty} onClearSearch={clearSearch} onShowAll={() => setFilter("all")} />}
+
+      {ready.length + soon.length > 0 && (
         <ul className="grid">
-          {visible.map((tool) => (
+          {ready.map((tool) => (
             <li key={tool.id}>
               <Link className="card" href={`/tools/${tool.id}/`}>
                 <pre className="card__preview" aria-hidden="true">
@@ -58,13 +53,17 @@ export function ToolGrid({ tools, upcoming }: { tools: ToolMeta[]; upcoming: Upc
             </li>
           ))}
           {soon.map((tool) => (
-            <li key={tool.title}>
+            <li key={tool.id}>
+              {/* Not a link: the tool has no page yet. */}
               <div className="card card--soon">
-                <div className="card__preview" aria-hidden="true" />
+                <div className="card__preview card__preview--soon" aria-hidden="true">
+                  {"{ }"}
+                </div>
                 <div className="card__title-row">
                   <h2>{tool.title}</h2>
                   <span className="soon">Soon</span>
                 </div>
+                <p className="card__category">{CATEGORY_LABELS[tool.category]}</p>
                 <p>{tool.description}</p>
               </div>
             </li>
@@ -72,5 +71,39 @@ export function ToolGrid({ tools, upcoming }: { tools: ToolMeta[]; upcoming: Upc
         </ul>
       )}
     </section>
+  );
+}
+
+function Empty({ reason, onClearSearch, onShowAll }: { reason: EmptyReason; onClearSearch: () => void; onShowAll: () => void }) {
+  if (reason.kind === "search") {
+    return (
+      <EmptyState
+        icon="search"
+        title={`Nothing matches “${reason.query}”`}
+        action={
+          <Button variant="outline" onClick={onClearSearch}>
+            Clear search
+          </Button>
+        }
+      >
+        Try a shorter word, or browse every tool.
+      </EmptyState>
+    );
+  }
+  const { category, planned } = reason;
+  return (
+    <EmptyState
+      icon="generate"
+      title={`No ${CATEGORY_LABELS[category]} tools yet`}
+      action={
+        planned === 0 ? (
+          <Button variant="outline" onClick={onShowAll}>
+            Show all tools
+          </Button>
+        ) : undefined
+      }
+    >
+      {planned === 0 ? "Nothing is planned here yet." : `${planned} ${planned === 1 ? "is" : "are"} planned — see ${planned === 1 ? "it" : "them"} below.`}
+    </EmptyState>
   );
 }
