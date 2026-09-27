@@ -227,13 +227,14 @@ describe("JsonSchemaValidator actions", () => {
       ["Generate schema from data", "Replace the schema with one inferred from the data"],
       ["Sample", "Replace data and schema with an example"],
       ["Clear", "Empty data and schema"],
-      ["Open file into Data", "Open a .json or .txt file into Data (up to 10 MB)"],
+      ["Open file into Data", "Open a .json or .txt file into Data (up to 10 MB), or drop it on Data"],
       ["Paste into Data", "Paste from the clipboard into Data"],
       ["Undo generate", "Bring back the schema you had before generating"],
-      ["Open file into Schema", "Open a .json or .txt file into Schema (up to 10 MB)"],
+      ["Open file into Schema", "Open a .json or .txt file into Schema (up to 10 MB), or drop it on Schema"],
       ["Paste into Schema", "Paste from the clipboard into Schema"],
       ["Download", "Save the schema as schema.json"],
       ["Copy", "Copy the schema to the clipboard"],
+      ["More actions", "Load from a URL, share, save, keyboard shortcuts"],
     ];
     for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
   });

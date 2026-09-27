@@ -10,9 +10,13 @@ import {
   OpenFileButton,
   PasteButton,
   StatusLine,
+  ToolMenu,
+  Tooltip,
+  useFileDrop,
+  type Shortcut,
   type StatusState,
 } from "@web-kit/ui";
-import { useId, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useId, useMemo, useRef, useState, type ReactElement, type ReactNode } from "react";
 import type { SchemaResult, TextRange } from "../core/types";
 import { summarizeSchemaResult } from "../core/validate";
 import { useJsonSchemaValidator, type UseJsonSchemaValidatorOptions } from "./useJsonSchemaValidator";
@@ -56,8 +60,10 @@ const SAMPLE_SCHEMA = String.raw`{
 /** Rows beyond this are not rendered: a huge list would freeze the page. */
 const LIST_LIMIT = 1000;
 
-/** Larger files are not read: checking them would freeze the page. */
+/** Larger files and downloads are not read: checking them would freeze the page. */
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const ACCEPT = ".json,application/json,.txt,text/plain";
 
 const LABEL: Record<Input, string> = { data: "Data", schema: "Schema" };
 const hasBom = (text: string): boolean => text.charCodeAt(0) === 0xfeff;
@@ -124,6 +130,27 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
       state.setSchema(value);
     },
   };
+
+  const files = { accept: ACCEPT, maxBytes: MAX_FILE_BYTES, onError: setNotice };
+  const dataDrop = useFileDrop({ ...files, label: "Open file into Data", onText: set.data });
+  const schemaDrop = useFileDrop({ ...files, label: "Open file into Schema", onText: set.schema });
+  const drops = { data: dataDrop, schema: schemaDrop };
+  // What a share link carries and what "Save input in this browser" keeps.
+  const shared = useMemo(() => ({ data, schema }), [data, schema]);
+
+  /** Puts back a shared or saved state. It comes from outside, so every field is checked. */
+  function restore(value: Record<string, unknown>): void {
+    if (typeof value.data === "string") set.data(value.data);
+    if (typeof value.schema === "string") set.schema(value.schema);
+  }
+
+  const shortcuts: Shortcut[] = [
+    {
+      keys: "Mod+Enter",
+      label: "Generate schema from data",
+      run: () => (data.trim() === "" ? setNotice("Paste the JSON data first; the schema is generated from it.") : generate()),
+    },
+  ];
 
   /** Selects a range (offsets without a BOM) in one of the inputs. */
   function select(input: Input, range: { offset: number; end: number }): void {
@@ -209,6 +236,18 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
       >
         Clear
       </Button>
+      <ToolMenu
+        toolKey="json-schema-validator"
+        state={shared}
+        onRestore={restore}
+        urlTargets={[
+          { label: "Load Data from URL…", onText: set.data },
+          { label: "Load Schema from URL…", onText: set.schema },
+        ]}
+        shortcuts={shortcuts}
+        onNotice={setNotice}
+        maxBytes={MAX_FILE_BYTES}
+      />
     </EditorToolbar>
   );
 
@@ -245,6 +284,8 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
             title={LABEL[input]}
             labelFor={`${id}-${input}`}
             meta={formatBytes(encoder.encode(text[input]).length)}
+            drop={drops[input]}
+            dropLabel={`Drop the file to open it in ${LABEL[input]}`}
             actions={
               <>
                 {/* Paste comes before Open file: it appears after hydration, and nothing to its right may move. */}
@@ -257,12 +298,9 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
                 />
                 <OpenFileButton
                   label={`Open file into ${LABEL[input]}`}
-                  tooltip={`Open a .json or .txt file into ${LABEL[input]} (up to 10 MB)`}
-                  accept=".json,application/json,.txt,text/plain"
-                  maxBytes={MAX_FILE_BYTES}
+                  tooltip={`Open a .json or .txt file into ${LABEL[input]} (up to 10 MB), or drop it on ${LABEL[input]}`}
                   iconOnly
-                  onText={set[input]}
-                  onError={setNotice}
+                  drop={drops[input]}
                 />
                 {input === "schema" && (
                   <>
@@ -318,15 +356,16 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
                 </p>
               ))}
               {result.parseErrors.map(({ input, error }) => (
-                <button
-                  key={input}
-                  type="button"
-                  className="wk-schema__link"
-                  disabled={!fresh}
-                  onClick={() => select(input, { offset: error.offset, end: error.offset + 1 })}
-                >
-                  {`Show in ${LABEL[input]}`}
-                </button>
+                <Tooltip key={input} content={`Select the error in ${LABEL[input]}`}>
+                  <button
+                    type="button"
+                    className="wk-schema__link"
+                    disabled={!fresh}
+                    onClick={() => select(input, { offset: error.offset, end: error.offset + 1 })}
+                  >
+                    {`Show in ${LABEL[input]}`}
+                  </button>
+                </Tooltip>
               ))}
             </div>
           ) : (

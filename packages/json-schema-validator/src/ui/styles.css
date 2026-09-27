@@ -133,4 +133,8 @@
     margin-left: 0;
     flex-basis: 100%;
   }
+  /* "Generate schema from data" keeps its words and drops its icon, so More actions fits on the same row. */
+  .wk-schema .wk-ui-editor__toolbar .wk-ui-button--outline .wk-ui-icon {
+    display: none;
+  }
 }
