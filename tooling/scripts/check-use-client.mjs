@@ -1,8 +1,9 @@
 // Run from a package directory after build.
-// Asserts the React entry keeps "use client", the core entry (when the package has one) stays framework-free,
-// a package that depends on @web-kit/ui ships ui's styles at the start of its own dist/styles.css, and a React peer
+// Asserts the React entry keeps "use client", the core entry (when the package has one) and any other entry, such as a
+// worker, stay framework-free, a file that starts a worker with `new URL("./x.js", import.meta.url)` finds x.js next to
+// it, a package that depends on @web-kit/ui ships ui's styles at the start of its own dist/styles.css, and a React peer
 // is optional.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { layered, readSources } from "./build-ui-styles.mjs";
@@ -27,6 +28,24 @@ if (pkg.exports?.["./core"]) {
     if (/from\s*["']react/.test(core)) failures.push("dist/core.js imports react");
   }
   if (read("core.d.ts") === null) failures.push("missing dist/core.d.ts");
+}
+
+// Entries besides "." and "./core" (a worker, for example) run without React too.
+for (const [name, target] of Object.entries(pkg.exports ?? {})) {
+  if (name === "." || name === "./core" || typeof target !== "object") continue;
+  const file = target.default.replace(/^\.\/dist\//, "");
+  const js = read(file);
+  if (js === null) failures.push(`${name}: missing dist/${file}`);
+  else if (/["']use client["']/.test(js) || /from\s*["']react/.test(js)) failures.push(`dist/${file} (${name}) uses React`);
+}
+
+// Bundlers find a worker by `new Worker(new URL("./worker.js", import.meta.url))`: the file must sit next to the caller.
+if (existsSync(dist)) {
+  for (const file of readdirSync(dist).filter((name) => name.endsWith(".js"))) {
+    for (const [, worker] of read(file).matchAll(/new URL\(\s*["'](\.\/[^"']+)["']\s*,\s*import\.meta\.url\s*\)/g)) {
+      if (!existsSync(join(dist, worker))) failures.push(`dist/${file} starts ${worker}, which is not in dist`);
+    }
+  }
 }
 
 // A core-only install must not pull React: the React peer is optional.
