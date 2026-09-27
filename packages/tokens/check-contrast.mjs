@@ -1,6 +1,11 @@
 // Fails when a text/background token pair in tokens.css is below WCAG AA (4.5:1) in either theme, when a UI
-// component boundary (a border) is below 3:1 against the backgrounds it sits on (WCAG 1.4.11), or when the two dark
-// blocks (system dark and data-theme="dark") differ. An rgba() color is measured over the background it is paired with.
+// component boundary (a border) is below 3:1 against the backgrounds it sits on (WCAG 1.4.11), when a scrollbar thumb
+// does not get stronger on hover, or when the two dark blocks (system dark and data-theme="dark") differ. An rgba()
+// color is measured over the background it is paired with.
+//
+// The scrollbar thumb is not held to 3:1: its colors are the approved quiet ones of the design (1.7 to 2.0:1 at rest),
+// nothing depends on seeing it (the wheel, the keyboard, touch and the content itself scroll and show the position),
+// and forced-colors mode replaces it with system colors. It must only become more visible on hover.
 import { readFileSync } from "node:fs";
 
 const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
@@ -58,6 +63,10 @@ const PAIRS = [
 // [component boundary, background]: 3:1 (WCAG 1.4.11, non-text contrast).
 const NON_TEXT_PAIRS = [["border-strong", "surface"], ["border-strong", "bg"]];
 
+// [thumb at rest, thumb on hover]: on every background it scrolls over, hover must stand out more than rest.
+const SCROLLBAR = ["scrollbar", "scrollbar-hover"];
+const SCROLLED = ["bg", "surface"];
+
 const light = block(":root {");
 const systemDark = block(':root:not([data-theme="light"]) {');
 const forcedDark = block(':root[data-theme="dark"] {');
@@ -78,6 +87,22 @@ for (const [theme, tokens] of [["light", light], ["dark", { ...light, ...forcedD
       const value = ratio(fg, bg);
       checked += 1;
       if (value < needed) failures.push(`${theme}: --wk-${text} on --wk-${background} is ${value.toFixed(2)}:1, needs ${needed}:1`);
+    }
+  }
+}
+
+for (const [theme, tokens] of [["light", light], ["dark", { ...light, ...forcedDark }]]) {
+  const [rest, hover] = SCROLLBAR.map((name) => tokens[`--wk-${name}`]);
+  if (!rest || !hover) {
+    failures.push(`${theme}: missing --wk-${rest ? SCROLLBAR[1] : SCROLLBAR[0]}`);
+    continue;
+  }
+  for (const background of SCROLLED) {
+    const under = tokens[`--wk-${background}`];
+    const [atRest, onHover] = [ratio(rest, under), ratio(hover, under)];
+    checked += 1;
+    if (onHover <= atRest) {
+      failures.push(`${theme}: --wk-scrollbar-hover (${onHover.toFixed(2)}:1) is not stronger than --wk-scrollbar (${atRest.toFixed(2)}:1) on --wk-${background}`);
     }
   }
 }

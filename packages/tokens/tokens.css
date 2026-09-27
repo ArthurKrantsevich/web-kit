@@ -24,6 +24,8 @@
   --wk-syntax-number: #9a5210;
   --wk-syntax-literal: #2a5fb0;
   --wk-syntax-punct: #5e5d59;
+  --wk-scrollbar: #c2c0b6;
+  --wk-scrollbar-hover: #9c9a92;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -45,6 +47,8 @@
     --wk-syntax-number: #f2c46d;
     --wk-syntax-literal: #8ab8ff;
     --wk-syntax-punct: #b0aea5;
+    --wk-scrollbar: #4d4c48;
+    --wk-scrollbar-hover: #73726c;
   }
 }
 :root[data-theme="dark"] {
@@ -66,4 +70,6 @@
   --wk-syntax-number: #f2c46d;
   --wk-syntax-literal: #8ab8ff;
   --wk-syntax-punct: #b0aea5;
+  --wk-scrollbar: #4d4c48;
+  --wk-scrollbar-hover: #73726c;
 }

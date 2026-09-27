@@ -16,6 +16,30 @@
   /* The scrollbar's room is always kept, so the content does not jump between short and long pages. */
   html {
     scrollbar-gutter: stable;
+    scrollbar-color: var(--wk-scrollbar) transparent;
+  }
+  /* Thin scrollbars everywhere, with a round thumb; Safari (no scrollbar-color) gets the same through ::-webkit-. */
+  * {
+    scrollbar-width: thin;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--wk-scrollbar) padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--wk-scrollbar-hover);
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
   }
   /* A column as tall as the window: the footer sits at the bottom of short pages. */
   body {

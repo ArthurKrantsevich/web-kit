@@ -1,0 +1,49 @@
+/* ── Scrollbars of every scrolling area: thin, a rounded thumb in --wk-scrollbar, no track and no arrows ── */
+.wk-ui-editor,
+.wk-ui-editor *,
+.wk-ui-menu,
+.wk-ui-select__list,
+.wk-ui-dialog {
+  scrollbar-width: thin;
+  scrollbar-color: var(--wk-scrollbar, #c2c0b6) transparent;
+}
+/* Browsers with scrollbar-color cannot style the thumb's own hover: the thumb darkens while the area is hovered. */
+.wk-ui-editor :hover,
+.wk-ui-menu:hover,
+.wk-ui-select__list:hover,
+.wk-ui-dialog:hover {
+  scrollbar-color: var(--wk-scrollbar-hover, #9c9a92) transparent;
+}
+/* Browsers without scrollbar-color (Safari): 10 px, a 2 px transparent border around a round thumb. */
+.wk-ui-editor::-webkit-scrollbar,
+.wk-ui-editor ::-webkit-scrollbar,
+.wk-ui-menu::-webkit-scrollbar,
+.wk-ui-select__list::-webkit-scrollbar,
+.wk-ui-dialog::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.wk-ui-editor ::-webkit-scrollbar-thumb,
+.wk-ui-menu::-webkit-scrollbar-thumb,
+.wk-ui-select__list::-webkit-scrollbar-thumb,
+.wk-ui-dialog::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--wk-scrollbar, #c2c0b6) padding-box;
+}
+.wk-ui-editor ::-webkit-scrollbar-thumb:hover,
+.wk-ui-menu::-webkit-scrollbar-thumb:hover,
+.wk-ui-select__list::-webkit-scrollbar-thumb:hover,
+.wk-ui-dialog::-webkit-scrollbar-thumb:hover {
+  background-color: var(--wk-scrollbar-hover, #9c9a92);
+}
+.wk-ui-editor ::-webkit-scrollbar-track,
+.wk-ui-editor ::-webkit-scrollbar-corner,
+.wk-ui-menu::-webkit-scrollbar-track,
+.wk-ui-select__list::-webkit-scrollbar-track,
+.wk-ui-dialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+.wk-ui-editor ::-webkit-scrollbar-button {
+  display: none;
+}
