@@ -2,32 +2,44 @@ import { expect, test } from "@playwright/test";
 import { tools, upcoming } from "../src/registry";
 
 test.describe("footer", () => {
-  test("links every ready tool and the project, and counts the planned ones", async ({ page }) => {
+  const links = [
+    ["About", "/web-kit/about/"],
+    ["GitHub", "https://github.com/ArthurKrantsevich/web-kit"],
+    ["flutter-kit", "https://arthurkrantsevich.github.io/flutter-kit/"],
+    ["MIT license", "https://github.com/ArthurKrantsevich/web-kit/blob/main/LICENSE"],
+  ];
+
+  test("is one compact row on a desktop: the mark, the privacy line, the project's links and the year", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("about/");
     const footer = page.getByRole("contentinfo");
-    for (const tool of tools) {
-      await expect(footer.getByRole("link", { name: tool.title, exact: true })).toHaveAttribute("href", `/web-kit/tools/${tool.id}/`);
-    }
-    for (const [name, href] of [
-      ["About", "/web-kit/about/"],
-      ["GitHub", "https://github.com/ArthurKrantsevich/web-kit"],
-      ["flutter-kit", "https://arthurkrantsevich.github.io/flutter-kit/"],
-      ["License MIT", "https://github.com/ArthurKrantsevich/web-kit/blob/main/LICENSE"],
-      ["Source code", "https://github.com/ArthurKrantsevich/web-kit"],
-    ]) {
-      await expect(footer.getByRole("link", { name, exact: true })).toHaveAttribute("href", href);
-    }
-    await expect(footer).toContainText(`${upcoming.length} more utilities`);
-    await expect(footer).toContainText("© 2026 · MIT");
+    const box = (await footer.boundingBox())!;
+    expect(box.height, "72 to 88 px").toBeGreaterThanOrEqual(72);
+    expect(box.height).toBeLessThanOrEqual(88);
+    await expect(footer.getByRole("link", { name: "web-kit" })).toHaveAttribute("href", "/web-kit/");
+    await expect(footer).toContainText("Everything runs in your browser. Your data never leaves your device.");
+    await expect(footer.getByRole("navigation", { name: "Footer" }).getByRole("link")).toHaveText(links.map(([name]) => name));
+    for (const [name, href] of links) await expect(footer.getByRole("link", { name, exact: true })).toHaveAttribute("href", href);
+    await expect(footer).toContainText("© 2026");
+    // The header links to the tools; the footer no longer lists them.
+    await expect(footer.getByRole("heading")).toHaveCount(0);
+    await expect(footer.getByRole("link", { name: tools[0]!.title })).toHaveCount(0);
+    const tops = await footer.locator(".logo, p, nav").evaluateAll((elements) => elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return Math.round(rect.top + rect.height / 2);
+    }));
+    expect(Math.max(...tops) - Math.min(...tops), "everything on one row").toBeLessThanOrEqual(2);
   });
 
-  test("puts its columns under each other on a phone, without sideways scrolling", async ({ page }) => {
+  test("stacks into a few short lines on a phone, without sideways scrolling", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("./");
-    const lefts = await page.locator(".site-footer__columns > div").evaluateAll((columns) =>
-      columns.map((column) => Math.round(column.getBoundingClientRect().left)),
+    const footer = (await page.getByRole("contentinfo").boundingBox())!;
+    expect(footer.height).toBeLessThanOrEqual(180);
+    const lefts = await page.locator(".site-footer .logo, .site-footer p, .site-footer nav").evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().left)),
     );
-    expect(new Set(lefts).size).toBe(1);
+    expect(new Set(lefts).size, "left-aligned").toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 });

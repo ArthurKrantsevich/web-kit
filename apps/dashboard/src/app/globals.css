@@ -237,30 +237,29 @@
   padding-top: 32px;
   padding-bottom: 80px;
 }
-/* ── footer: what web-kit is on the left, three columns of links on the right, one line at the bottom ── */
+/* ── footer: one compact row (the mark and the privacy line; the project's links and the year) that wraps into a
+   few left-aligned lines on narrow windows ── */
 .site-footer {
   border-top: 1px solid var(--wk-border);
   background: var(--wk-surface);
   color: var(--wk-muted);
   font-size: 0.875rem;
 }
-.site-footer__grid {
-  display: grid;
-  gap: 32px;
-  padding-top: 40px;
-  padding-bottom: 32px;
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 32px;
+  padding-top: 22px;
+  padding-bottom: 22px;
 }
-@media (min-width: 900px) {
-  .site-footer__grid {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    gap: 48px;
-  }
-}
-.site-footer__about {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-  max-width: 420px;
+.site-footer__about,
+.site-footer__end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
 }
 .site-footer__about .logo {
   color: var(--wk-fg);
@@ -268,48 +267,23 @@
 .site-footer p {
   margin: 0;
 }
-.site-footer__columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 24px;
-}
-@media (min-width: 640px) {
-  .site-footer__columns {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-.site-footer h2 {
-  margin: 0 0 10px;
-  color: var(--wk-fg);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.site-footer ul {
-  display: grid;
-  gap: 8px;
+.site-footer__links {
+  display: flex;
+  flex-wrap: wrap;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.site-footer__columns p + ul {
-  margin-top: 8px;
+/* A dot between the links; "" is its text for assistive technology, so it is not read. */
+.site-footer__links li + li::before {
+  content: "·" / "";
+  padding: 0 8px;
 }
 .site-footer a {
   text-decoration: none;
 }
 .site-footer a:hover {
   text-decoration: underline;
-}
-.site-footer__bottom {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 24px;
-  padding-top: 16px;
-  padding-bottom: 32px;
-  border-top: 1px solid var(--wk-border);
 }
 
 /* ── home ── */

@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { tools, upcoming } from "@/registry";
 import { FLUTTER_KIT_URL, GITHUB_URL, LICENSE_URL } from "@/links";
 
-/** The footer of every page: what web-kit is, every ready tool, the project's links and what is planned. */
+/** The footer of every page, one compact row: the mark and the privacy line, then the project's links and the year. */
 export function SiteFooter() {
   return (
     <footer className="site-footer">
-      <div className="container site-footer__grid">
+      <div className="container site-footer__inner">
         <div className="site-footer__about">
           <Link href="/" className="logo">
             <span className="logo__mark" aria-hidden="true">
@@ -14,23 +13,11 @@ export function SiteFooter() {
             </span>
             web-kit
           </Link>
-          <p>Small open-source utilities for the web, as React packages; a Flutter version is on the way.</p>
           <p>Everything runs in your browser. Your data never leaves your device.</p>
         </div>
-        <nav className="site-footer__columns" aria-label="Footer">
-          <div>
-            <h2>Tools</h2>
-            <ul>
-              {tools.map((tool) => (
-                <li key={tool.id}>
-                  <Link href={`/tools/${tool.id}/`}>{tool.title}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h2>Project</h2>
-            <ul>
+        <div className="site-footer__end">
+          <nav aria-label="Footer">
+            <ul className="site-footer__links">
               <li>
                 <Link href="/about/">About</Link>
               </li>
@@ -41,24 +28,12 @@ export function SiteFooter() {
                 <a href={FLUTTER_KIT_URL}>flutter-kit</a>
               </li>
               <li>
-                <a href={LICENSE_URL}>License MIT</a>
+                <a href={LICENSE_URL}>MIT license</a>
               </li>
             </ul>
-          </div>
-          <div>
-            <h2>Planned</h2>
-            <p>{`${upcoming.length} more utilities`}</p>
-            <ul>
-              <li>
-                <Link href="/#tools">See them all</Link>
-              </li>
-            </ul>
-          </div>
-        </nav>
-      </div>
-      <div className="container site-footer__bottom">
-        <span>© 2026 · MIT</span>
-        <a href={GITHUB_URL}>Source code</a>
+          </nav>
+          <span>© 2026</span>
+        </div>
       </div>
     </footer>
   );
