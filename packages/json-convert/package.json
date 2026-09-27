@@ -1,7 +1,7 @@
 {
   "name": "@web-kit/json-convert",
   "version": "0.0.0",
-  "description": "Convert JSON to YAML, CSV, XML and TypeScript, and CSV to JSON. Every result is checked.",
+  "description": "Convert JSON to YAML, CSV, XML and TypeScript, and CSV to JSON. Numbers stay exact.",
   "license": "MIT",
   "repository": {
     "type": "git",

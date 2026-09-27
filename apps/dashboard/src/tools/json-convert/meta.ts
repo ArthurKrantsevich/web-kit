@@ -3,7 +3,7 @@ import type { ToolMeta } from "../../registry";
 export const meta: ToolMeta = {
   id: "json-convert",
   title: "JSON Convert",
-  description: "JSON to YAML, CSV, XML and TypeScript, and CSV to JSON. Numbers stay exact; every format is checked.",
+  description: "JSON to YAML, CSV, XML and TypeScript, and CSV to JSON. Numbers stay exact; CSV is read back to show what survives.",
   preview: `name: web-kit
 tools:
   - formatter
