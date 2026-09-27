@@ -47,4 +47,26 @@ test.describe("home: empty states and planned tools", () => {
     await expect(page.getByRole("link", { name: /JWT Decoder/ })).toHaveCount(0);
     await expect(page.locator(".wk-ui-empty")).toHaveCount(0);
   });
+
+  for (const width of [1280, 1024, 390]) {
+    test(`at ${width} px every planned card shows its own preview and "Soon" on the category line, never under the title`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("./");
+      const cards = await soonCards(page).evaluateAll((elements) =>
+        elements.map((card) => {
+          const box = (selector: string) => card.querySelector(selector)!.getBoundingClientRect();
+          const [title, category, soon] = [box("h2"), box(".card__category"), box(".soon")];
+          const titleLine = parseFloat(getComputedStyle(card.querySelector("h2")!).lineHeight);
+          return {
+            preview: card.querySelector(".card__preview")!.textContent,
+            soonOnCategoryLine: soon.top >= category.top - 4 && soon.bottom <= category.bottom + 4,
+            soonBelowTitle: soon.top >= title.bottom,
+            titleLines: Math.round(title.height / titleLine),
+          };
+        }),
+      );
+      expect(cards.map((card) => card.preview)).toEqual(upcoming.map((tool) => tool.preview));
+      for (const card of cards) expect([card.preview, card.soonOnCategoryLine, card.soonBelowTitle]).toEqual([card.preview, true, true]);
+    });
+  }
 });

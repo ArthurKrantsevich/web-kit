@@ -56,14 +56,14 @@ export function ToolGrid({ tools, upcoming }: { tools: ToolMeta[]; upcoming: Upc
             <li key={tool.id}>
               {/* Not a link: the tool has no page yet. */}
               <div className="card card--soon">
-                <div className="card__preview card__preview--soon" aria-hidden="true">
-                  {"{ }"}
-                </div>
-                <div className="card__title-row">
-                  <h2>{tool.title}</h2>
-                  <span className="soon">Soon</span>
-                </div>
-                <p className="card__category">{CATEGORY_LABELS[tool.category]}</p>
+                <pre className="card__preview card__preview--soon" aria-hidden="true">
+                  {tool.preview}
+                </pre>
+                <h2>{tool.title}</h2>
+                {/* "Soon" sits on the category line, so it never wraps under a long title. */}
+                <p className="card__category">
+                  {CATEGORY_LABELS[tool.category]} <span className="soon">Soon</span>
+                </p>
                 <p>{tool.description}</p>
               </div>
             </li>

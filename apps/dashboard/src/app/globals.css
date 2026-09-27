@@ -450,12 +450,10 @@ a.card:hover {
   border-color: var(--wk-border-strong);
   background: transparent;
 }
+/* What the planned tool will do, quieter than a ready tool's preview: it still reads as not ready. */
 .card__preview--soon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--wk-font-mono);
-  font-size: 1.75rem;
+  border: 1px dashed var(--wk-border);
+  background: transparent;
 }
 .card p.card__category {
   margin-top: -6px;
@@ -468,17 +466,16 @@ a.card:hover {
 .card--soon h2 {
   color: var(--wk-muted);
 }
-.card__title-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
+/* On the category line ("DATA  Soon"), so it never wraps under a long title. */
 .soon {
-  padding: 3px 8px;
+  margin-left: 6px;
+  padding: 2px 8px;
   border-radius: 999px;
   background: var(--wk-surface-2);
-  font-size: 0.75rem;
+  color: var(--wk-muted);
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
 }
 .catalog > .wk-ui-empty {
   margin-bottom: 24px;

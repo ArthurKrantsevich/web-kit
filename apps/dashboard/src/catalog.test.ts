@@ -18,6 +18,7 @@ const planned = (id: string, category: UpcomingTool["category"]): UpcomingTool =
   title: id.toUpperCase(),
   category,
   description: `Planned ${id}`,
+  preview: `${id}\n…`,
 });
 
 const TOOLS = [tool("json", "data", ["format"]), tool("diff", "data")];

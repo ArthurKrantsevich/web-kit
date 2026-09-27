@@ -10,6 +10,16 @@ describe("registry", () => {
     }
   });
 
+  it("gives every planned tool its own short preview: 2 to 4 lines of plain text, like a ready tool's card", () => {
+    for (const tool of upcoming) {
+      const lines = tool.preview.split("\n");
+      expect([tool.id, lines.length >= 2 && lines.length <= 4]).toEqual([tool.id, true]);
+      expect([tool.id, lines.filter((line) => line.length > 28)]).toEqual([tool.id, []]);
+    }
+    const previews = upcoming.map((tool) => tool.preview);
+    expect(new Set(previews).size).toBe(previews.length);
+  });
+
   it("has no id twice, among ready and planned tools together", () => {
     const ids = [...tools, ...upcoming].map((tool) => tool.id);
     expect(ids.filter((id, index) => ids.indexOf(id) !== index)).toEqual([]);
