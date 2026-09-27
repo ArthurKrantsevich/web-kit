@@ -1,9 +1,10 @@
-import { act, cleanup, renderHook } from "@testing-library/react";
+import { act, cleanup, render, renderHook, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { compareTexts } from "../core/compare";
 import { answerCompareJob, type CompareWorkerRequest, type CompareWorkerResponse } from "../job";
 import { formatBytes, utf8Length } from "./format";
 import { JOB_DELAY } from "./useCompareJob";
+import { TextCompare } from "./TextCompare";
 import { DEFAULT_OPTIONS, useTextCompare, WORKER_FALLBACK_NOTE } from "./useTextCompare";
 
 /** Stand-ins for the text-compare worker: each answers only when the test calls answer(). */
@@ -51,6 +52,15 @@ async function answer(): Promise<void> {
   const response = answerCompareJob(worker.requests.at(-1)!);
   await act(async () => {
     for (const listener of worker.listeners) listener({ data: response });
+  });
+}
+
+/** The last worker says the last job threw. */
+async function fail(): Promise<void> {
+  const worker = workers.all.at(-1)!;
+  const { id } = worker.requests.at(-1)!;
+  await act(async () => {
+    for (const listener of worker.listeners) listener({ data: { id, error: "failed" } });
   });
 }
 
@@ -135,5 +145,30 @@ describe("useTextCompare with large texts", () => {
       expect(result.current.workerNote).toBe(WORKER_FALLBACK_NOTE);
       expect(result.current.comparison!.diff.counts.changed).toBe(1);
     });
+  });
+
+  it("says when the worker failed, and the kept result is then not fresh", async () => {
+    const { result } = renderHook(() => useTextCompare({ initialLeft: BIG_LEFT, initialRight: BIG_RIGHT }));
+    await answer();
+    act(() => result.current.setRight(`${BIG_RIGHT}\nmore`));
+    await fail();
+    expect([result.current.failed, result.current.fresh, result.current.pending]).toEqual([true, false, null]);
+  });
+
+  it("shows the old result dimmed under a message when the worker failed, at the same height", async () => {
+    const { container } = render(<TextCompare initialLeft={BIG_LEFT} initialRight={BIG_RIGHT} />);
+    await answer();
+    act(() => {
+      const right = screen.getByRole("textbox", { name: /^Right/ });
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(right, `${BIG_RIGHT}\nmore`);
+      right.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await fail();
+    const cover = container.querySelector(".wk-compare__pending")!;
+    expect([...cover.querySelectorAll(".wk-ui-empty__title, .wk-ui-empty__text")].map((part) => part.textContent)).toEqual([
+      "Could not compare these texts.",
+      "The result below is for the texts before.",
+    ]);
+    expect(container.querySelector(".wk-compare__frame")!.contains(container.querySelector(".wk-compare__rows"))).toBe(true);
   });
 });

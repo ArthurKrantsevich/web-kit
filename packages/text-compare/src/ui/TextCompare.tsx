@@ -539,6 +539,14 @@ export function TextCompare(props: TextCompareProps): ReactElement {
               <EmptyState size="sm" icon="generate" title={state.pending} />
             </div>
           )}
+          {/* A failed comparison must not pass the older result off as current: it stays dimmed, under a message. */}
+          {state.failed && (
+            <div className="wk-compare__pending wk-compare__pending--failed">
+              <EmptyState size="sm" icon="close" title="Could not compare these texts.">
+                {comparison === null ? undefined : "The result below is for the texts before."}
+              </EmptyState>
+            </div>
+          )}
         </div>
       </section>
     </EditorShell>

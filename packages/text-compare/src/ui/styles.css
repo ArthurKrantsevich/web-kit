@@ -309,3 +309,8 @@
   outline: 2px solid var(--wk-accent, #b5532f);
   outline-offset: -2px;
 }
+
+/* The worker failed: the older result stays under the message, faded further, so it is not taken for the current one. */
+.wk-compare__pending--failed {
+  background: color-mix(in srgb, var(--wk-surface, #ffffff) 94%, transparent);
+}

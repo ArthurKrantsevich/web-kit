@@ -65,6 +65,8 @@ export interface UseTextCompare {
   pending: string | null;
   /** WORKER_FALLBACK_NOTE, or a worker failure; null otherwise. */
   workerNote: string | null;
+  /** True when the worker failed on the current texts: `comparison` is then an older one. */
+  failed: boolean;
 }
 
 /** A file name without line breaks and other control characters (it goes into titles and patch headers). */
@@ -136,6 +138,7 @@ export function useTextCompare(settings: UseTextCompareOptions = {}): UseTextCom
     comparison,
     fresh: comparison !== null && comparison.left === left && comparison.right === right && comparison.options === options,
     pending: large && background.running ? `Comparing ${formatBytes(total)}…` : null,
+    failed: large && background.failed,
     workerNote: background.fallback
       ? WORKER_FALLBACK_NOTE
       : background.failed
