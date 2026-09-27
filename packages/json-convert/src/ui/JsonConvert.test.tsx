@@ -262,13 +262,14 @@ describe("JsonConvert editor", () => {
     const expected: [string, string][] = [
       ["JSON → …", "Convert JSON to YAML, CSV, XML or TypeScript"],
       ["CSV → JSON", "Convert CSV with a header row to JSON"],
-      ["Open file", "Open a .json, .csv or .txt file (up to 10 MB)"],
+      ["Open file", "Open a .json, .csv or .txt file (up to 10 MB), or drop it on the input"],
       ["Sample", "Replace the input with an example"],
       ["Clear", "Empty the input"],
       ["Paste", "Paste from the clipboard"],
       ["Swap direction", "Make the output the input and convert the other way"],
       ["Download", "Save the output as converted.yaml"],
       ["Copy", "Copy the output to the clipboard"],
+      ["More actions", "Load from a URL, share, save, keyboard shortcuts"],
     ];
     for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
   });

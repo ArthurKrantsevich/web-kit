@@ -11,8 +11,11 @@ import {
   Segmented,
   Select,
   StatusLine,
+  ToolMenu,
+  useFileDrop,
   type SegmentedOption,
   type SelectOption,
+  type Shortcut,
 } from "@web-kit/ui";
 import { parseJson } from "@web-kit/json-core";
 import { useId, useMemo, useState, type ReactElement } from "react";
@@ -55,8 +58,13 @@ const OUTPUTS: Record<ConvertTarget, { format: string; file: string; mime: strin
   "csv-to-json": { format: "JSON", file: "converted.json", mime: "application/json" },
 };
 
-/** Larger files are not read: converting them would freeze the page. */
+/** Larger files and downloads are not read: converting them would freeze the page. */
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const ACCEPT = ".json,.csv,.txt,application/json,text/csv,text/plain";
+
+const TARGET_VALUES: readonly string[] = ["yaml", "csv", "xml", "typescript", "csv-to-json"];
+const DELIMITER_VALUES: readonly string[] = [",", ";", "\t"];
 
 const JSON_SAMPLE =
   '[{"id":1,"name":"Ann","email":"ann@example.com","tags":["admin"],"address":{"city":"Oslo"}},{"id":2,"name":"Bob","email":null,"tags":[],"address":{"city":"Riga"}}]';
@@ -133,11 +141,38 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
   const inputBytes = useMemo(() => encoder.encode(input).length, [input]);
   const outputBytes = useMemo(() => encoder.encode(output).length, [output]);
   const canSwap = (target === "csv" || target === "csv-to-json") && output !== "";
+  const drop = useFileDrop({ accept: ACCEPT, maxBytes: MAX_FILE_BYTES, onText: replaceInput, onError: setMessage });
+  // What a share link carries and what "Save input in this browser" keeps.
+  const shared = useMemo(() => ({ input, target, ...options }), [input, target, options]);
 
   function replaceInput(value: string): void {
     setMessage(null);
     setInput(value);
   }
+
+  /** Puts back a shared or saved state. It comes from outside, so every field is checked. */
+  function restore(state: Record<string, unknown>): void {
+    if (typeof state.input === "string") replaceInput(state.input);
+    if (typeof state.target === "string" && TARGET_VALUES.includes(state.target)) {
+      const next = state.target as ConvertTarget;
+      setTarget(next);
+      if (next !== "csv-to-json") setJsonTarget(next);
+    }
+    const patch: Partial<ConvertOptions> = {};
+    if (typeof state.delimiter === "string" && DELIMITER_VALUES.includes(state.delimiter)) patch.delimiter = state.delimiter as CsvDelimiter;
+    if (typeof state.inferTypes === "boolean") patch.inferTypes = state.inferTypes;
+    if (typeof state.xmlRoot === "string") patch.xmlRoot = state.xmlRoot;
+    if (typeof state.typeName === "string") patch.typeName = state.typeName;
+    setOptions(patch);
+  }
+
+  const shortcuts: Shortcut[] = [
+    {
+      keys: "Mod+Enter",
+      label: "Swap direction (JSON → CSV and CSV → JSON)",
+      run: () => (canSwap ? swapDirection() : setMessage("Swap direction works between JSON → CSV and CSV → JSON, once there is output")),
+    },
+  ];
 
   function chooseDirection(next: Direction): void {
     setTarget(next === "csv" ? "csv-to-json" : jsonTarget);
@@ -221,13 +256,7 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
         </>
       )}
       <span className="wk-ui-spacer" />
-      <OpenFileButton
-        tooltip="Open a .json, .csv or .txt file (up to 10 MB)"
-        accept=".json,.csv,.txt,application/json,text/csv,text/plain"
-        maxBytes={MAX_FILE_BYTES}
-        onText={replaceInput}
-        onError={setMessage}
-      />
+      <OpenFileButton tooltip="Open a .json, .csv or .txt file (up to 10 MB), or drop it on the input" drop={drop} />
       <Button
         icon="sample"
         tooltip="Replace the input with an example"
@@ -238,6 +267,15 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
       <Button icon="clear" tooltip="Empty the input" onClick={() => replaceInput("")}>
         Clear
       </Button>
+      <ToolMenu
+        toolKey="json-convert"
+        state={shared}
+        onRestore={restore}
+        urlTargets={[{ label: "Load from URL…", onText: replaceInput }]}
+        shortcuts={shortcuts}
+        onNotice={setMessage}
+        maxBytes={MAX_FILE_BYTES}
+      />
     </EditorToolbar>
   );
 
@@ -277,6 +315,7 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
         <EditorPane
           title="Input"
           labelFor={`${id}-input`}
+          drop={drop}
           meta={`${direction === "csv" ? "CSV" : "JSON"} · ${formatBytes(inputBytes)}`}
           actions={<PasteButton tooltip="Paste from the clipboard" onText={replaceInput} onError={setMessage} />}
         >
