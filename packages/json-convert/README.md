@@ -32,7 +32,7 @@ import "@web-kit/json-convert/styles.css";
 <JsonConvert initialTarget="typescript" />;
 ```
 
-The component is an editor built with `@web-kit/ui`: JSON → YAML, CSV, XML or TypeScript, or CSV → JSON, input and output side by side from 1024 px of component width, Open file, Paste, Sample, Clear, Download (named by format), Copy and Swap direction between JSON and CSV. The status line claims only what was done: JSON → CSV output is read back and reported as "Reads back as N rows × M columns" (with "nested values are flattened" when objects or arrays became `a.b` columns or JSON cells), CSV → JSON says how many rows it made, and JSON → XML says it is one-way whenever XML is the target. Set `--wk-editor-height` to change the pane height.
+The component is an editor built with `@web-kit/ui`: JSON → YAML, CSV, XML or TypeScript, or CSV → JSON, input and output side by side from 1024 px of component width, Open file, Paste, Sample, Clear, Download (named by format), Copy and Swap direction between JSON and CSV. The status line claims only what was done: JSON → CSV output is read back and reported as "Reads back as N rows × M columns" (with "nested values are flattened" when objects or arrays became `a.b` columns or JSON cells), CSV → JSON says how many rows it made, and JSON → XML says it is one-way whenever XML is the target. The output is colored by format (keys, strings, numbers, `true`/`false`/`null`, punctuation; plain text above 200,000 characters) with the `--wk-syntax-*` colors of `@web-kit/tokens`. Set `--wk-editor-height` to change the pane height.
 
 ## License
 

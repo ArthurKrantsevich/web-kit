@@ -232,6 +232,30 @@ describe("JsonConvert editor", () => {
     expect(screen.queryByText("File is larger than 10 MB")).toBeNull();
   });
 
+  it("colors the output by format and keeps its text exact", () => {
+    render(<JsonConvert initialInput='{"id":7,"name":"Ann"}' />);
+    const spans = () =>
+      [...screen.getByLabelText("Output").querySelectorAll("span")].map((span) => [span.className, span.textContent]);
+    expect(spans()).toEqual([
+      ["wk-syntax-key", "id"],
+      ["wk-syntax-punctuation", ":"],
+      ["wk-syntax-number", "7"],
+      ["wk-syntax-key", "name"],
+      ["wk-syntax-punctuation", ":"],
+      ["wk-syntax-string", "Ann"],
+    ]);
+    choose("Convert to", "XML");
+    expect(spans()).toContainEqual(["wk-syntax-key", "name"]);
+    expect(output()).toBe('<?xml version="1.0" encoding="UTF-8"?>\n<root>\n  <id>7</id>\n  <name>Ann</name>\n</root>\n');
+  });
+
+  it("shows a very large output as plain text", () => {
+    const big = JSON.stringify(Array.from({ length: 20_000 }, (_, id) => ({ id, name: "user" })));
+    render(<JsonConvert initialInput={big} initialTarget="csv" />);
+    expect(screen.getByLabelText("Output").querySelector("span")).toBeNull();
+    expect(output()!.startsWith("id,name\r\n0,user\r\n")).toBe(true);
+  });
+
   it("every action says what it does", () => {
     setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
     render(<JsonConvert initialInput="[1]" />);

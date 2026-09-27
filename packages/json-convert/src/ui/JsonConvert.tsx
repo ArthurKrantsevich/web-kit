@@ -18,6 +18,7 @@ import { parseJson } from "@web-kit/json-core";
 import { useId, useMemo, useState, type ReactElement } from "react";
 import { fromCsv, type CsvDelimiter } from "../core/csv";
 import { describeError, type ConvertOptions, type ConvertTarget } from "./convert";
+import { HighlightedOutput } from "./HighlightedOutput";
 import { useJsonConvert, type UseJsonConvertOptions } from "./useJsonConvert";
 
 export interface JsonConvertProps extends UseJsonConvertOptions {
@@ -313,9 +314,7 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
             </>
           }
         >
-          <pre className="wk-ui-area wk-convert__output" aria-label="Output" tabIndex={0}>
-            {output}
-          </pre>
+          <HighlightedOutput text={output} target={target} delimiter={options.delimiter} />
         </EditorPane>
       </EditorPanes>
     </EditorShell>
