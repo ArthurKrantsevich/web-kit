@@ -1,0 +1,97 @@
+import { useEffect, useRef, useState, type ReactElement } from "react";
+import { Button } from "./Button";
+import { readTextFile } from "./files";
+
+export interface OpenFileButtonProps {
+  /** Accessible name of the button and of the hidden file input. Default "Open file". */
+  label?: string;
+  tooltip: string;
+  /** The `accept` attribute of the file input. */
+  accept: string;
+  maxBytes: number;
+  /** The file's text, without a BOM. */
+  onText: (text: string) => void;
+  /** A message such as "File is larger than 10 MB". */
+  onError: (message: string) => void;
+  iconOnly?: boolean;
+}
+
+/** "Open file": a quiet button that opens the file picker and reads the chosen file with `readTextFile`. */
+export function OpenFileButton({
+  label = "Open file",
+  tooltip,
+  accept,
+  maxBytes,
+  onText,
+  onError,
+  iconOnly = false,
+}: OpenFileButtonProps): ReactElement {
+  const input = useRef<HTMLInputElement>(null);
+
+  async function open(file: File | undefined): Promise<void> {
+    if (!file) return;
+    const read = await readTextFile(file, maxBytes);
+    if (read.ok) onText(read.value);
+    else onError(read.error.message);
+  }
+
+  return (
+    <>
+      <Button icon="open" tooltip={tooltip} iconOnly={iconOnly} onClick={() => input.current?.click()}>
+        {label}
+      </Button>
+      <input
+        ref={input}
+        type="file"
+        className="wk-ui-file"
+        aria-label={label}
+        tabIndex={-1}
+        accept={accept}
+        onChange={(event) => {
+          void open(event.target.files?.[0]);
+          // Let the same file be opened again.
+          event.target.value = "";
+        }}
+      />
+    </>
+  );
+}
+
+export interface PasteButtonProps {
+  /** Default "Paste". */
+  label?: string;
+  tooltip: string;
+  onText: (text: string) => void;
+  /** Called with "Clipboard access was denied" when reading fails. */
+  onError: (message: string) => void;
+  iconOnly?: boolean;
+}
+
+/** "Paste": reads the clipboard. Rendered only in browsers that can read it, decided after hydration. */
+export function PasteButton({ label = "Paste", tooltip, onText, onError, iconOnly = false }: PasteButtonProps): ReactElement | null {
+  // Known only in the browser: deciding it during the server render would not match the first client render.
+  const [canPaste, setCanPaste] = useState(false);
+
+  useEffect(() => {
+    setCanPaste(typeof navigator !== "undefined" && typeof navigator.clipboard?.readText === "function");
+  }, []);
+
+  if (!canPaste) return null;
+
+  async function paste(): Promise<void> {
+    let text: string;
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      onError("Clipboard access was denied");
+      return;
+    }
+    onText(text);
+  }
+
+  return (
+    <Button icon="paste" tooltip={tooltip} iconOnly={iconOnly} onClick={() => void paste()}>
+      {label}
+    </Button>
+  );
+}
