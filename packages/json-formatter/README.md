@@ -29,6 +29,10 @@ export function Page() {
 
 The component is an editor built with `@web-kit/ui`: one toolbar (modes, Indent, Sort keys, Open file, Sample, Clear), input and output side by side when the component is at least 1024 px wide, errors with checked fixes inside the output pane, and a status line. Every button has a tooltip that says what it will do. Set `--wk-json-height` (or `--wk-editor-height`) on it or a parent to change the pane height (default `max(420px, 70vh)`).
 
+## Large inputs
+
+In Format and Minify, an input over 1 MB is parsed, formatted and checked in a Web Worker (`@web-kit/json-core/worker`), so the page stays responsive; the status line says "Formatting 5.2 MB…" meanwhile. Typing again cancels the running job (its worker is terminated). Where no worker can start, the work runs on the page and the status line says it may freeze. With Vite, add `@web-kit/json-core` to `optimizeDeps.exclude` so the worker file is found.
+
 ## Errors and fixes
 
 ```ts

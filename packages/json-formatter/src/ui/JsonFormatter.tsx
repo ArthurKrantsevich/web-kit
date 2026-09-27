@@ -15,7 +15,7 @@ import {
   type SegmentedOption,
   type SelectOption,
 } from "@web-kit/ui";
-import { useDeferredValue, useId, useMemo, useRef, useState, type ReactElement } from "react";
+import { useDeferredValue, useId, useRef, useState, type ReactElement } from "react";
 import { utf8Length } from "@web-kit/json-core";
 import { codeFrame, type Indent, type JsonError } from "../core/index";
 import { HighlightedJson } from "./HighlightedJson";
@@ -105,6 +105,9 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
     treeSource,
     treeFresh,
     stats,
+    inputBytes,
+    pending,
+    workerNote,
   } = useJsonFormatter(props);
   const jsonMode = mode === "format" || mode === "minify";
   const [message, setMessage] = useState<string | null>(null);
@@ -115,7 +118,6 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
   // Highlighting a large output is slower than typing; let it lag behind the input.
   const highlighted = useDeferredValue(output);
   const shift = hasBom(input) ? 1 : 0;
-  const inputBytes = useMemo(() => utf8Length(input), [input]);
   // The input when the file being opened started to be read; its text is dropped if the input changed since.
   const inputAtRead = useRef<string | null>(null);
   const fileName = downloadName(mode, note === PLAIN_TEXT_NOTE);
@@ -190,11 +192,17 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
     </EditorToolbar>
   );
 
-  const status = error ? (
+  const worker = workerNote && <span className="wk-json__message">{workerNote}</span>;
+  const status = pending ? (
+    <StatusLine state="idle">
+      <span role="status">{pending}</span>
+    </StatusLine>
+  ) : error ? (
     <StatusLine state="error">
       <span>{`Error at ${error.line}:${error.column}`}</span>
       <span>{formatBytes(inputBytes)}</span>
       {message && <span className="wk-json__message">{message}</span>}
+      {worker}
     </StatusLine>
   ) : output === "" ? (
     <StatusLine state="idle">
@@ -212,6 +220,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
       ) : (
         <span className="wk-json__message">{message}</span>
       )}
+      {worker}
     </StatusLine>
   ) : (
     <StatusLine state="idle">
@@ -279,7 +288,9 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
               </p>
             )}
             <div className="wk-json__body">
-              {error ? (
+              {pending ? (
+                <p className="wk-json__placeholder">{pending}</p>
+              ) : error ? (
                 <div className="wk-json__problem">
                   <p className="wk-json__problem-label">{jsonMode ? "Not valid JSON" : "Cannot unescape"}</p>
                   <p role="status" className="wk-json__error">
