@@ -5,6 +5,12 @@ import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const BASE = "/web-kit";
+/** Every page links these, under the base path. */
+const ICONS = [
+  { file: "icon.svg", link: /<link rel="icon" href="\/web-kit\/icon\.svg[?"]/ },
+  { file: "icon.ico", link: /<link rel="icon" href="\/web-kit\/icon\.ico[?"]/ },
+  { file: "apple-icon.png", link: /<link rel="apple-touch-icon" href="\/web-kit\/apple-icon\.png[?"]/ },
+];
 const out = process.argv[2]
   ? resolve(process.argv[2])
   : fileURLToPath(new URL("../out/", import.meta.url));
@@ -26,6 +32,8 @@ mustExist("about/index.html");
 mustExist("404.html");
 mustExist(".nojekyll");
 mustExist("tools/json-formatter/index.html");
+// The icons of src/app (icon.svg, icon.ico, apple-icon.png) are copied to the root of the export.
+for (const icon of ICONS) mustExist(icon.file);
 
 if (existsSync(join(out, "index.html"))) {
   const html = readFileSync(join(out, "index.html"), "utf8");
@@ -39,6 +47,12 @@ if (existsSync(join(out, "index.html"))) {
 
 if (existsSync(out)) {
   for (const file of listFiles(out)) {
+    if (file.endsWith(".html")) {
+      const html = readFileSync(file, "utf8");
+      for (const icon of ICONS) {
+        if (!icon.link.test(html)) failures.push(`${relative(out, file)} does not link ${BASE}/${icon.file}`);
+      }
+    }
     if (!/\.(html|css)$/.test(file)) continue;
     // A quote or "(" directly before /_next/ means the URL has no base path.
     if (/["'(]\/_next\//.test(readFileSync(file, "utf8"))) {
