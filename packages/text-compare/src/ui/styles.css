@@ -1,19 +1,279 @@
-.wk-tool {
-  display: grid;
-  gap: 0.5rem;
-  color: var(--wk-fg, #111318);
+/* Default look for TextCompare. The toolbar, panes, buttons, menus and status line come from @web-kit/ui, whose
+   styles are built into the start of this file. Colors come from @web-kit/tokens when present: additions use the
+   string color and removals the danger color, as in JSON Diff, mixed into the surface (check-contrast.mjs checks the
+   text on them). */
+.wk-compare {
+  /* --wk-compare-height sets the height of the inputs and, the same, of the result under them. */
+  --wk-ui-panes-height: var(--wk-compare-height, var(--wk-editor-height, max(300px, 40vh)));
+  --wk-compare-added: color-mix(in srgb, var(--wk-syntax-string, #2f6b3a) 12%, var(--wk-surface, #ffffff));
+  --wk-compare-removed: color-mix(in srgb, var(--wk-danger, #b3261e) 12%, var(--wk-surface, #ffffff));
+  --wk-compare-added-strong: color-mix(in srgb, var(--wk-syntax-string, #2f6b3a) 30%, var(--wk-surface, #ffffff));
+  --wk-compare-removed-strong: color-mix(in srgb, var(--wk-danger, #b3261e) 30%, var(--wk-surface, #ffffff));
+}
+
+/* A file name in a pane header gives way with an ellipsis; the full name is in its tooltip. */
+.wk-compare .wk-ui-pane__head > .wk-ui-pane__title {
+  flex: 0 1 auto;
+  min-width: 2.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wk-compare__name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Ignore (n): the button is as wide as its widest label, so it keeps its size as options are ticked. */
+.wk-compare__ignore-label {
+  display: inline-grid;
+}
+.wk-compare__ignore-label > span,
+.wk-compare__ignore-label::after {
+  grid-area: 1 / 1;
+}
+.wk-compare__ignore-label::after {
+  content: attr(data-widest);
+  content: attr(data-widest) / "";
+  visibility: hidden;
+}
+
+/* ── The result: a pane as tall as the inputs, with its own scroll ── */
+.wk-compare__result {
+  border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+}
+.wk-compare__counts {
+  display: flex;
+  gap: 8px;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-weight: 600;
+}
+.wk-compare__count--added {
+  color: var(--wk-syntax-string, #2f6b3a);
+}
+.wk-compare__count--removed {
+  color: var(--wk-danger, #b3261e);
+}
+.wk-compare__count--changed {
+  color: var(--wk-syntax-number, #9a5210);
+}
+/* Previous, Next, Download and Copy show only their icons when the result is narrower than their labels need. */
+@container wk-ui-pane (max-width: 639px) {
+  .wk-compare__result .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon {
+    width: 30px;
+    padding: 0;
+  }
+  .wk-compare__result .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon .wk-ui-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+/* One height for every state: empty, identical, comparing and any number of changes. */
+.wk-compare__frame {
+  position: relative;
+  height: var(--wk-ui-panes-height);
+}
+.wk-compare__body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+  overflow-anchor: none;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+.wk-compare__body:focus {
+  outline: none;
+}
+.wk-compare__body > .wk-ui-empty {
+  flex: 1 0 auto;
   font-family: var(--wk-font-sans, system-ui, sans-serif);
 }
-.wk-tool textarea {
-  min-height: 8rem;
-  padding: 0.75rem;
-  border: 1px solid var(--wk-border, #dfe1e6);
-  border-radius: var(--wk-radius, 10px);
-  background: var(--wk-surface, #ffffff);
-  color: inherit;
-  font-family: var(--wk-font-mono, ui-monospace, monospace);
+/* "Comparing 5.2 MB…" covers the previous result, which stays underneath with its scroll. */
+.wk-compare__pending {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--wk-surface, #ffffff) 90%, transparent);
 }
-.wk-tool [role="alert"] {
-  margin: 0;
-  color: var(--wk-danger, #c62828);
+
+/* ── Rows: every row is a grid with the same columns, so both sides line up and long lines wrap in place ── */
+.wk-compare__rows {
+  --wk-compare-number: calc(var(--wk-compare-digits, 3) * 1ch + 16px);
+  flex: none;
+  padding: 4px 0;
+}
+.wk-compare__rows--split .wk-compare__row {
+  display: grid;
+  grid-template-columns: var(--wk-compare-number) minmax(0, 1fr) 64px var(--wk-compare-number) minmax(0, 1fr);
+}
+.wk-compare__rows--inline .wk-compare__row {
+  display: grid;
+  grid-template-columns: 64px var(--wk-compare-number) var(--wk-compare-number) 2ch minmax(0, 1fr);
+}
+.wk-compare__num {
+  padding: 0 8px;
+  color: var(--wk-muted, #5e5d59);
+  text-align: right;
+  user-select: none;
+}
+.wk-compare__text {
+  min-width: 0;
+  padding: 0 12px 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+}
+.wk-compare__sign {
+  color: var(--wk-muted, #5e5d59);
+  user-select: none;
+}
+.wk-compare__row--removed .wk-compare__sign {
+  color: var(--wk-danger, #b3261e);
+}
+.wk-compare__row--added .wk-compare__sign {
+  color: var(--wk-syntax-string, #2f6b3a);
+}
+.wk-compare__rows--split .wk-compare__row--removed > .wk-compare__num:first-child,
+.wk-compare__rows--split .wk-compare__row--changed > .wk-compare__num:first-child,
+.wk-compare__text--removed,
+.wk-compare__rows--inline .wk-compare__row--removed {
+  background: var(--wk-compare-removed);
+}
+.wk-compare__rows--split .wk-compare__row--added > .wk-compare__num:nth-child(4),
+.wk-compare__rows--split .wk-compare__row--changed > .wk-compare__num:nth-child(4),
+.wk-compare__text--added,
+.wk-compare__rows--inline .wk-compare__row--added {
+  background: var(--wk-compare-added);
+}
+/* The side without a line in a split row. */
+.wk-compare__text--none {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--wk-border, rgba(31, 30, 29, 0.15)) 60%, transparent) 6px 7px
+  );
+}
+.wk-compare__text--removed .wk-compare__hl {
+  border-radius: 3px;
+  background: var(--wk-compare-removed-strong);
+}
+.wk-compare__text--added .wk-compare__hl {
+  border-radius: 3px;
+  background: var(--wk-compare-added-strong);
+}
+.wk-compare__eof {
+  margin-left: 8px;
+  color: var(--wk-muted, #5e5d59);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+/* ── A change: its rows, a frame when it is the current one, and its merge buttons ── */
+.wk-compare__block {
+  position: relative;
+}
+.wk-compare__block[data-current] {
+  outline: 2px solid var(--wk-accent, #b5532f);
+  outline-offset: -2px;
+}
+.wk-compare__actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+.wk-compare__merge.wk-ui-button {
+  width: 26px;
+  height: 22px;
+  border-radius: 6px;
+}
+/* Merge buttons show on hover and keyboard focus, always on the current change, and always on touch screens; they
+   keep their place while hidden, so nothing moves when they show. */
+.wk-compare__merge {
+  opacity: 0;
+}
+.wk-compare__block:hover .wk-compare__merge,
+.wk-compare__block:focus-within .wk-compare__merge,
+.wk-compare__block[data-current] .wk-compare__merge {
+  opacity: 1;
+}
+.wk-compare__merge:disabled {
+  opacity: 0;
+}
+.wk-compare__block:hover .wk-compare__merge:disabled,
+.wk-compare__block[data-current] .wk-compare__merge:disabled {
+  opacity: 0.45;
+}
+@media (hover: none) {
+  .wk-compare__merge,
+  .wk-compare__merge:disabled {
+    opacity: 1;
+  }
+  .wk-compare__merge:disabled {
+    opacity: 0.45;
+  }
+}
+
+/* ── Folds and paging ── */
+.wk-compare__fold {
+  padding: 2px 8px;
+  background: var(--wk-surface-2, #f0eee6);
+}
+.wk-compare__unfold {
+  width: 100%;
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--wk-muted, #5e5d59);
+  font: inherit;
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.wk-compare__unfold:hover {
+  color: var(--wk-fg, #141413);
+}
+.wk-compare__unfold:focus-visible {
+  outline: 2px solid var(--wk-accent, #b5532f);
+  outline-offset: -2px;
+}
+.wk-compare__more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  color: var(--wk-muted, #5e5d59);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  font-size: 0.8125rem;
+}
+.wk-compare__note {
+  color: var(--wk-fg, #141413);
+}
+
+/* Narrow component: slimmer segments leave room for the actions. */
+@container wk-ui-editor (max-width: 639px) {
+  .wk-compare .wk-ui-editor__toolbar .wk-ui-segment {
+    padding: 0 8px;
+  }
+  .wk-compare__rows--split .wk-compare__row {
+    grid-template-columns: var(--wk-compare-number) minmax(0, 1fr) 56px var(--wk-compare-number) minmax(0, 1fr);
+  }
+  .wk-compare__num {
+    padding: 0 4px;
+  }
+  .wk-compare__text {
+    padding: 0 6px 0 4px;
+  }
 }

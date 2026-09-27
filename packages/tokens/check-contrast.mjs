@@ -1,4 +1,5 @@
-// Fails when a text/background token pair in tokens.css is below WCAG AA (4.5:1) in either theme, when a UI
+// Fails when a text/background token pair in tokens.css is below WCAG AA (4.5:1) in either theme (also on the tints
+// Text Compare mixes from tokens for added and removed lines), when a UI
 // component boundary (a border) is below 3:1 against the backgrounds it sits on (WCAG 1.4.11), when a scrollbar thumb
 // does not get stronger on hover, or when the two dark blocks (system dark and data-theme="dark") differ. An rgba()
 // color is measured over the background it is paired with.
@@ -63,6 +64,19 @@ const PAIRS = [
 // [component boundary, background]: 3:1 (WCAG 1.4.11, non-text contrast).
 const NON_TEXT_PAIRS = [["border-strong", "surface"], ["border-strong", "bg"]];
 
+// [text, color, percent, background]: text on `color` mixed into `background` with color-mix(in srgb): the tints of
+// added (string color) and removed (danger) lines in Text Compare, 12 %, and of their changed words, 30 %. 4.5:1.
+const MIXED = [
+  ["fg", "syntax-string", 12, "surface"], ["muted", "syntax-string", 12, "surface"], ["fg", "syntax-string", 30, "surface"],
+  ["fg", "danger", 12, "surface"], ["muted", "danger", 12, "surface"], ["fg", "danger", 30, "surface"],
+];
+
+/** #rrggbb of `color` mixed into `background`, `percent` of the first, as color-mix(in srgb) does. */
+function mix(color, percent, background) {
+  const [a, b] = [rgb(color), rgb(background)];
+  return `#${a.map((value, i) => Math.round((value * percent + b[i] * (100 - percent)) / 100).toString(16).padStart(2, "0")).join("")}`;
+}
+
 // [thumb at rest, thumb on hover]: on every background it scrolls over, hover must stand out more than rest.
 const SCROLLBAR = ["scrollbar", "scrollbar-hover"];
 const SCROLLED = ["bg", "surface"];
@@ -88,6 +102,15 @@ for (const [theme, tokens] of [["light", light], ["dark", { ...light, ...forcedD
       checked += 1;
       if (value < needed) failures.push(`${theme}: --wk-${text} on --wk-${background} is ${value.toFixed(2)}:1, needs ${needed}:1`);
     }
+  }
+}
+
+for (const [theme, tokens] of [["light", light], ["dark", { ...light, ...forcedDark }]]) {
+  for (const [text, color, percent, background] of MIXED) {
+    const tint = mix(tokens[`--wk-${color}`], percent, tokens[`--wk-${background}`]);
+    const value = ratio(tokens[`--wk-${text}`], tint);
+    checked += 1;
+    if (value < 4.5) failures.push(`${theme}: --wk-${text} on ${percent}% --wk-${color} over --wk-${background} is ${value.toFixed(2)}:1, needs 4.5:1`);
   }
 }
 
