@@ -82,11 +82,50 @@ describe("OpenFileButton", () => {
   });
 });
 
+describe("OpenFileButton labels", () => {
+  it("shows Open file, may have a longer name, and builds its tooltip from the file types and the limit", () => {
+    render(
+      <OpenFileButton
+        aria-label="Open file into Left"
+        words={{ into: " into Left", target: "Left" }}
+        accept=".json,application/json,.txt,text/plain"
+        maxBytes={10 * 1024 * 1024}
+        onText={() => {}}
+        onError={() => {}}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "Open file into Left" });
+    expect(button.querySelector(".wk-ui-button__label")?.textContent).toBe("Open file");
+    expect(button.getAttribute("data-action")).toBe("open");
+    expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toBe(
+      "Open a .json or .txt file into Left (up to 10 MB), or drop it on Left",
+    );
+    // The hidden file input is named like the button.
+    expect(document.querySelector('input[type="file"]')?.getAttribute("aria-label")).toBe("Open file into Left");
+  });
+});
+
 describe("PasteButton", () => {
-  it("is hidden without a clipboard reader", () => {
+  it("keeps its place hidden without a clipboard reader: in the layout, but not a button to anyone", () => {
     setClipboard({ writeText: () => Promise.resolve() });
-    render(<PasteButton tooltip="t" onText={() => {}} onError={() => {}} />);
-    expect(screen.queryByRole("button", { name: "Paste" })).toBeNull();
+    const { container } = render(<PasteButton onText={() => {}} onError={() => {}} />);
+    expect(screen.queryByRole("button")).toBeNull();
+    const kept = container.querySelector("button")!;
+    expect(kept.className).toContain("wk-ui-button--pending");
+    expect(kept.getAttribute("aria-hidden")).toBe("true");
+    expect(kept.tabIndex).toBe(-1);
+    expect((kept as HTMLButtonElement).disabled).toBe(true);
+    expect(kept.textContent).toBe("Paste");
+  });
+
+  it("shows Paste with a longer name and the template tooltip once the clipboard can be read", () => {
+    setClipboard({ readText: () => Promise.resolve("") });
+    render(<PasteButton aria-label="Paste into Right" words={{ into: " into Right" }} onText={() => {}} onError={() => {}} />);
+    const button = screen.getByRole("button", { name: "Paste into Right" });
+    expect(button.querySelector(".wk-ui-button__label")?.textContent).toBe("Paste");
+    expect(document.getElementById(button.getAttribute("aria-describedby")!)?.textContent).toBe(
+      "Paste from the clipboard into Right",
+    );
   });
 
   it("pastes, or reports a refusal", async () => {

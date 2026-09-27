@@ -101,6 +101,14 @@
   font-family: var(--wk-font-mono, ui-monospace, monospace);
   font-size: 0.8125rem;
 }
+/* A one-line option field in the toolbar (a key, a name): 8 to 12 rem, never stretched or squeezed. On a narrow
+   component it wraps to the next row whole. The tool sets --wk-ui-input-width for its own field. */
+.wk-ui-editor__toolbar .wk-ui-input {
+  flex: none;
+  width: var(--wk-ui-input-width, 10rem);
+  min-width: 8rem;
+  max-width: 12rem;
+}
 .wk-ui-input:disabled {
   opacity: 0.45;
   cursor: not-allowed;

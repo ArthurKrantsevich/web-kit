@@ -1,11 +1,18 @@
 import { useEffect, useState, type ReactElement } from "react";
+import { ACTIONS, actionTooltip } from "./actions";
 import { Button } from "./Button";
-import { useFileDrop, type FileDrop, type UseFileDropOptions } from "./drop";
+import { describeAccept, useFileDrop, type FileDrop, type UseFileDropOptions } from "./drop";
+import { formatLimit } from "./files";
 
 interface OpenFileButtonBase {
-  /** Accessible name of the button and of the hidden file input. Default "Open file". */
+  /** Visible label. Default "Open file". */
   label?: string;
-  tooltip: string;
+  /** Accessible name when it says more than the label, e.g. "Open file into Left". */
+  "aria-label"?: string;
+  /** Default: the Open file template of ACTIONS, filled from `accept`, `maxBytes` and `words`. */
+  tooltip?: string;
+  /** Words for the tooltip template: `into` (" into Left") and `target` ("the input", the default). */
+  words?: Record<string, string>;
   iconOnly?: boolean;
 }
 
@@ -25,12 +32,21 @@ const IDLE: UseFileDropOptions = { accept: "", maxBytes: 0, onText: () => {}, on
  * removed, size limit). When a second file is chosen before the first is read, only the second one is passed on.
  */
 export function OpenFileButton(props: OpenFileButtonProps): ReactElement {
-  const { label = "Open file", tooltip, iconOnly = false } = props;
-  const own = useFileDrop(props.drop === undefined ? { ...props, label } : IDLE);
+  const { label = ACTIONS.open.label, tooltip, words, iconOnly = false } = props;
+  const name = props["aria-label"];
+  const own = useFileDrop(props.drop === undefined ? { ...props, label: name ?? label } : IDLE);
   const drop = props.drop ?? own;
+  const text =
+    tooltip ??
+    actionTooltip("open", {
+      types: describeAccept(drop.accept),
+      limit: formatLimit(drop.maxBytes),
+      target: "the input",
+      ...words,
+    });
   return (
     <>
-      <Button icon="open" tooltip={tooltip} iconOnly={iconOnly} onClick={drop.open}>
+      <Button icon="open" tooltip={text} iconOnly={iconOnly} aria-label={name} data-action="open" onClick={drop.open}>
         {label}
       </Button>
       {props.drop === undefined && own.input}
@@ -39,17 +55,32 @@ export function OpenFileButton(props: OpenFileButtonProps): ReactElement {
 }
 
 export interface PasteButtonProps {
-  /** Default "Paste". */
+  /** Visible label. Default "Paste". */
   label?: string;
-  tooltip: string;
+  /** Accessible name when it says more than the label, e.g. "Paste into Left". */
+  "aria-label"?: string;
+  /** Default: "Paste from the clipboard", plus `words.into` (" into Left"). */
+  tooltip?: string;
+  words?: Record<string, string>;
   onText: (text: string) => void;
   /** Called with "Clipboard access was denied" when reading fails. */
   onError: (message: string) => void;
   iconOnly?: boolean;
 }
 
-/** "Paste": reads the clipboard. Rendered only in browsers that can read it, decided after hydration. */
-export function PasteButton({ label = "Paste", tooltip, onText, onError, iconOnly = false }: PasteButtonProps): ReactElement | null {
+/**
+ * "Paste": reads the clipboard. Whether the browser can read it is known only after hydration; until then, and in
+ * browsers that cannot, the button keeps its place hidden, so nothing next to it moves when it appears.
+ */
+export function PasteButton({
+  label = ACTIONS.paste.label,
+  "aria-label": name,
+  tooltip,
+  words,
+  onText,
+  onError,
+  iconOnly = false,
+}: PasteButtonProps): ReactElement {
   // Known only in the browser: deciding it during the server render would not match the first client render.
   const [canPaste, setCanPaste] = useState(false);
 
@@ -57,7 +88,22 @@ export function PasteButton({ label = "Paste", tooltip, onText, onError, iconOnl
     setCanPaste(typeof navigator !== "undefined" && typeof navigator.clipboard?.readText === "function");
   }, []);
 
-  if (!canPaste) return null;
+  if (!canPaste) {
+    return (
+      <Button
+        icon="paste"
+        iconOnly={iconOnly}
+        className="wk-ui-button--pending"
+        aria-label={name}
+        aria-hidden="true"
+        tabIndex={-1}
+        disabled
+        data-action="paste"
+      >
+        {label}
+      </Button>
+    );
+  }
 
   async function paste(): Promise<void> {
     let text: string;
@@ -71,7 +117,14 @@ export function PasteButton({ label = "Paste", tooltip, onText, onError, iconOnl
   }
 
   return (
-    <Button icon="paste" tooltip={tooltip} iconOnly={iconOnly} onClick={() => void paste()}>
+    <Button
+      icon="paste"
+      tooltip={tooltip ?? actionTooltip("paste", words)}
+      iconOnly={iconOnly}
+      aria-label={name}
+      data-action="paste"
+      onClick={() => void paste()}
+    >
       {label}
     </Button>
   );

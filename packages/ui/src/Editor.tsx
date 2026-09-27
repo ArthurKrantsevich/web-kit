@@ -54,6 +54,11 @@ export interface EditorPaneProps {
   drop?: FileDrop;
   /** Shown over the pane while a file is dragged over it. Default "Drop the file to open it". */
   dropLabel?: string;
+  /**
+   * What the pane holds, as `data-pane`: "input" (its header has Open file and Paste), "output" (Download and Copy),
+   * or "input output" for an input that also receives a result, like a generated schema.
+   */
+  kind?: "input" | "output" | "input output";
 }
 
 export function EditorPane({
@@ -65,10 +70,12 @@ export function EditorPane({
   className,
   drop,
   dropLabel = "Drop the file to open it",
+  kind,
 }: EditorPaneProps): ReactElement {
   return (
     <section
       className={cx("wk-ui-pane", className)}
+      data-pane={kind}
       data-dragging={drop === undefined ? undefined : drop.isDragging}
       {...drop?.dropProps}
     >

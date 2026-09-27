@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactElement } from "react";
+import { ACTIONS } from "./actions";
 import { Button, CopyButton } from "./Button";
 import { Dialog } from "./Dialog";
 import { formatLimit } from "./files";
@@ -231,7 +232,7 @@ export function ToolMenu({
 
   return (
     <span ref={anchor} className="wk-ui-tool-menu">
-      <Menu label="More actions" tooltip="Load from a URL, share, save, keyboard shortcuts" items={items} />
+      <Menu label={ACTIONS.more.label} tooltip={ACTIONS.more.tooltip} items={items} action="more" />
       {dialog === "url" && urlTarget !== null && (
         <UrlDialog target={urlTarget} maxBytes={maxBytes} onClose={() => setDialog(null)} />
       )}
@@ -304,6 +305,7 @@ function UrlDialog({ target, maxBytes, onClose }: { target: UrlTarget; maxBytes:
           type="url"
           aria-label="URL"
           placeholder="https://example.com/data.json"
+          maxLength={2048}
           spellCheck={false}
           value={url}
           data-autofocus

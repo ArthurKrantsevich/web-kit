@@ -40,6 +40,9 @@ export interface FileDrop {
   dropProps: FileDropProps;
   /** The hidden file input that `open()` clicks. Render it once. */
   input: ReactElement;
+  /** The `accept` and `maxBytes` it was made with, for messages and tooltips. */
+  accept: string;
+  maxBytes: number;
 }
 
 /** True when the file's name or type matches one entry of an `accept` list (".json", "text/plain", "text/*"). */
@@ -142,5 +145,13 @@ export function useFileDrop(options: UseFileDropOptions): FileDrop {
     />
   );
 
-  return { isDragging, open: () => input.current?.click(), read, dropProps, input: element };
+  return {
+    isDragging,
+    open: () => input.current?.click(),
+    read,
+    dropProps,
+    input: element,
+    accept: options.accept,
+    maxBytes: options.maxBytes,
+  };
 }

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
+import type { ActionId } from "./actions";
 import { Icon, type IconName } from "./Icon";
 import { clampLeft, cx, showInTopLayer, useIsomorphicLayoutEffect, usePopoverSupport } from "./popover";
 import { Tooltip } from "./Tooltip";
@@ -23,6 +24,8 @@ export interface MenuProps {
   icon?: IconName;
   /** The label stays the accessible name; only the icon is visible. Default true. */
   iconOnly?: boolean;
+  /** Marks the button as one of the shared actions (`data-action`), e.g. "more". */
+  action?: ActionId;
 }
 
 /**
@@ -30,7 +33,7 @@ export interface MenuProps {
  * room below). Keyboard: Enter, Space or ↓ open on the first item, ↑ on the last; ↓/↑, Home/End move; Enter/Space
  * choose; Escape closes and returns focus; Tab closes. A click outside, page scroll or a resize closes it.
  */
-export function Menu({ label, tooltip, items, icon = "more", iconOnly = true }: MenuProps): ReactElement {
+export function Menu({ label, tooltip, items, icon = "more", iconOnly = true, action }: MenuProps): ReactElement {
   const id = useId();
   const popover = usePopoverSupport();
   const [open, setOpen] = useState(false);
@@ -139,6 +142,7 @@ export function Menu({ label, tooltip, items, icon = "more", iconOnly = true }: 
           aria-haspopup="menu"
           aria-expanded={open}
           aria-controls={open ? `${id}-menu` : undefined}
+          data-action={action}
           onClick={() => (open ? close(false) : show(0))}
           onMouseDown={(event) => {
             // Keep focus in the open menu, so the click below toggles it closed.

@@ -82,6 +82,10 @@
   width: 32px;
   padding: 0;
 }
+/* Paste before the page knows the clipboard can be read: it keeps its place, unseen, so nothing next to it moves. */
+.wk-ui-button--pending {
+  visibility: hidden;
+}
 
 /* CopyButton: three labels in one grid cell, so the widest one sets the width. */
 .wk-ui-copy__labels {
@@ -96,6 +100,10 @@
 }
 .wk-ui-copy__label[data-shown="false"] {
   visibility: hidden;
+}
+/* With the icon in front, the labels start next to it; the free room of the widest label stays at the end. */
+.wk-ui-copy.wk-ui-button--has-icon .wk-ui-copy__label {
+  justify-content: flex-start;
 }
 
 /* ── Segmented ── */

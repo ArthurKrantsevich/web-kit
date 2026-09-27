@@ -70,13 +70,17 @@ for (const [width, height] of [
 ] as const) {
   for (const tool of TOOLS) {
     test(`${tool} at ${width} px: no button moves when the page hydrates and Paste appears`, async ({ browser, baseURL }) => {
-      // The page as the server sent it: no script runs, so Paste (shown only once the clipboard can be read) is absent.
+      // The page as the server sent it: no script runs, so Paste (shown only once the clipboard can be read) keeps its
+      // place unseen, after Open file.
       const still = await browser.newContext({ baseURL, javaScriptEnabled: false, viewport: { width, height } });
       const before = await still.newPage();
       await before.goto(`tools/${tool}/`);
       await before.evaluate(() => document.fonts.ready);
       const server = await buttonBoxes(before);
-      expect(Object.keys(server).filter((name) => name.startsWith("Paste"))).toEqual([]);
+      const kept = before.locator('[data-action="paste"]');
+      expect(await kept.count()).toBeGreaterThan(0);
+      for (const paste of await kept.all()) await expect(paste).toHaveCSS("visibility", "hidden");
+      expect(Object.keys(server).filter((name) => name.startsWith("Paste")).length).toBe(await kept.count());
       await still.close();
 
       const live = await browser.newContext({ baseURL, viewport: { width, height } });

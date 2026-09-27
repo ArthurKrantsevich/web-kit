@@ -17,7 +17,7 @@ describe("editor layout", () => {
         }
       >
         <EditorPanes>
-          <EditorPane title="Input" labelFor="in" meta="4 B" actions={<button type="button">Paste</button>}>
+          <EditorPane title="Input" kind="input" labelFor="in" meta="4 B" actions={<button type="button">Paste</button>}>
             <textarea id="in" />
           </EditorPane>
           <EditorPane title="Output">
@@ -33,5 +33,7 @@ describe("editor layout", () => {
     expect(container.querySelector(".wk-ui-pane__meta")?.textContent).toBe("4 B");
     expect(container.querySelector(".wk-ui-status")?.className).toBe("wk-ui-status wk-ui-status--valid");
     expect(screen.queryByRole("status")).toBeNull();
+    // What each pane holds, for the rows of shared actions; a pane without a kind has none.
+    expect([...container.querySelectorAll(".wk-ui-pane")].map((pane) => pane.getAttribute("data-pane"))).toEqual(["input", null]);
   });
 });
