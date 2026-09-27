@@ -1,4 +1,5 @@
 import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { canShare, compressText, decompressText, useShareHash, type ShareHash } from "./share";
 
@@ -67,6 +68,30 @@ describe("useShareHash", () => {
     expect(latest().error).toBeNull();
     expect(location.hash).toBe("");
     expect(location.search).toBe("?x=1");
+  });
+
+  it("keeps the shared text under StrictMode, whose effects run twice", async () => {
+    history.replaceState(null, "", `/tools/json-formatter/#json-formatter=${await compressText('{"strict":true}')}`);
+    const states: ShareHash[] = [];
+    render(
+      <StrictMode>
+        <Probe onState={(state) => states.push(state)} />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(states.at(-1)!.initial).toBe('{"strict":true}'));
+    expect(states.at(-1)!.ready).toBe(true);
+    expect(location.hash).toBe("");
+  });
+
+  it("keeps the damaged-link message under StrictMode", async () => {
+    history.replaceState(null, "", "/#json-formatter=%%%");
+    const states: ShareHash[] = [];
+    render(
+      <StrictMode>
+        <Probe onState={(state) => states.push(state)} />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(states.at(-1)!.error).toBe("The shared link is damaged; nothing was loaded from it"));
   });
 
   it("ignores another tool's key and plain anchors", async () => {

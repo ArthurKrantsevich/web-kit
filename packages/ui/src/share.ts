@@ -133,13 +133,15 @@ export function useShareHash(key: string): ShareHash {
       setState({ initial: null, ready: true, error: null, available });
       return;
     }
-    history.replaceState(history.state, "", location.pathname + location.search);
+    // The hash stays until a live run has read it: under StrictMode the first run is cancelled before its
+    // decompression ends, and removing the hash there would leave nothing for the second run.
     if (!available) {
       setState({ initial: null, ready: true, error: "This browser cannot open shared links", available });
       return;
     }
     void decompressText(payload).then((result) => {
       if (!live) return;
+      history.replaceState(history.state, "", location.pathname + location.search);
       setState(
         result.ok
           ? { initial: result.value, ready: true, error: null, available }
