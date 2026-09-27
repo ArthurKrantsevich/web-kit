@@ -1,166 +1,14 @@
-/* Default look for JsonDiff; matches the JsonFormatter editor. Colors come from @web-kit/tokens when present. */
+/* Default look for JsonDiff. The toolbar, panes, buttons and status line come from @web-kit/ui, whose styles are
+   built into the start of this file. Colors come from @web-kit/tokens when present. */
 .wk-diff {
-  width: 100%;
-  box-sizing: border-box;
-  container-type: inline-size;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-  border-radius: var(--wk-radius-lg, 16px);
-  background: var(--wk-surface, #ffffff);
-  color: var(--wk-fg, #141413);
-  font-family: var(--wk-font-sans, system-ui, sans-serif);
-}
-.wk-diff button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.wk-diff__bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-diff__field {
-  color: var(--wk-muted, #5e5d59);
-  font-size: 0.875rem;
-}
-.wk-diff__segments {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 10px;
-  background: var(--wk-surface-2, #f0eee6);
-}
-.wk-diff__segment {
-  height: 30px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--wk-muted, #5e5d59);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-.wk-diff__segment[aria-pressed="true"] {
-  background: var(--wk-surface, #ffffff);
-  color: var(--wk-fg, #141413);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(20, 20, 19, 0.1);
+  /* --wk-diff-height still sets the pane height; the list of changes sits under the panes. */
+  --wk-ui-panes-height: var(--wk-diff-height, var(--wk-editor-height, max(360px, 45vh)));
 }
 .wk-diff__key {
-  width: 8rem;
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--wk-border-strong, rgba(31, 30, 29, 0.3));
-  border-radius: 8px;
-  background: var(--wk-surface, #ffffff);
-  color: inherit;
-  font-family: var(--wk-font-mono, ui-monospace, monospace);
-  font-size: 0.8125rem;
+  width: 7rem;
 }
-.wk-diff__divider {
-  width: 1px;
-  height: 24px;
-  background: var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-diff__spacer {
-  flex: 1 1 auto;
-}
-.wk-diff__ghost {
-  height: 32px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--wk-fg, #141413);
-  font: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-}
-.wk-diff__ghost:hover:not(:disabled) {
-  background: var(--wk-surface-2, #f0eee6);
-}
-.wk-diff__primary {
-  height: 30px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--wk-primary, #141413);
-  color: var(--wk-primary-fg, #faf9f5);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.wk-diff__panes {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: minmax(0, 1fr);
-  height: var(--wk-diff-height, max(360px, 45vh));
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-diff__pane {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-.wk-diff__pane--left {
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-diff__pane-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-diff__pane-title {
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
-.wk-diff__size {
-  color: var(--wk-muted, #5e5d59);
-  font-size: 0.8125rem;
-}
-.wk-diff__area {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 14px 16px;
-  border: 0;
-  resize: none;
-  background: transparent;
-  color: inherit;
-  font-family: var(--wk-font-mono, ui-monospace, monospace);
-  font-size: 0.8125rem;
-  line-height: 1.7;
-}
-.wk-diff__area:focus-visible {
-  outline: 2px solid var(--wk-accent, #b5532f);
-  outline-offset: -2px;
-}
-.wk-diff__result-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  min-height: 44px;
-  padding: 6px 8px 6px 16px;
-  box-sizing: border-box;
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-}
-.wk-diff__result-title {
-  font-size: 0.8125rem;
-  font-weight: 600;
+.wk-diff__result {
+  border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
 }
 .wk-diff__summary {
   display: flex;
@@ -218,6 +66,11 @@
   text-decoration: underline;
   cursor: pointer;
 }
+.wk-diff__link:disabled,
+.wk-diff__change:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .wk-diff__changes {
   margin: 0;
   padding: 4px 0;
@@ -262,19 +115,6 @@
 .wk-diff__arrow {
   color: var(--wk-muted, #5e5d59);
 }
-
-@container (min-width: 1024px) {
-  .wk-diff__panes {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .wk-diff__pane--left {
-    border-bottom: 0;
-    border-right: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
-  }
-}
-@container (max-width: 639px) {
-  .wk-diff__field,
-  .wk-diff__divider {
-    display: none;
-  }
+.wk-diff__notice {
+  color: var(--wk-fg, #141413);
 }

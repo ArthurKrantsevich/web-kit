@@ -28,7 +28,7 @@
     "**/*.css"
   ],
   "scripts": {
-    "build": "tsdown && cp src/ui/styles.css dist/styles.css",
+    "build": "tsdown && node ../../tooling/scripts/build-styles.mjs",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
     "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit"
@@ -49,6 +49,7 @@
     }
   },
   "dependencies": {
-    "@web-kit/json-core": "workspace:*"
+    "@web-kit/json-core": "workspace:*",
+    "@web-kit/ui": "workspace:*"
   }
 }

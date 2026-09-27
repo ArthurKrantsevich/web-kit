@@ -33,4 +33,4 @@ export function Page() {
 }
 ```
 
-`useJsonDiff()` gives the same state without markup. Set `--wk-diff-height` to change the height of the two inputs.
+Each side has Paste and Open file; the list of changes has Download (`patch.json`) and Copy JSON Patch. `useJsonDiff()` gives the same state without markup. Set `--wk-diff-height` to change the height of the two inputs.

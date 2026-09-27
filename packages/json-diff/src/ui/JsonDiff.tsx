@@ -1,7 +1,20 @@
 import { formatPath, type JsonError } from "@web-kit/json-core";
-import { useId, useRef, type ReactElement } from "react";
+import {
+  Button,
+  CopyButton,
+  downloadText,
+  EditorPane,
+  EditorPanes,
+  EditorShell,
+  EditorToolbar,
+  OpenFileButton,
+  PasteButton,
+  Segmented,
+  StatusLine,
+  type SegmentedOption,
+} from "@web-kit/ui";
+import { useId, useRef, useState, type ReactElement } from "react";
 import type { JsonChange, JsonSpan } from "../core/types";
-import { useCopy } from "./useCopy";
 import { useJsonDiff, type UseJsonDiffOptions } from "./useJsonDiff";
 
 export interface JsonDiffProps extends UseJsonDiffOptions {
@@ -18,6 +31,19 @@ const SAMPLE_RIGHT =
 /** Rows beyond this are not rendered: a huge list would freeze the page. The patch still has every change. */
 const LIST_LIMIT = 1000;
 
+/** Larger files are not read: comparing them would freeze the page. */
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const ARRAY_MODES: SegmentedOption<"index" | "key">[] = [
+  { value: "index", label: "By index", tooltip: "Compare array items at the same position" },
+  { value: "key", label: "By key", tooltip: "Match object items by a key, in any order" },
+];
+
+const NUMBER_MODES: SegmentedOption<"value" | "raw">[] = [
+  { value: "value", label: "By value", tooltip: "1.0 and 1 are the same number" },
+  { value: "raw", label: "As written", tooltip: "1.0 and 1 differ because they are written differently" },
+];
+
 const SIGN: Record<JsonChange["kind"], string> = { added: "+", removed: "−", changed: "~" };
 const LABEL: Record<Side, string> = { left: "Left", right: "Right" };
 const hasBom = (text: string): boolean => text.charCodeAt(0) === 0xfeff;
@@ -28,6 +54,8 @@ function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+const count = (n: number, word: string): string => `${n} ${n === 1 ? word : `${word}s`}`;
 
 /** One line, at most 80 characters. */
 function preview(raw: string): string {
@@ -43,13 +71,22 @@ function formatError(side: Side, error: JsonError): string {
 export function JsonDiff(props: JsonDiffProps): ReactElement {
   const state = useJsonDiff(props);
   const { left, right, result, patch, fresh } = state;
-  const [copyLabel, copy] = useCopy("Copy JSON Patch");
+  const [notice, setNotice] = useState("");
   const leftRef = useRef<HTMLTextAreaElement>(null);
   const rightRef = useRef<HTMLTextAreaElement>(null);
   const id = useId();
   const refs = { left: leftRef, right: rightRef };
   const text = { left, right };
-  const set = { left: state.setLeft, right: state.setRight };
+  const set = {
+    left: (value: string) => {
+      setNotice("");
+      state.setLeft(value);
+    },
+    right: (value: string) => {
+      setNotice("");
+      state.setRight(value);
+    },
+  };
 
   /** Selects `start..end` (offsets without a BOM) in one of the inputs. */
   function select(side: Side, start: number, end: number): void {
@@ -67,119 +104,131 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
 
   const diff = result?.ok ? result.value : null;
 
-  return (
-    <div className={["wk-diff", props.className].filter(Boolean).join(" ")}>
-      <div className="wk-diff__bar" role="group" aria-label="Options">
-        <span className="wk-diff__field" aria-hidden="true">
-          Arrays
-        </span>
-        <div className="wk-diff__segments" role="group" aria-label="Compare arrays">
-          <button
-            type="button"
-            className="wk-diff__segment"
-            aria-pressed={state.arrayMode === "index"}
-            onClick={() => state.setArrayMode("index")}
-          >
-            By index
-          </button>
-          <button
-            type="button"
-            className="wk-diff__segment"
-            aria-pressed={state.arrayMode === "key"}
-            onClick={() => state.setArrayMode("key")}
-          >
-            By key
-          </button>
-        </div>
-        {state.arrayMode === "key" && (
-          <input
-            className="wk-diff__key"
-            aria-label="Array key"
-            value={state.arrayKey}
-            spellCheck={false}
-            onChange={(e) => state.setArrayKey(e.target.value)}
-          />
-        )}
-        <span className="wk-diff__divider" aria-hidden="true" />
-        <span className="wk-diff__field" aria-hidden="true">
-          Numbers
-        </span>
-        <div className="wk-diff__segments" role="group" aria-label="Compare numbers">
-          <button
-            type="button"
-            className="wk-diff__segment"
-            aria-pressed={state.numbers === "value"}
-            onClick={() => state.setNumbers("value")}
-          >
-            By value
-          </button>
-          <button
-            type="button"
-            className="wk-diff__segment"
-            aria-pressed={state.numbers === "raw"}
-            onClick={() => state.setNumbers("raw")}
-          >
-            As written
-          </button>
-        </div>
-        <span className="wk-diff__spacer" />
-        <button
-          type="button"
-          className="wk-diff__ghost"
-          onClick={() => {
-            state.setLeft(right);
-            state.setRight(left);
-          }}
-        >
-          Swap
-        </button>
-        <button
-          type="button"
-          className="wk-diff__ghost"
-          onClick={() => {
-            state.setLeft(SAMPLE_LEFT);
-            state.setRight(SAMPLE_RIGHT);
-          }}
-        >
-          Sample
-        </button>
-        <button
-          type="button"
-          className="wk-diff__ghost"
-          onClick={() => {
-            state.setLeft("");
-            state.setRight("");
-          }}
-        >
-          Clear
-        </button>
-      </div>
+  const toolbar = (
+    <EditorToolbar>
+      <span className="wk-ui-field" aria-hidden="true">
+        Arrays
+      </span>
+      <Segmented label="Compare arrays" value={state.arrayMode} options={ARRAY_MODES} onChange={state.setArrayMode} />
+      <input
+        className="wk-ui-input wk-diff__key"
+        aria-label="Array key"
+        placeholder="id"
+        value={state.arrayKey}
+        disabled={state.arrayMode !== "key"}
+        spellCheck={false}
+        onChange={(e) => state.setArrayKey(e.target.value)}
+      />
+      <span className="wk-ui-divider" aria-hidden="true" />
+      <span className="wk-ui-field" aria-hidden="true">
+        Numbers
+      </span>
+      <Segmented label="Compare numbers" value={state.numbers} options={NUMBER_MODES} onChange={state.setNumbers} />
+      <span className="wk-ui-spacer" />
+      <Button
+        icon="swap"
+        tooltip="Swap Left and Right"
+        onClick={() => {
+          set.left(right);
+          set.right(left);
+        }}
+      >
+        Swap
+      </Button>
+      <Button
+        icon="sample"
+        tooltip="Replace both sides with an example"
+        onClick={() => {
+          set.left(SAMPLE_LEFT);
+          set.right(SAMPLE_RIGHT);
+        }}
+      >
+        Sample
+      </Button>
+      <Button
+        icon="clear"
+        tooltip="Empty both sides"
+        onClick={() => {
+          set.left("");
+          set.right("");
+        }}
+      >
+        Clear
+      </Button>
+    </EditorToolbar>
+  );
 
-      <div className="wk-diff__panes">
+  const status =
+    result === null ? (
+      <StatusLine state="idle">
+        <span>Nothing to compare yet.</span>
+        {notice && <span className="wk-diff__notice">{notice}</span>}
+      </StatusLine>
+    ) : !result.ok ? (
+      <StatusLine state="error">
+        <span>{`${LABEL[result.side]} is not valid JSON`}</span>
+        {notice && <span className="wk-diff__notice">{notice}</span>}
+      </StatusLine>
+    ) : result.value.changes.length === 0 ? (
+      <StatusLine state="valid">
+        <span>{result.value.wholeArrays.length > 0 ? "Same items, different order" : "Same JSON"}</span>
+        {notice && <span className="wk-diff__notice">{notice}</span>}
+      </StatusLine>
+    ) : (
+      <StatusLine state="idle">
+        <span>{count(result.value.changes.length, "change")}</span>
+        {notice && <span className="wk-diff__notice">{notice}</span>}
+      </StatusLine>
+    );
+
+  return (
+    <EditorShell className={["wk-diff", props.className].filter(Boolean).join(" ")} toolbar={toolbar} status={status}>
+      <EditorPanes>
         {(["left", "right"] as const).map((side) => (
-          <section key={side} className={`wk-diff__pane wk-diff__pane--${side}`}>
-            <div className="wk-diff__pane-head">
-              <label className="wk-diff__pane-title" htmlFor={`${id}-${side}`}>
-                {LABEL[side]}
-              </label>
-              <span className="wk-diff__size">{formatBytes(encoder.encode(text[side]).length)}</span>
-            </div>
+          <EditorPane
+            key={side}
+            className={`wk-diff__pane--${side}`}
+            title={LABEL[side]}
+            labelFor={`${id}-${side}`}
+            meta={formatBytes(encoder.encode(text[side]).length)}
+            actions={
+              <>
+                {/* Paste comes first: it appears after hydration, and nothing to its right may move. */}
+                <PasteButton
+                  label={`Paste into ${LABEL[side]}`}
+                  tooltip={`Paste from the clipboard into ${LABEL[side]}`}
+                  iconOnly
+                  onText={set[side]}
+                  onError={setNotice}
+                />
+                <OpenFileButton
+                  label={`Open file into ${LABEL[side]}`}
+                  tooltip={`Open a .json or .txt file into ${LABEL[side]} (up to 10 MB)`}
+                  accept=".json,application/json,.txt,text/plain"
+                  maxBytes={MAX_FILE_BYTES}
+                  iconOnly
+                  onText={set[side]}
+                  onError={setNotice}
+                />
+              </>
+            }
+          >
             <textarea
               ref={refs[side]}
               id={`${id}-${side}`}
-              className="wk-diff__area"
+              className="wk-ui-area"
               value={text[side]}
               onChange={(e) => set[side](e.target.value)}
               spellCheck={false}
               placeholder='{"hello": "world"}'
             />
-          </section>
+          </EditorPane>
         ))}
-      </div>
+      </EditorPanes>
 
       <section className="wk-diff__result" aria-label="Differences">
-        <div className="wk-diff__result-head">
-          <span className="wk-diff__result-title">Changes</span>
+        <div className="wk-ui-pane__head wk-diff__result-head">
+          <span className="wk-ui-pane__title">Changes</span>
           {diff && (
             <span className="wk-diff__summary">
               <span className="wk-diff__count wk-diff__count--added">{`+${diff.counts.added}`}</span>
@@ -187,10 +236,16 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
               <span className="wk-diff__count wk-diff__count--changed">{`~${diff.counts.changed}`}</span>
             </span>
           )}
-          <span className="wk-diff__spacer" />
-          <button type="button" className="wk-diff__primary" disabled={patch === ""} onClick={() => void copy(patch)}>
-            {copyLabel}
-          </button>
+          <span className="wk-ui-spacer" />
+          <Button
+            icon="download"
+            tooltip="Save the JSON Patch as patch.json"
+            disabled={patch === ""}
+            onClick={() => downloadText(patch, "patch.json", "application/json")}
+          >
+            Download
+          </Button>
+          <CopyButton text={patch} label="Copy JSON Patch" tooltip="Copy RFC 6902 operations that turn Left into Right" />
         </div>
         <div className="wk-diff__body">
           {result === null ? (
@@ -215,33 +270,33 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
             </p>
           ) : (
             <>
-            <ul className="wk-diff__changes" aria-label="Changes">
-              {result.value.changes.slice(0, LIST_LIMIT).map((change, index) => (
-                <li key={index}>
-                  <button
-                    type="button"
-                    className={`wk-diff__change wk-diff__change--${change.kind}`}
-                    disabled={!fresh}
-                    onClick={() => show(change)}
-                  >
-                    <span className="wk-diff__sign">{SIGN[change.kind]}</span>
-                    <code className="wk-diff__path">{formatPath(change.path)}</code>
-                    {change.left && <span className="wk-diff__old">{preview(change.left.raw)}</span>}
-                    {change.kind === "changed" && <span className="wk-diff__arrow">→</span>}
-                    {change.right && <span className="wk-diff__new">{preview(change.right.raw)}</span>}
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {result.value.changes.length > LIST_LIMIT && (
-              <p className="wk-diff__more">
-                {`${result.value.changes.length - LIST_LIMIT} more changes are not listed. Copy JSON Patch includes all of them.`}
-              </p>
-            )}
+              <ul className="wk-diff__changes" aria-label="Changes">
+                {result.value.changes.slice(0, LIST_LIMIT).map((change, index) => (
+                  <li key={index}>
+                    <button
+                      type="button"
+                      className={`wk-diff__change wk-diff__change--${change.kind}`}
+                      disabled={!fresh}
+                      onClick={() => show(change)}
+                    >
+                      <span className="wk-diff__sign">{SIGN[change.kind]}</span>
+                      <code className="wk-diff__path">{formatPath(change.path)}</code>
+                      {change.left && <span className="wk-diff__old">{preview(change.left.raw)}</span>}
+                      {change.kind === "changed" && <span className="wk-diff__arrow">→</span>}
+                      {change.right && <span className="wk-diff__new">{preview(change.right.raw)}</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {result.value.changes.length > LIST_LIMIT && (
+                <p className="wk-diff__more">
+                  {`${result.value.changes.length - LIST_LIMIT} more changes are not listed. Copy JSON Patch includes all of them.`}
+                </p>
+              )}
             </>
           )}
         </div>
       </section>
-    </div>
+    </EditorShell>
   );
 }
