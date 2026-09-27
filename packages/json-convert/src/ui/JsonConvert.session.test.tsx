@@ -23,7 +23,7 @@ describe("JsonConvert shortcuts, files and links", () => {
     fireEvent.keyDown(inputArea(), { key: "Enter", ctrlKey: true });
     expect(screen.getByRole("button", { name: "CSV → JSON" }).getAttribute("aria-pressed")).toBe("true");
     expect(inputArea().value).toBe("a\n1\n");
-    fireEvent.click(screen.getByRole("button", { name: "JSON → …" }));
+    fireEvent.click(screen.getByRole("button", { name: "JSON → format" }));
     fireEvent.click(screen.getByRole("button", { name: "Convert to" }));
     fireEvent.click(screen.getByRole("option", { name: "YAML" }));
     fireEvent.keyDown(inputArea(), { key: "Enter", ctrlKey: true });
@@ -57,7 +57,7 @@ describe("JsonConvert shortcuts, files and links", () => {
     render(<JsonConvert />);
     await waitFor(() => expect(output()).toBe("export interface Root {\n  a: number;\n}\n"));
     fireEvent.click(screen.getByRole("button", { name: "CSV → JSON" }));
-    fireEvent.click(screen.getByRole("button", { name: "JSON → …" }));
+    fireEvent.click(screen.getByRole("button", { name: "JSON → format" }));
     expect(screen.getByRole("button", { name: "Convert to" }).textContent).toBe("TypeScript");
   });
 });

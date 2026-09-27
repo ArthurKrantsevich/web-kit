@@ -32,7 +32,7 @@ type Direction = "json" | "csv";
 type JsonTarget = Exclude<ConvertTarget, "csv-to-json">;
 
 const DIRECTIONS: SegmentedOption<Direction>[] = [
-  { value: "json", label: "JSON → …", tooltip: "Convert JSON to YAML, CSV, XML or TypeScript" },
+  { value: "json", label: "JSON → format", tooltip: "Convert JSON to YAML, CSV, XML or TypeScript" },
   { value: "csv", label: "CSV → JSON", tooltip: "Convert CSV with a header row to JSON" },
 ];
 

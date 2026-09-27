@@ -91,12 +91,12 @@ describe("JsonConvert editor", () => {
   it("switches direction with the segments and remembers the JSON format", () => {
     render(<JsonConvert initialInput='[{"a":1}]' />);
     const direction = screen.getByRole("group", { name: "Direction" });
-    expect(within(direction).getAllByRole("button").map((button) => button.textContent)).toEqual(["JSON → …", "CSV → JSON"]);
+    expect(within(direction).getAllByRole("button").map((button) => button.textContent)).toEqual(["JSON → format", "CSV → JSON"]);
     choose("Convert to", "TypeScript");
     fireEvent.click(within(direction).getByRole("button", { name: "CSV → JSON" }));
     expect(screen.queryByRole("button", { name: "Convert to" })).toBeNull();
     expect(screen.getByRole("button", { name: "Delimiter" })).toBeTruthy();
-    fireEvent.click(within(direction).getByRole("button", { name: "JSON → …" }));
+    fireEvent.click(within(direction).getByRole("button", { name: "JSON → format" }));
     expect(output()).toBe("export type Root = RootItem[];\n\nexport interface RootItem {\n  a: number;\n}\n");
   });
 
@@ -260,7 +260,7 @@ describe("JsonConvert editor", () => {
     setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
     render(<JsonConvert initialInput="[1]" />);
     const expected: [string, string][] = [
-      ["JSON → …", "Convert JSON to YAML, CSV, XML or TypeScript"],
+      ["JSON → format", "Convert JSON to YAML, CSV, XML or TypeScript"],
       ["CSV → JSON", "Convert CSV with a header row to JSON"],
       ["Open file", "Open a .json, .csv or .txt file (up to 10 MB), or drop it on the input"],
       ["Sample", "Replace the input with an example"],
