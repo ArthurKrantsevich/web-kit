@@ -249,6 +249,7 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
         ]}
         shortcuts={shortcuts}
         onNotice={setNotice}
+        dropHint="Drop the file on Data or Schema to open it"
         maxBytes={MAX_FILE_BYTES}
       />
     </EditorToolbar>

@@ -277,6 +277,7 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
         urlTargets={[{ label: "Load from URL…", onText: replaceInput }]}
         shortcuts={shortcuts}
         onNotice={setMessage}
+        dropHint="Drop the file on the input to open it"
         maxBytes={MAX_FILE_BYTES}
       />
     </EditorToolbar>

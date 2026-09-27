@@ -64,3 +64,18 @@ describe("JsonSchemaValidator shortcuts, files and links", () => {
     expect(document.getElementById(show.getAttribute("aria-describedby")!)?.textContent).toBe("Select the error in Data");
   });
 });
+
+describe("JsonSchemaValidator and a file dropped beside the panes", () => {
+  it("keeps the page and the input, and says where to drop it", async () => {
+    render(<JsonSchemaValidator />);
+    const before = (screen.getByLabelText("Data") as HTMLTextAreaElement).value;
+    const toolbar = document.querySelector(".wk-ui-editor__toolbar")!;
+    const dataTransfer = { types: ["Files"], files: [new File(['{"dropped":true}'], "d.json")] };
+    expect(fireEvent.dragOver(toolbar, { dataTransfer })).toBe(false);
+    await act(async () => {
+      expect(fireEvent.drop(toolbar, { dataTransfer })).toBe(false);
+    });
+    expect((screen.getByLabelText("Data") as HTMLTextAreaElement).value).toBe(before);
+    expect(document.querySelector(".wk-ui-status")!.textContent).toContain("Drop the file on Data or Schema to open it");
+  });
+});

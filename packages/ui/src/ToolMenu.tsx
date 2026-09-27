@@ -41,6 +41,11 @@ export interface ToolMenuProps {
   onNotice: (message: string) => void;
   /** Largest download from a URL. Default 10 MB. */
   maxBytes?: number;
+  /**
+   * The status message when a file is dropped beside the drop targets, e.g. "Drop the file on Left or Right to open
+   * it". Such a drop is always stopped: the browser would otherwise open the file in place of the page.
+   */
+  dropHint?: string;
 }
 
 /** The format of shared and saved data: the tool's state with a version. */
@@ -60,6 +65,51 @@ function deserialize(text: string): Record<string, unknown> | null {
 }
 
 const DEFAULT_MAX_BYTES = 10 * 1024 * 1024;
+const DEFAULT_DROP_HINT = "Drop the file on an input field to open it";
+
+interface DropGuard {
+  scope: { current: HTMLElement | null };
+  hint: () => void;
+}
+
+/** Mounted tools, in mount order. One pair of window listeners serves them all. */
+const guards: DropGuard[] = [];
+
+const carriesFiles = (event: DragEvent): boolean => Array.from(event.dataTransfer?.types ?? []).includes("Files");
+
+function onWindowDragOver(event: DragEvent): void {
+  // Letting dragover through anywhere would make the browser open a dropped file in place of the page.
+  if (!event.defaultPrevented && carriesFiles(event)) event.preventDefault();
+}
+
+function onWindowDrop(event: DragEvent): void {
+  if (event.defaultPrevented || !carriesFiles(event)) return;
+  event.preventDefault();
+  const target = event.target instanceof Node ? event.target : null;
+  const guard = guards.find((entry) => target !== null && entry.scope.current?.contains(target)) ?? guards[0];
+  guard?.hint();
+}
+
+/** While a tool is mounted, a file dropped outside its drop targets never replaces the page; the tool says where to drop it. */
+function useStrayDropGuard(scope: DropGuard["scope"], hint: () => void): void {
+  const latest = useRef(hint);
+  latest.current = hint;
+  useEffect(() => {
+    const guard: DropGuard = { scope, hint: () => latest.current() };
+    if (guards.length === 0) {
+      window.addEventListener("dragover", onWindowDragOver);
+      window.addEventListener("drop", onWindowDrop);
+    }
+    guards.push(guard);
+    return () => {
+      guards.splice(guards.indexOf(guard), 1);
+      if (guards.length === 0) {
+        window.removeEventListener("dragover", onWindowDragOver);
+        window.removeEventListener("drop", onWindowDrop);
+      }
+    };
+  }, [scope]);
+}
 
 /**
  * The "More actions" menu of a tool: load from a URL, share by link, save the input in this browser, and keyboard
@@ -74,6 +124,7 @@ export function ToolMenu({
   shortcuts,
   onNotice,
   maxBytes = DEFAULT_MAX_BYTES,
+  dropHint = DEFAULT_DROP_HINT,
 }: ToolMenuProps): ReactElement {
   const share = useShareHash(toolKey);
   const store = usePersistentState(toolKey);
@@ -89,6 +140,7 @@ export function ToolMenu({
   useIsomorphicLayoutEffect(() => {
     scope.current = anchor.current?.closest<HTMLElement>(".wk-ui-editor") ?? anchor.current;
   }, []);
+  useStrayDropGuard(scope, () => latest.current.onNotice(dropHint));
 
   // A share link wins over the saved input; either is applied once.
   const { clear } = store;

@@ -19,10 +19,11 @@ interface HarnessProps {
   onRestore?: ToolMenuProps["onRestore"];
   onNotice?: (message: string) => void;
   format?: () => void;
+  dropHint?: string;
 }
 
 /** A tool with one text field whose state is { input }. */
-function Harness({ onRestore, onNotice = () => {}, format = () => {} }: HarnessProps) {
+function Harness({ onRestore, onNotice = () => {}, format = () => {}, dropHint }: HarnessProps) {
   const [input, setInput] = useState("[1]");
   const state = useMemo(() => ({ input }), [input]);
   return (
@@ -37,7 +38,9 @@ function Harness({ onRestore, onNotice = () => {}, format = () => {} }: HarnessP
         urlTargets={[{ label: "Load Left from URL…", onText: setInput }]}
         shortcuts={[{ keys: "Mod+Enter", label: "Format", run: format }]}
         onNotice={onNotice}
+        dropHint={dropHint}
       />
+      <p>Toolbar text</p>
       <textarea aria-label="Input" value={input} onChange={(event) => setInput(event.target.value)} />
     </div>
   );
@@ -230,6 +233,30 @@ describe("ToolMenu", () => {
     await waitFor(() => expect(input().value).toBe("[42]"));
     view.unmount();
     expect(localStorage.getItem("wk:json-formatter:input")).toContain("[7]");
+  });
+
+  it("keeps a file dropped beside the panes from replacing the page, and says where to drop it", () => {
+    const onNotice = vi.fn();
+    render(<Harness onNotice={onNotice} dropHint="Drop the file on the input to open it" />);
+    const files = [new File(["[1]"], "data.json", { type: "application/json" })];
+    const outside = screen.getByText("Toolbar text");
+    expect(fireEvent.dragOver(outside, { dataTransfer: { types: ["Files"], files } })).toBe(false);
+    expect(fireEvent.drop(outside, { dataTransfer: { types: ["Files"], files } })).toBe(false);
+    expect(onNotice).toHaveBeenCalledWith("Drop the file on the input to open it");
+    expect(input().value).toBe("[1]");
+  });
+
+  it("leaves drags of text, and drops a pane already took, alone", () => {
+    const onNotice = vi.fn();
+    render(<Harness onNotice={onNotice} dropHint="Drop the file on the input to open it" />);
+    const outside = screen.getByText("Toolbar text");
+    expect(fireEvent.dragOver(outside, { dataTransfer: { types: ["text/plain"], files: [] } })).toBe(true);
+    expect(fireEvent.drop(outside, { dataTransfer: { types: ["text/plain"], files: [] } })).toBe(true);
+    const handled = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(handled, "dataTransfer", { value: { types: ["Files"], files: [] } });
+    handled.preventDefault();
+    outside.dispatchEvent(handled);
+    expect(onNotice).not.toHaveBeenCalled();
   });
 
   it("runs shortcuts inside the tool and lists them on ?", () => {

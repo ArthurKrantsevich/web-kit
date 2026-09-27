@@ -215,6 +215,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
         ]}
         shortcuts={shortcuts}
         onNotice={setNotice}
+        dropHint="Drop the file on Left or Right to open it"
         maxBytes={MAX_FILE_BYTES}
       />
     </EditorToolbar>

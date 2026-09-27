@@ -306,3 +306,30 @@ test.describe("before hydration", () => {
     });
   }
 });
+
+test.describe("a file dropped beside the panes", () => {
+  for (const [tool, field, hint] of [
+    ["json-formatter", "Input", "Drop the file on the input to open it"],
+    ["json-diff", "Left", "Drop the file on Left or Right to open it"],
+  ] as const) {
+    test(`${tool}: the page stays, the input stays, and the tool says where to drop it`, async ({ page }) => {
+      await open(page, `tools/${tool}/`);
+      const url = page.url();
+      const before = await page.getByLabel(field, { exact: true }).inputValue();
+      const prevented = await page.locator(".wk-ui-editor__toolbar").evaluate((toolbar) => {
+        const data = new DataTransfer();
+        data.items.add(new File(['{"dropped":true}'], "dropped.json", { type: "application/json" }));
+        const over = new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data });
+        const drop = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: data });
+        toolbar.dispatchEvent(over);
+        toolbar.dispatchEvent(drop);
+        return [over.defaultPrevented, drop.defaultPrevented];
+      });
+      // A drop the page does not cancel is the one the browser answers by opening the file in place of the page.
+      expect(prevented).toEqual([true, true]);
+      await expect(status(page)).toContainText(hint);
+      expect(page.url()).toBe(url);
+      await expect(page.getByLabel(field, { exact: true })).toHaveValue(before);
+    });
+  }
+});

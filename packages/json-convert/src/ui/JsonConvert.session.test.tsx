@@ -61,3 +61,18 @@ describe("JsonConvert shortcuts, files and links", () => {
     expect(screen.getByRole("button", { name: "Convert to" }).textContent).toBe("TypeScript");
   });
 });
+
+describe("JsonConvert and a file dropped beside the panes", () => {
+  it("keeps the page and the input, and says where to drop it", async () => {
+    render(<JsonConvert />);
+    const before = (screen.getByLabelText("Input") as HTMLTextAreaElement).value;
+    const toolbar = document.querySelector(".wk-ui-editor__toolbar")!;
+    const dataTransfer = { types: ["Files"], files: [new File(['{"dropped":true}'], "d.json")] };
+    expect(fireEvent.dragOver(toolbar, { dataTransfer })).toBe(false);
+    await act(async () => {
+      expect(fireEvent.drop(toolbar, { dataTransfer })).toBe(false);
+    });
+    expect((screen.getByLabelText("Input") as HTMLTextAreaElement).value).toBe(before);
+    expect(document.querySelector(".wk-ui-status")!.textContent).toContain("Drop the file on the input to open it");
+  });
+});
