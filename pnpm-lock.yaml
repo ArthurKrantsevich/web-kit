@@ -266,6 +266,9 @@ importers:
       '@web-kit/json-core':
         specifier: workspace:*
         version: link:../json-core
+      '@web-kit/ui':
+        specifier: workspace:*
+        version: link:../ui
       react:
         specifier: '>=18'
         version: 19.3.0

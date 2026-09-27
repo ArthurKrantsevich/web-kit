@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonConvert } from "./JsonConvert";
 
@@ -7,9 +7,27 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const inputArea = () => screen.getByLabelText("Input") as HTMLTextAreaElement;
 const output = () => screen.getByLabelText("Output").textContent;
-const type = (value: string) => fireEvent.change(screen.getByLabelText("Input"), { target: { value } });
-const target = (value: string) => fireEvent.change(screen.getByLabelText("Convert"), { target: { value } });
+const type = (value: string) => fireEvent.change(inputArea(), { target: { value } });
+const status = () => document.querySelector(".wk-ui-status")!.textContent;
+
+/** Picks an option of a Select by the Select's name and the option's label. */
+function choose(select: string, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: select }));
+  fireEvent.click(screen.getByRole("option", { name: option }));
+}
+
+function setClipboard(value: unknown) {
+  Object.defineProperty(navigator, "clipboard", { value, configurable: true });
+}
+
+const tooltipOf = (element: HTMLElement) =>
+  element
+    .getAttribute("aria-describedby")
+    ?.split(" ")
+    .map((id) => document.getElementById(id)?.textContent)
+    .join(" ");
 
 describe("JsonConvert", () => {
   it("converts to YAML by default", () => {
@@ -21,9 +39,9 @@ describe("JsonConvert", () => {
   it("converts to CSV with a chosen delimiter", () => {
     render(<JsonConvert />);
     type('[{"a":1,"b":"x"}]');
-    target("csv");
+    choose("Convert to", "CSV");
     expect(output()).toBe("a,b\r\n1,x\r\n");
-    fireEvent.change(screen.getByLabelText("Delimiter"), { target: { value: ";" } });
+    choose("Delimiter", "Semicolon");
     expect(output()).toBe("a;b\r\n1;x\r\n");
   });
 
@@ -61,10 +79,142 @@ describe("JsonConvert", () => {
 
   it("copies the output", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+    setClipboard({ writeText });
     render(<JsonConvert />);
     type("[1]");
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Copy" })));
     expect(writeText).toHaveBeenCalledWith("- 1\n");
+  });
+});
+
+describe("JsonConvert editor", () => {
+  it("switches direction with the segments and remembers the JSON format", () => {
+    render(<JsonConvert initialInput='[{"a":1}]' />);
+    const direction = screen.getByRole("group", { name: "Direction" });
+    expect(within(direction).getAllByRole("button").map((button) => button.textContent)).toEqual(["JSON → …", "CSV → JSON"]);
+    choose("Convert to", "TypeScript");
+    fireEvent.click(within(direction).getByRole("button", { name: "CSV → JSON" }));
+    expect(screen.queryByRole("button", { name: "Convert to" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Delimiter" })).toBeTruthy();
+    fireEvent.click(within(direction).getByRole("button", { name: "JSON → …" }));
+    expect(output()).toBe("export type Root = RootItem[];\n\nexport interface RootItem {\n  a: number;\n}\n");
+  });
+
+  it("describes each format in the list", () => {
+    render(<JsonConvert />);
+    fireEvent.click(screen.getByRole("button", { name: "Convert to" }));
+    const yaml = screen.getByRole("option", { name: "YAML" });
+    expect(yaml.getAttribute("aria-selected")).toBe("true");
+    expect(document.getElementById(yaml.getAttribute("aria-describedby")!)?.textContent).toBe("YAML 1.2, block style");
+    expect(screen.getAllByRole("option").map((option) => option.getAttribute("aria-labelledby") && option.textContent)).toEqual([
+      "YAMLYAML 1.2, block style",
+      "CSVAn array of objects as rows",
+      "XMLKeys become element names",
+      "TypeScriptInterfaces inferred from the data",
+    ]);
+  });
+
+  it("says what was checked: parsing back for CSV, nothing it did not do for YAML", () => {
+    render(<JsonConvert initialInput='[{"a":1}]' />);
+    expect(status()).toBe("Converted·YAML 1.2; numbers keep their spelling");
+    choose("Convert to", "CSV");
+    expect(status()).toBe("Converted·checked by parsing back");
+    fireEvent.click(screen.getByRole("button", { name: "CSV → JSON" }));
+    type("a\n1\n");
+    expect(status()).toBe("Converted·checked by parsing back");
+  });
+
+  it("converts an empty array to empty CSV and says why there are no rows", () => {
+    render(<JsonConvert initialTarget="csv" initialInput="[]" />);
+    expect(output()).toBe("");
+    expect(status()).toBe("Converted·the array is empty, so there are no rows");
+    expect((screen.getByRole("button", { name: "Download" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("Swap direction turns the CSV output into CSV input, and back", () => {
+    render(<JsonConvert initialTarget="csv" initialInput='[{"a":1,"b":{"c":true}}]' />);
+    fireEvent.click(screen.getByRole("button", { name: "Swap direction" }));
+    // A textarea reports line breaks as \n; the CSV itself keeps CRLF.
+    expect(inputArea().value).toBe("a,b.c\n1,true\n");
+    expect(screen.getByRole("button", { name: "CSV → JSON" }).getAttribute("aria-pressed")).toBe("true");
+    expect(output()).toBe('[\n  {\n    "a": "1",\n    "b.c": "true"\n  }\n]');
+    fireEvent.click(screen.getByRole("button", { name: "Swap direction" }));
+    expect(screen.getByRole("button", { name: "Convert to" }).textContent).toBe("CSV");
+    expect(output()).toBe("a,b.c\r\n1,true\r\n");
+  });
+
+  it("offers Swap direction only between JSON and CSV", () => {
+    render(<JsonConvert initialInput='[{"a":1}]' />);
+    expect((screen.getByRole("button", { name: "Swap direction" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("downloads with the extension of the format", () => {
+    const names: string[] = [];
+    Object.defineProperty(URL, "createObjectURL", { value: () => "blob:test", configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: () => {}, configurable: true });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      names.push(this.download);
+    });
+    render(<JsonConvert initialInput='[{"a":1}]' />);
+    const download = () => fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    for (const format of ["YAML", "CSV", "XML", "TypeScript"]) {
+      choose("Convert to", format);
+      download();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "CSV → JSON" }));
+    type("a\n1\n");
+    download();
+    expect(names).toEqual(["converted.yaml", "converted.csv", "converted.xml", "types.ts", "converted.json"]);
+  });
+
+  it("opens a file, loads a sample for each direction and clears", async () => {
+    render(<JsonConvert />);
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText("Open file"), { target: { files: [new File(["\uFEFF[true]"], "a.json")] } });
+    });
+    expect(inputArea().value).toBe("[true]");
+    fireEvent.click(screen.getByRole("button", { name: "Sample" }));
+    expect(() => JSON.parse(inputArea().value)).not.toThrow();
+    fireEvent.click(screen.getByRole("button", { name: "CSV → JSON" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sample" }));
+    expect(inputArea().value.split("\n")[0]).toBe("id,name,active,score");
+    expect(status()).toBe("Converted·checked by parsing back");
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(inputArea().value).toBe("");
+    expect(status()).toBe("Paste CSV, open a file or load a sample.");
+  });
+
+  it("refuses files over 10 MB and pastes from the clipboard", async () => {
+    setClipboard({ readText: () => Promise.resolve("[2]"), writeText: () => Promise.resolve() });
+    render(<JsonConvert initialInput="[1]" />);
+    const big = new File(["x"], "big.json");
+    Object.defineProperty(big, "size", { value: 10 * 1024 * 1024 + 1 });
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText("Open file"), { target: { files: [big] } });
+    });
+    expect(inputArea().value).toBe("[1]");
+    expect(screen.getByText("File is larger than 10 MB")).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Paste" }));
+    });
+    expect(inputArea().value).toBe("[2]");
+    expect(screen.queryByText("File is larger than 10 MB")).toBeNull();
+  });
+
+  it("every action says what it does", () => {
+    setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
+    render(<JsonConvert initialInput="[1]" />);
+    const expected: [string, string][] = [
+      ["JSON → …", "Convert JSON to YAML, CSV, XML or TypeScript"],
+      ["CSV → JSON", "Convert CSV with a header row to JSON"],
+      ["Open file", "Open a .json, .csv or .txt file (up to 10 MB)"],
+      ["Sample", "Replace the input with an example"],
+      ["Clear", "Empty the input"],
+      ["Paste", "Paste from the clipboard"],
+      ["Swap direction", "Make the output the input and convert the other way"],
+      ["Download", "Save the output as converted.yaml"],
+      ["Copy", "Copy the output to the clipboard"],
+    ];
+    for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
   });
 });

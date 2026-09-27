@@ -100,7 +100,8 @@ test("sort keys and unescape in the formatter", async ({ page }) => {
 
 test("json-convert turns JSON into TypeScript", async ({ page }) => {
   await page.goto("tools/json-convert/");
-  await page.getByLabel("Convert").selectOption("typescript");
+  await page.getByRole("button", { name: "Convert to" }).click();
+  await page.getByRole("option", { name: "TypeScript" }).click();
   await expect(page.getByLabel("Output", { exact: true })).toContainText("export interface Root {");
   await expect(page.getByLabel("Output", { exact: true })).toContainText("email: string | null;");
 });
