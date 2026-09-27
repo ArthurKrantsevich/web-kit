@@ -107,6 +107,11 @@
 .wk-schema__message {
   overflow-wrap: anywhere;
 }
+/* Keyword names quoted in a message. */
+.wk-schema__message code {
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.9em;
+}
 .wk-schema__where {
   margin-left: auto;
   color: var(--wk-muted, #5e5d59);

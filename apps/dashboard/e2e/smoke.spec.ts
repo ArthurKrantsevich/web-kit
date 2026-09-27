@@ -174,13 +174,15 @@ test("json-schema-validator lists errors and selects them in the data", async ({
   await page.getByLabel("Schema", { exact: true }).fill('{"type":"object","properties":{"age":{"minimum":0}},"required":["name"]}');
   const errors = page.getByRole("list", { name: "Errors" }).getByRole("button");
   await expect(errors).toHaveCount(2);
-  await expect(page.getByText("Not valid: 2 errors")).toBeVisible();
+  // The status line; the same summary is also in a screen-reader-only live region.
+  const statusLine = page.locator(".wk-ui-status");
+  await expect(statusLine.getByText("Not valid: 2 errors")).toBeVisible();
 
   await errors.nth(1).click();
   const selection = await data.evaluate((area: HTMLTextAreaElement) => [area.selectionStart, area.selectionEnd]);
   expect(selection).toEqual([8, 10]);
 
   await page.getByRole("button", { name: "Generate schema from data" }).click();
-  await expect(page.getByText("Valid", { exact: true })).toBeVisible();
+  await expect(statusLine.getByText("Valid", { exact: true })).toBeVisible();
   await expect(page.getByText("The data matches the schema.")).toBeVisible();
 });

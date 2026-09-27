@@ -1,6 +1,6 @@
 import { parseJson, stripBom } from "@web-kit/json-core";
 import { compileSchema } from "./compile";
-import { evaluate, RefLoop, type Run } from "./evaluate";
+import { evaluate, RefLoop, TooExpensive, type Run } from "./evaluate";
 import { locator } from "./text";
 import type { ParseProblem, SchemaResult, SchemaWarning } from "./types";
 
@@ -30,11 +30,15 @@ export function validateSchema(data: string, schema: string): SchemaResult {
   }));
   if (problems.length > 0) return { ok: false, stage: "schema", problems, warnings };
 
-  const run: Run = { failures: [], active: new Set() };
+  const run: Run = { failures: [], active: new Set(), steps: 0 };
   let status;
   try {
     status = evaluate(compiled.root, parsedData.value, [], run);
   } catch (error) {
+    if (error instanceof TooExpensive) {
+      const problem = { schemaPath: "#", message: error.message, schema: inSchema(parsedSchema.value.start, parsedSchema.value.end) };
+      return { ok: false, stage: "schema", problems: [problem], warnings };
+    }
     if (!(error instanceof RefLoop)) throw error;
     const problem = {
       schemaPath: error.schemaPath,

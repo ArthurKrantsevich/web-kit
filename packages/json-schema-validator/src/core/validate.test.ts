@@ -146,6 +146,48 @@ describe("validateSchema", () => {
     ]);
   });
 
+  it("percent-decodes the whole $ref fragment before splitting it (RFC 6901 §6)", () => {
+    const schema = '{"$defs":{"a":{"b":{"type":"integer"}},"a/b":{"type":"string"}},"$ref":"#/$defs/a%2Fb"}';
+    expect(messages('"x"', schema)).toEqual(["Expected integer, got string"]);
+  });
+
+  it("refuses a $ref to a place that holds no schema", () => {
+    const refTo = (pointer: string) =>
+      `{"properties":{"x":{"enum":[{"type":"string"}]},"y":{"const":{}},"z":{"default":{}},"w":{"examples":[{}]},"v":{"required":["a"]}},"$ref":"${pointer}"}`;
+    for (const pointer of ["#/properties", "#/properties/x/enum/0", "#/properties/y/const", "#/properties/z/default", "#/properties/w/examples/0"]) {
+      expect([pointer, problems(refTo(pointer))]).toEqual([pointer, [`#/$ref: $ref points to a value that is not a schema: ${pointer}`]]);
+    }
+    expect(problems(refTo("#/properties/v/required"))).toEqual([
+      "#/$ref: $ref points to a value that is not a schema: #/properties/v/required",
+    ]);
+  });
+
+  it("still follows a $ref into subschemas and into the value of an unknown keyword", () => {
+    const schema =
+      '{"x-lib":{"n":{"type":"number"}},"$defs":{"list":{"items":{"type":"string"},"allOf":[{"minimum":1}]}},' +
+      '"properties":{"a":{"$ref":"#/x-lib/n"},"b":{"$ref":"#/$defs/list/items"},"c":{"$ref":"#/$defs/list/allOf/0"}}}';
+    const result = validateSchema('{"a":"s","b":1,"c":0}', schema);
+    if (!result.ok) throw new Error(JSON.stringify(result));
+    expect(result.errors.map((error) => error.message)).toEqual([
+      "Expected number, got string",
+      "Expected string, got number",
+      "Expected at least 1, got 0",
+    ]);
+  });
+
+  it("stops a schema that is too expensive to check instead of freezing", () => {
+    const defs: string[] = [];
+    for (let i = 0; i < 30; i++) defs.push(`"d${i}":{"allOf":[{"$ref":"#/$defs/d${i + 1}"},{"$ref":"#/$defs/d${i + 1}"}]}`);
+    defs.push('"d30":{"type":"integer"}');
+    const schema = `{"$defs":{${defs.join(",")}},"$ref":"#/$defs/d0"}`;
+    const started = Date.now();
+    const result = validateSchema("1", schema);
+    expect(Date.now() - started).toBeLessThan(5000);
+    expect(result.ok ? "checked" : result.stage === "schema" ? result.problems.map((p) => [p.schemaPath, p.message]) : "parse").toEqual([
+      ["#", "The schema is too expensive to check"],
+    ]);
+  });
+
   it("validates recursive data through a recursive schema", () => {
     const tree = '{"$defs":{"node":{"type":"object","properties":{"children":{"type":"array","items":{"$ref":"#/$defs/node"}}},"required":["id"]}},"$ref":"#/$defs/node"}';
     expect(messages('{"id":1,"children":[{"id":2,"children":[{"id":3}]}]}', tree)).toEqual([]);

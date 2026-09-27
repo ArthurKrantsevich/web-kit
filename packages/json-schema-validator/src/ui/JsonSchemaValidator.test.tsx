@@ -36,14 +36,35 @@ describe("JsonSchemaValidator", () => {
     render(<JsonSchemaValidator initialData='{"name":"a","age":1.0}' initialSchema={SCHEMA} />);
     expect(screen.getByText("The data matches the schema.")).toBeTruthy();
     expect(status()).toBe("Valid");
-    expect(screen.queryByRole("status")).toBeNull();
+    const line = document.querySelector<HTMLElement>(".wk-ui-status")!;
+    expect(line.getAttribute("role")).toBeNull();
+    expect(within(line).queryByRole("status")).toBeNull();
+  });
+
+  it("announces the result in one live region that is there from the start", () => {
+    render(<JsonSchemaValidator />);
+    const live = screen.getByRole("status");
+    expect(live.getAttribute("aria-live")).toBe("polite");
+    expect(live.textContent).toBe("");
+    fireEvent.change(area("Data"), { target: { value: "{" } });
+    fireEvent.change(area("Schema"), { target: { value: "{}" } });
+    expect(screen.getByRole("status")).toBe(live);
+    expect(live.textContent).toBe("Data: Line 1, column 2: Unexpected end of input");
+    fireEvent.change(area("Data"), { target: { value: "{}" } });
+    expect(live.textContent).toBe("Valid");
+  });
+
+  it("shows backtick-quoted words of a message as code", () => {
+    render(<JsonSchemaValidator initialData='{"long":1}' initialSchema='{"propertyNames":{"maxLength":3}}' />);
+    const message = rows("Warnings")[0]!.querySelector(".wk-schema__message")!;
+    expect(message.innerHTML).toBe("keyword <code>propertyNames</code> is not checked");
   });
 
   it("never calls a result with warnings plainly valid, and a warning selects the keyword in Schema", () => {
     render(<JsonSchemaValidator initialData='{"long":1}' initialSchema='{"propertyNames":{"maxLength":3}}' />);
     expect(status()).toBe("Valid, but 1 keyword was not checked");
     expect(screen.getByText("No errors found, but the keywords below were not checked.")).toBeTruthy();
-    expect(rows("Warnings").map((row) => row.textContent)).toEqual(["#/propertyNameskeyword `propertyNames` is not checked"]);
+    expect(rows("Warnings").map((row) => row.textContent)).toEqual(["#/propertyNameskeyword propertyNames is not checked"]);
     fireEvent.click(rows("Warnings")[0]!);
     expect([area("Schema").selectionStart, area("Schema").selectionEnd]).toEqual([1, 32]);
   });

@@ -27,6 +27,27 @@ const ANNOTATIONS = new Set([
 
 const DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 
+/** Keywords whose value is one subschema. */
+const SUBSCHEMA = new Set([
+  "additionalProperties",
+  "propertyNames",
+  "items",
+  "contains",
+  "not",
+  "if",
+  "then",
+  "else",
+  "unevaluatedItems",
+  "unevaluatedProperties",
+  "contentSchema",
+]);
+/** Keywords whose value maps names to subschemas. */
+const SUBSCHEMA_MAP = new Set(["properties", "patternProperties", "dependentSchemas", "$defs", "definitions"]);
+/** Keywords whose value is an array of subschemas. */
+const SUBSCHEMA_LIST = new Set(["allOf", "anyOf", "oneOf", "prefixItems"]);
+/** Draft 2020-12 keywords this compiler does not check but whose values are known not to be schemas. */
+const OTHER_KNOWN = new Set(["dependentRequired", "$dynamicRef", "$recursiveRef", "$recursiveAnchor"]);
+
 /** A schema error or warning before its offsets become lines and columns. */
 export interface Note {
   schemaPath: string;
@@ -67,6 +88,25 @@ function resolvePointer(root: JsonNode, tokens: string[]): JsonNode | null {
     else return null;
   }
   return node;
+}
+
+/**
+ * Whether the pointer ends at a place that holds a schema: the root, a subschema keyword's value, an entry of
+ * `properties` or `allOf`, and so on. The `properties` map itself and values of `enum`, `const`, `required`,
+ * `examples`, `default` and other known keywords are data. Below an unknown keyword anything may be a schema.
+ */
+function isSchemaLocation(tokens: string[], known: (keyword: string) => boolean): boolean {
+  let place: "schema" | "map" | "list" | "data" | "free" = "schema";
+  for (const token of tokens) {
+    if (place === "map" || place === "list") place = "schema";
+    else if (place === "schema") {
+      if (SUBSCHEMA.has(token)) place = "schema";
+      else if (SUBSCHEMA_MAP.has(token)) place = "map";
+      else if (SUBSCHEMA_LIST.has(token)) place = "list";
+      else place = known(token) || OTHER_KNOWN.has(token) ? "data" : "free";
+    }
+  }
+  return place === "schema" || place === "free";
 }
 
 /** `ref` resolved against `base`, without its fragment; null when it cannot be resolved (a relative URI without a base). */
@@ -176,12 +216,17 @@ export function compileSchema(root: JsonNode, text: string): Compiled {
     if (fragment !== "" && !fragment.startsWith("/")) return void note("$ref to an anchor is not supported");
     let tokens: string[];
     try {
-      tokens = fragment === "" ? [] : fragment.slice(1).split("/").map((token) => decodeURIComponent(token).replace(/~1/g, "/").replace(/~0/g, "~"));
+      // RFC 6901 §6: the fragment is percent-decoded as a whole, then split, so "%2F" separates tokens.
+      const pointer = decodeURIComponent(fragment);
+      tokens = pointer === "" ? [] : pointer.slice(1).split("/").map((token) => token.replace(/~1/g, "/").replace(/~0/g, "~"));
     } catch {
       return void note("$ref is not a valid JSON Pointer");
     }
     const target = resolvePointer(root, tokens);
     if (!target) return void note(`$ref points to nothing: ${value}`);
+    if (!isSchemaLocation(tokens, (keyword) => ANNOTATIONS.has(keyword) || table.has(keyword))) {
+      return void note(`$ref points to a value that is not a schema: ${value}`);
+    }
     if (!isSchema(target)) return void note(`$ref does not point to a schema: ${value}`);
     ref.holder.target = compile(target, `#${tokens.map((token) => `/${pointerToken(token)}`).join("")}`, false);
   }

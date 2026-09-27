@@ -22,6 +22,17 @@ export interface Run {
   failures: Failure[];
   /** "schema id:data offset" pairs being evaluated; meeting one again means a $ref loop that never ends. */
   active: Set<string>;
+  /** Subschema evaluations so far; past EVALUATION_BUDGET the run stops with TooExpensive. */
+  steps: number;
+}
+
+/** About a second of work. A schema that needs more (e.g. $refs that branch at every level) is stopped, not run. */
+export const EVALUATION_BUDGET = 1_000_000;
+
+export class TooExpensive extends Error {
+  constructor() {
+    super("The schema is too expensive to check");
+  }
 }
 
 export type Check = (data: JsonNode, path: JsonPath, run: Run) => Status;
@@ -55,6 +66,7 @@ export function worst(a: Status, b: Status): Status {
 }
 
 export function evaluate(schema: Schema, data: JsonNode, path: JsonPath, run: Run): Status {
+  if (++run.steps > EVALUATION_BUDGET) throw new TooExpensive();
   if (schema.value === true) return "pass";
   if (schema.value === false) {
     run.failures.push({

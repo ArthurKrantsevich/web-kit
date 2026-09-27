@@ -1,4 +1,4 @@
-import { formatPath } from "@web-kit/json-core";
+import { formatPath, type JsonError } from "@web-kit/json-core";
 import {
   Button,
   CopyButton,
@@ -12,7 +12,7 @@ import {
   StatusLine,
   type StatusState,
 } from "@web-kit/ui";
-import { useId, useRef, useState, type ReactElement } from "react";
+import { useId, useRef, useState, type ReactElement, type ReactNode } from "react";
 import type { SchemaResult, TextRange } from "../core/types";
 import { summarizeSchemaResult } from "../core/validate";
 import { useJsonSchemaValidator, type UseJsonSchemaValidatorOptions } from "./useJsonSchemaValidator";
@@ -71,6 +71,17 @@ function formatBytes(bytes: number): string {
 
 const count = (n: number, word: string): string => `${n} ${n === 1 ? word : `${word}s`}`;
 
+/** A core message with its `backtick-quoted` parts (keyword names) as <code>. The message text itself is unchanged. */
+function richMessage(message: string): ReactNode {
+  const parts = message.split(/`([^`]+)`/);
+  if (parts.length === 1) return message;
+  return parts.map((part, index) => (index % 2 === 1 ? <code key={index}>{part}</code> : part));
+}
+
+function parseErrorText(input: Input, error: JsonError): string {
+  return `${LABEL[input]}: Line ${error.line}, column ${error.column}: ${error.message}`;
+}
+
 function stateOf(result: SchemaResult): StatusState {
   if (!result.ok || !result.valid) return "error";
   return result.warnings.length > 0 ? "warning" : "valid";
@@ -121,6 +132,14 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
   }
 
   const errors = result?.ok ? result.errors : [];
+  // Read out after each check. The element is always there, so the first result (a parse error too) is announced.
+  const parseErrors = result && !result.ok && result.stage === "parse" ? result.parseErrors : [];
+  const announcement =
+    result === null
+      ? ""
+      : parseErrors.length > 0
+        ? parseErrors.map(({ input, error }) => parseErrorText(input, error)).join(" ")
+        : summarizeSchemaResult(result);
   const warnings = result && (result.ok || result.stage === "schema") ? result.warnings : [];
 
   /** One clickable list; `noun` names it ("error" → "Errors") and its "more" line. */
@@ -134,7 +153,7 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
               <li key={index}>
                 <button type="button" className="wk-schema__row" disabled={!fresh} onClick={() => select(row.input, row.range)}>
                   <code className="wk-schema__path">{row.path}</code>
-                  <span className="wk-schema__message">{row.message}</span>
+                  <span className="wk-schema__message">{richMessage(row.message)}</span>
                   {row.where && <span className="wk-schema__where">{row.where}</span>}
                 </button>
               </li>
@@ -273,18 +292,19 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
             </span>
           )}
         </div>
+        <p role="status" aria-live="polite" className="wk-ui-sr-only">
+          {announcement}
+        </p>
         <div className="wk-schema__body">
           {result === null ? (
             <p className="wk-schema__placeholder">{placeholder(data, schema)}</p>
           ) : !result.ok && result.stage === "parse" ? (
             <div className="wk-schema__problem">
-              <div role="status">
-                {result.parseErrors.map(({ input, error }) => (
-                  <p key={input} className="wk-schema__error">
-                    {`${LABEL[input]}: Line ${error.line}, column ${error.column}: ${error.message}`}
-                  </p>
-                ))}
-              </div>
+              {result.parseErrors.map(({ input, error }) => (
+                <p key={input} className="wk-schema__error">
+                  {parseErrorText(input, error)}
+                </p>
+              ))}
               {result.parseErrors.map(({ input, error }) => (
                 <button
                   key={input}
