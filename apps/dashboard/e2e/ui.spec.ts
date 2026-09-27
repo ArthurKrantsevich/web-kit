@@ -54,6 +54,112 @@ for (const tool of TOOLS) {
       await expect(segment).toHaveAttribute("aria-pressed", "true");
       expectSameBoxes(before, await buttonBoxes(page), `after ${name}`);
     }
+
+    await page.getByRole("button", { name: "More actions" }).click();
+    await expect(page.getByRole("menu", { name: "More actions" })).toBeVisible();
+    expectSameBoxes(before, await buttonBoxes(page), "with the menu open");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    expectSameBoxes(before, await buttonBoxes(page), "after the menu closed");
+  });
+}
+
+for (const [width, height] of [
+  [1280, 800],
+  [390, 844],
+] as const) {
+  for (const tool of TOOLS) {
+    test(`${tool} at ${width} px: no button moves when the page hydrates and Paste appears`, async ({ browser, baseURL }) => {
+      // The page as the server sent it: no script runs, so Paste (shown only once the clipboard can be read) is absent.
+      const still = await browser.newContext({ baseURL, javaScriptEnabled: false, viewport: { width, height } });
+      const before = await still.newPage();
+      await before.goto(`tools/${tool}/`);
+      await before.evaluate(() => document.fonts.ready);
+      const server = await buttonBoxes(before);
+      expect(Object.keys(server).filter((name) => name.startsWith("Paste"))).toEqual([]);
+      await still.close();
+
+      const live = await browser.newContext({ baseURL, viewport: { width, height } });
+      const after = await live.newPage();
+      await after.goto(`tools/${tool}/`);
+      await expect(after.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+      await after.evaluate(() => document.fonts.ready);
+      expectSameBoxes(server, await buttonBoxes(after), "after hydration");
+      await live.close();
+    });
+  }
+
+  test(`the tree's buttons keep their place and width at ${width} px`, async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.setViewportSize({ width, height });
+    await page.goto("tools/json-formatter/");
+    await page.getByRole("button", { name: "Tree" }).click();
+    await page.getByRole("treeitem", { name: /hello/ }).click();
+    const boxes = () =>
+      page.evaluate(() => {
+        const found: Record<string, [number, number, number, number]> = {};
+        for (const button of document.querySelectorAll(".wk-tree__toolbar button, .wk-tree__details button")) {
+          const box = button.getBoundingClientRect();
+          const name = button.querySelector(".wk-ui-copy__label")?.textContent ?? button.textContent ?? "";
+          // Page coordinates: a click may scroll the page on a phone.
+          found[name] = [box.x + scrollX, box.y + scrollY, box.width, box.height].map((value) => Math.round(value * 2) / 2) as [
+            number,
+            number,
+            number,
+            number,
+          ];
+        }
+        return found;
+      });
+    const before = await boxes();
+    // Every button is inside the output pane: the list gives up height on a short pane, not the details.
+    const inside = await page.evaluate(() => {
+      const pane = document.querySelector(".wk-json__pane--output")!.getBoundingClientRect();
+      return [...document.querySelectorAll(".wk-tree__toolbar button, .wk-tree__details button")].every((button) => {
+        const box = button.getBoundingClientRect();
+        return box.top >= pane.top && box.bottom <= pane.bottom + 0.5 && box.left >= pane.left && box.right <= pane.right + 0.5;
+      });
+    });
+    expect(inside).toBe(true);
+    expect(Object.keys(before)).toEqual([
+      "Previous match",
+      "Next match",
+      "Copy results",
+      "Expand all",
+      "Collapse all",
+      "Copy path",
+      "Copy value",
+      "Show in input",
+    ]);
+    const search = page.getByLabel("Search or JSONPath");
+    for (const step of [
+      async () => page.getByRole("button", { name: "Copy path" }).click(),
+      async () => page.getByRole("button", { name: "Copy value" }).click(),
+      async () => search.fill("zzz"),
+      async () => search.fill("$[?length(@) > 1] and a long tail to make the message longer than the toolbar"),
+      async () => search.fill("o"),
+      async () => page.getByRole("button", { name: "Copy results" }).click(),
+    ]) {
+      await step();
+      await page.waitForTimeout(50);
+      expect(await boxes()).toEqual(before);
+    }
+  });
+
+  test(`More actions shares a row with other buttons at ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    for (const tool of TOOLS) {
+      await page.goto(`tools/${tool}/`);
+      const tops = await page.evaluate(() =>
+        [...document.querySelectorAll(".wk-ui-editor__toolbar button")].map((button) => [
+          button.getAttribute("aria-label") ?? button.textContent ?? "",
+          Math.round(button.getBoundingClientRect().top),
+        ]),
+      );
+      // Buttons on one row may differ in height by a few pixels (segments sit inside their group's padding).
+      const more = Number(tops.find(([name]) => name === "More actions")![1]);
+      expect([tool, tops.filter(([, top]) => Math.abs(Number(top) - more) < 8).length]).not.toEqual([tool, 1]);
+    }
   });
 }
 

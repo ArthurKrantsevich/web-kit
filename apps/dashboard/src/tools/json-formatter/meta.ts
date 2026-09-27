@@ -63,7 +63,8 @@ if (result.ok) console.log(result.value);`,
     {
       name: "JsonFormatter",
       signature: "<JsonFormatter initialInput? initialIndent? className? />",
-      description: "Ready-made editor: modes, indent, sort keys, Open file, Paste, Download, To input and Copy; errors with checked fixes.",
+      description:
+        "Ready-made editor: modes, indent, sort keys, Open file or drop a file, Paste, load from a URL, share link, saved input, keyboard shortcuts, Download, To input and Copy; errors with checked fixes; inputs over 1 MB are formatted in a worker.",
     },
     {
       name: "JsonTree",
