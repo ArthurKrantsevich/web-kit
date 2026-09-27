@@ -50,6 +50,8 @@
   font-size: 0.875rem;
   line-height: 1;
   white-space: nowrap;
+  /* A link given the button's classes (a page's "See all tools") looks like the button: no underline. */
+  text-decoration: none;
   cursor: pointer;
 }
 .wk-ui-button:focus-visible,

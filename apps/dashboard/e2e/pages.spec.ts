@@ -58,3 +58,20 @@ test.describe("About", () => {
     expect(new Set(lefts).size).toBe(1);
   });
 });
+
+test("links styled as buttons or cards are never underlined, at rest or on hover", async ({ page }) => {
+  for (const path of ["no-such-page/", "about/", "./"]) {
+    await page.goto(path);
+    const links = page.locator("a.wk-ui-button, main a.card, main a[class*='about__']");
+    const count = await links.count();
+    expect(count, path).toBeGreaterThan(0);
+    for (let index = 0; index < count; index += 1) {
+      const link = links.nth(index);
+      const decoration = () => link.evaluate((element) => `${element.textContent?.trim()}: ${getComputedStyle(element).textDecorationLine}`);
+      const name = (await link.textContent())?.trim();
+      expect(await decoration(), path).toBe(`${name}: none`);
+      await link.hover();
+      expect(await decoration(), `${path} on hover`).toBe(`${name}: none`);
+    }
+  }
+});
