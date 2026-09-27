@@ -1,13 +1,16 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonSchemaValidator } from "./JsonSchemaValidator";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const area = (name: "Data" | "Schema") => screen.getByLabelText(name) as HTMLTextAreaElement;
 const rows = (list: "Errors" | "Warnings" | "Schema errors") =>
   within(screen.getByRole("list", { name: list })).getAllByRole("button");
-const status = () => document.querySelector(".wk-schema__status")!.textContent;
+const status = () => document.querySelector(".wk-ui-status")!.textContent;
 
 const SCHEMA = '{"type":"object","properties":{"age":{"type":"integer","minimum":0}},"required":["name"]}';
 
@@ -95,5 +98,108 @@ describe("JsonSchemaValidator", () => {
     expect(rows("Errors")).toHaveLength(1000);
     expect(screen.getByText("500 more errors are not listed.")).toBeTruthy();
     expect(status()).toBe("Not valid: 1500 errors");
+  });
+});
+
+function openInto(name: string, file: File) {
+  return act(async () => {
+    fireEvent.change(screen.getByLabelText(name), { target: { files: [file] } });
+  });
+}
+
+function setClipboard(value: unknown) {
+  Object.defineProperty(navigator, "clipboard", { value, configurable: true });
+}
+
+const tooltipOf = (element: HTMLElement) =>
+  element
+    .getAttribute("aria-describedby")
+    ?.split(" ")
+    .map((id) => document.getElementById(id)?.textContent)
+    .join(" ");
+
+describe("JsonSchemaValidator actions", () => {
+  it("opens files into Data and Schema", async () => {
+    render(<JsonSchemaValidator />);
+    await openInto("Open file into Data", new File(['{"age":-1}'], "data.json"));
+    await openInto("Open file into Schema", new File([SCHEMA], "schema.json"));
+    expect([area("Data").value, area("Schema").value]).toEqual(['{"age":-1}', SCHEMA]);
+    expect(status()).toBe("Not valid: 2 errors");
+  });
+
+  it("says when a file is too large", async () => {
+    render(<JsonSchemaValidator />);
+    const big = new File(["x"], "big.json");
+    Object.defineProperty(big, "size", { value: 10 * 1024 * 1024 + 1 });
+    await openInto("Open file into Schema", big);
+    expect(status()).toBe("Nothing to check yet.File is larger than 10 MB");
+  });
+
+  it("puts Paste before Open file, so its late appearance moves no other button", () => {
+    setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
+    render(<JsonSchemaValidator initialSchema="{}" />);
+    const head = area("Schema").closest("section")!.firstElementChild as HTMLElement;
+    expect(within(head).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Paste into Schema",
+      "Open file into Schema",
+      "Download",
+      "CopyCopiedCopy failed",
+    ]);
+  });
+
+  it("pastes into Schema", async () => {
+    setClipboard({ readText: () => Promise.resolve('{"type":"number"}'), writeText: () => Promise.resolve() });
+    render(<JsonSchemaValidator initialData="1" />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Paste into Schema" }));
+    });
+    expect(area("Schema").value).toBe('{"type":"number"}');
+    expect(status()).toBe("Valid");
+  });
+
+  it("copies and downloads the schema as schema.json", async () => {
+    const writeText = vi.fn((_text: string) => Promise.resolve());
+    setClipboard({ writeText });
+    const names: string[] = [];
+    Object.defineProperty(URL, "createObjectURL", { value: () => "blob:test", configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: () => {}, configurable: true });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      names.push(this.download);
+    });
+    render(<JsonSchemaValidator initialData='{"a":1}' />);
+    for (const name of ["Download", "Copy"]) {
+      expect((screen.getByRole("button", { name }) as HTMLButtonElement).disabled).toBe(true);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Generate schema from data" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download" }));
+    expect(names).toEqual(["schema.json"]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    });
+    expect(writeText).toHaveBeenCalledWith(area("Schema").value);
+  });
+
+  it("colors a result with unchecked keywords as a warning, not as valid", () => {
+    render(<JsonSchemaValidator initialData='{"long":1}' initialSchema='{"propertyNames":{"maxLength":3}}' />);
+    expect(document.querySelector(".wk-ui-status")!.className).toBe("wk-ui-status wk-ui-status--warning");
+  });
+
+  it("every action says what it does", () => {
+    setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
+    render(<JsonSchemaValidator initialData='{"a":1}' initialSchema='{"type":"string"}' />);
+    fireEvent.click(screen.getByRole("button", { name: "Generate schema from data" }));
+    const expected: [string, string][] = [
+      ["Generate schema from data", "Replace the schema with one inferred from the data"],
+      ["Sample", "Replace data and schema with an example"],
+      ["Clear", "Empty data and schema"],
+      ["Open file into Data", "Open a .json or .txt file into Data (up to 10 MB)"],
+      ["Paste into Data", "Paste from the clipboard into Data"],
+      ["Undo generate", "Bring back the schema you had before generating"],
+      ["Open file into Schema", "Open a .json or .txt file into Schema (up to 10 MB)"],
+      ["Paste into Schema", "Paste from the clipboard into Schema"],
+      ["Download", "Save the schema as schema.json"],
+      ["Copy", "Copy the schema to the clipboard"],
+    ];
+    for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
   });
 });

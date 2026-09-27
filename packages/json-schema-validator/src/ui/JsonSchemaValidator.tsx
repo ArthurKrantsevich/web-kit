@@ -1,4 +1,17 @@
 import { formatPath } from "@web-kit/json-core";
+import {
+  Button,
+  CopyButton,
+  downloadText,
+  EditorPane,
+  EditorPanes,
+  EditorShell,
+  EditorToolbar,
+  OpenFileButton,
+  PasteButton,
+  StatusLine,
+  type StatusState,
+} from "@web-kit/ui";
 import { useId, useRef, useState, type ReactElement } from "react";
 import type { SchemaResult, TextRange } from "../core/types";
 import { summarizeSchemaResult } from "../core/validate";
@@ -43,6 +56,9 @@ const SAMPLE_SCHEMA = String.raw`{
 /** Rows beyond this are not rendered: a huge list would freeze the page. */
 const LIST_LIMIT = 1000;
 
+/** Larger files are not read: checking them would freeze the page. */
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
 const LABEL: Record<Input, string> = { data: "Data", schema: "Schema" };
 const hasBom = (text: string): boolean => text.charCodeAt(0) === 0xfeff;
 const encoder = new TextEncoder();
@@ -55,9 +71,9 @@ function formatBytes(bytes: number): string {
 
 const count = (n: number, word: string): string => `${n} ${n === 1 ? word : `${word}s`}`;
 
-function stateOf(result: SchemaResult): "valid" | "partial" | "error" {
+function stateOf(result: SchemaResult): StatusState {
   if (!result.ok || !result.valid) return "error";
-  return result.warnings.length > 0 ? "partial" : "valid";
+  return result.warnings.length > 0 ? "warning" : "valid";
 }
 
 function placeholder(data: string, schema: string): string {
@@ -130,73 +146,122 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
     );
   }
 
-  return (
-    <div className={["wk-schema", props.className].filter(Boolean).join(" ")}>
-      <div className="wk-schema__bar" role="group" aria-label="Options">
-        <button type="button" className="wk-schema__ghost" disabled={data.trim() === ""} onClick={generate}>
-          Generate schema from data
-        </button>
-        <span className="wk-schema__spacer" />
-        <button
-          type="button"
-          className="wk-schema__ghost"
-          onClick={() => {
-            set.data(SAMPLE_DATA);
-            set.schema(SAMPLE_SCHEMA);
-          }}
-        >
-          Sample
-        </button>
-        <button
-          type="button"
-          className="wk-schema__ghost"
-          onClick={() => {
-            set.data("");
-            set.schema("");
-          }}
-        >
-          Clear
-        </button>
-      </div>
+  const toolbar = (
+    <EditorToolbar>
+      <Button
+        variant="outline"
+        icon="generate"
+        tooltip="Replace the schema with one inferred from the data"
+        disabled={data.trim() === ""}
+        onClick={generate}
+      >
+        Generate schema from data
+      </Button>
+      <span className="wk-ui-spacer" />
+      <Button
+        icon="sample"
+        tooltip="Replace data and schema with an example"
+        onClick={() => {
+          set.data(SAMPLE_DATA);
+          set.schema(SAMPLE_SCHEMA);
+        }}
+      >
+        Sample
+      </Button>
+      <Button
+        icon="clear"
+        tooltip="Empty data and schema"
+        onClick={() => {
+          set.data("");
+          set.schema("");
+        }}
+      >
+        Clear
+      </Button>
+    </EditorToolbar>
+  );
 
-      <div className="wk-schema__panes">
+  const status = (
+    <StatusLine state={result ? stateOf(result) : "idle"}>
+      <span>{result ? summarizeSchemaResult(result) : "Nothing to check yet."}</span>
+      {notice && <span className="wk-schema__notice">{notice}</span>}
+    </StatusLine>
+  );
+
+  return (
+    <EditorShell className={["wk-schema", props.className].filter(Boolean).join(" ")} toolbar={toolbar} status={status}>
+      <EditorPanes>
         {(["data", "schema"] as const).map((input) => (
-          <section key={input} className={`wk-schema__pane wk-schema__pane--${input}`}>
-            <div className="wk-schema__pane-head">
-              <label className="wk-schema__pane-title" htmlFor={`${id}-${input}`}>
-                {LABEL[input]}
-              </label>
-              <span className="wk-schema__size">{formatBytes(encoder.encode(text[input]).length)}</span>
-              {input === "schema" && state.previousSchema !== null && (
-                <button
-                  type="button"
-                  className="wk-schema__ghost wk-schema__undo"
-                  aria-label="Undo generate"
-                  onClick={() => {
-                    setNotice("");
-                    state.undoGenerate();
-                  }}
-                >
-                  Undo
-                </button>
-              )}
-            </div>
+          <EditorPane
+            key={input}
+            className={`wk-schema__pane--${input}`}
+            title={LABEL[input]}
+            labelFor={`${id}-${input}`}
+            meta={formatBytes(encoder.encode(text[input]).length)}
+            actions={
+              <>
+                {input === "schema" && state.previousSchema !== null && (
+                  <Button
+                    tooltip="Bring back the schema you had before generating"
+                    aria-label="Undo generate"
+                    onClick={() => {
+                      setNotice("");
+                      state.undoGenerate();
+                    }}
+                  >
+                    Undo
+                  </Button>
+                )}
+                {/* Paste comes before Open file: it appears after hydration, and nothing to its right may move. */}
+                <PasteButton
+                  label={`Paste into ${LABEL[input]}`}
+                  tooltip={`Paste from the clipboard into ${LABEL[input]}`}
+                  iconOnly
+                  onText={set[input]}
+                  onError={setNotice}
+                />
+                <OpenFileButton
+                  label={`Open file into ${LABEL[input]}`}
+                  tooltip={`Open a .json or .txt file into ${LABEL[input]} (up to 10 MB)`}
+                  accept=".json,application/json,.txt,text/plain"
+                  maxBytes={MAX_FILE_BYTES}
+                  iconOnly
+                  onText={set[input]}
+                  onError={setNotice}
+                />
+                {input === "schema" && (
+                  <>
+                    <Button
+                      icon="download"
+                      iconOnly
+                      tooltip="Save the schema as schema.json"
+                      disabled={schema === ""}
+                      onClick={() => downloadText(schema, "schema.json", "application/schema+json")}
+                    >
+                      Download
+                    </Button>
+                    <CopyButton text={schema} tooltip="Copy the schema to the clipboard" />
+                  </>
+                )}
+              </>
+            }
+          >
             <textarea
               ref={refs[input]}
               id={`${id}-${input}`}
-              className="wk-schema__area"
+              className="wk-ui-area"
               value={text[input]}
               onChange={(e) => set[input](e.target.value)}
               spellCheck={false}
               placeholder={input === "data" ? '{"name": "web-kit"}' : '{"type": "object"}'}
             />
-          </section>
+          </EditorPane>
         ))}
-      </div>
+      </EditorPanes>
 
       <section className="wk-schema__result" aria-label="Results">
-        <div className="wk-schema__result-head">
-          <span className="wk-schema__result-title">Results</span>
+        <div className="wk-ui-pane__head wk-schema__result-head">
+          <span className="wk-ui-pane__title">Results</span>
           {result?.ok && (
             <span className="wk-schema__counts">
               <span className="wk-schema__count wk-schema__count--error">{count(errors.length, "error")}</span>
@@ -263,15 +328,6 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
           )}
         </div>
       </section>
-
-      <p className="wk-schema__status">
-        {result ? (
-          <span className={`wk-schema__state wk-schema__state--${stateOf(result)}`}>{summarizeSchemaResult(result)}</span>
-        ) : (
-          <span>Nothing to check yet.</span>
-        )}
-        {notice && <span className="wk-schema__notice">{notice}</span>}
-      </p>
-    </div>
+    </EditorShell>
   );
 }

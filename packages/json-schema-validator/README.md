@@ -37,7 +37,7 @@ export function Page() {
 }
 ```
 
-`useJsonSchemaValidator()` gives the same state without markup. Set `--wk-schema-height` to change the height of the two inputs.
+Data and Schema each have Paste and Open file; Schema also has Download (`schema.json`) and Copy. `useJsonSchemaValidator()` gives the same state without markup. Set `--wk-schema-height` to change the height of the two inputs.
 
 ## License
 
