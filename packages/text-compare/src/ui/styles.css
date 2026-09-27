@@ -292,8 +292,10 @@
   flex: 0 1 auto;
   min-width: 0;
 }
-.wk-compare .wk-ui-status > .wk-compare__summary {
-  flex-shrink: 2;
+/* The notes give way first: each has its whole text in a tooltip, the summary has none. */
+.wk-compare .wk-ui-status > :not(.wk-compare__summary) {
+  flex-shrink: 8;
+  min-width: 3.5em;
 }
 .wk-compare__summary {
   display: inline-flex;
