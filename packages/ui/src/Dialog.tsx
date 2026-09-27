@@ -32,6 +32,9 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
+  // Where the last press began: a click closes only when both the press and the release were on the backdrop, so a
+  // text selection that starts in a field and ends outside the box does not close the dialog.
+  const pressedOnBackdrop = useRef(false);
 
   useEffect(() => {
     const element = dialog.current;
@@ -88,9 +91,14 @@ export function Dialog({ open, onClose, title, children, footer, className }: Di
       aria-labelledby={`${id}-title`}
       aria-modal="true"
       onKeyDown={onKeyDown}
+      onPointerDown={(event) => {
+        pressedOnBackdrop.current = event.target === event.currentTarget;
+      }}
       onClick={(event) => {
         // The dialog element itself is only hit outside its content box: on the backdrop.
-        if (event.target === event.currentTarget) onClose();
+        const fromBackdrop = pressedOnBackdrop.current;
+        pressedOnBackdrop.current = false;
+        if (fromBackdrop && event.target === event.currentTarget) onClose();
       }}
     >
       <div className="wk-ui-dialog__content">

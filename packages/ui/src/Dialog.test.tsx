@@ -76,12 +76,23 @@ describe("Dialog", () => {
     expect(document.activeElement).toBe(opener);
   });
 
+  it("stays open when a text selection that started inside ends on the backdrop", () => {
+    const onClose = vi.fn();
+    render(<Harness onClose={onClose} />);
+    openDialog();
+    // Selecting text in the field and releasing the button outside the box: the click lands on the dialog element.
+    fireEvent.pointerDown(screen.getByLabelText("URL"));
+    fireEvent.click(screen.getByRole("dialog"));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("closes with its Close button and on a click on the backdrop, not inside", () => {
     const onClose = vi.fn();
     render(<Harness onClose={onClose} />);
     openDialog();
     fireEvent.click(screen.getByLabelText("URL"));
     expect(onClose).not.toHaveBeenCalled();
+    fireEvent.pointerDown(screen.getByRole("dialog"));
     fireEvent.click(screen.getByRole("dialog"));
     expect(onClose).toHaveBeenCalledTimes(1);
     openDialog();
