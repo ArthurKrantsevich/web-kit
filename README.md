@@ -26,7 +26,7 @@ The same tools are planned for Flutter in [flutter-kit](https://github.com/Arthu
 
 ## Status
 
-Four JSON tools are ready and share one interface through `@web-kit/ui`. Eleven more tools are planned. The packages are not published to npm yet: the scope `@web-kit` is a working name and will be chosen before the first release.
+Five tools are ready, four for JSON and Text Compare, and share one interface through `@web-kit/ui`. Ten more tools are planned. The packages are not published to npm yet: the scope `@web-kit` is a working name and will be chosen before the first release.
 
 ## Utilities
 
@@ -38,6 +38,7 @@ Four JSON tools are ready and share one interface through `@web-kit/ui`. Eleven 
 | [JSON Convert](https://arthurkrantsevich.github.io/web-kit/tools/json-convert/) | `@web-kit/json-convert` | JSON to YAML 1.2, CSV, XML or TypeScript interfaces, and CSV to JSON. Numbers keep their spelling; CSV output is read back to show how many rows and columns survive; the output is colored by format. |
 | [JSON Diff](https://arthurkrantsevich.github.io/web-kit/tools/json-diff/) | `@web-kit/json-diff` | Every change with its path and the old and new value as written; arrays by index or matched by a key; numbers by value or as written; click a change to select it in the input; JSON Patch (RFC 6902) to copy or download. |
 | [JSON Schema Validator](https://arthurkrantsevich.github.io/web-kit/tools/json-schema-validator/) | `@web-kit/json-schema-validator` | Draft 2020-12: every error with its path in the data and in the schema, exact numbers, keywords it does not check reported as warnings (never a silent "valid"), a schema generated from the data. Tested against the official JSON Schema Test Suite. |
+| [Text Compare](https://arthurkrantsevich.github.io/web-kit/tools/text-compare/) | `@web-kit/text-compare` | Two texts or files side by side or in one column, by line, word or character; whitespace, case, blank lines and line endings ignored on request; changes copied to the other side; a unified diff for `git apply`. Described below. |
 
 Shared packages: `@web-kit/json-core` (a lossless JSON parser and AST, fixes, paths, exact number comparison, a worker for large inputs) and `@web-kit/ui` (the editor layout, buttons, menus, dialogs and the convenience features below).
 
@@ -48,7 +49,6 @@ Shared packages: `@web-kit/json-core` (a lossless JSON parser and AST, fixes, pa
 | Base64 | data | Encode and decode text and files, with correct UTF-8. |
 | URL Encoder | data | Encode and decode URLs and their parts; take a query string apart. |
 | JWT Decoder | data | Show the header and payload and when the token expires. The signature is not checked, and the tool says so. |
-| Text Compare | data | Compare two texts or files, described below. |
 | UUID Generator | generators | v4 and v7, one or many at a time. |
 | Password Generator | generators | Length and character sets, a secure random source, an entropy estimate. |
 | Hash Generator | generators | SHA-1, SHA-256, SHA-384, SHA-512 and MD5 of a text or a file. |
@@ -57,26 +57,26 @@ Shared packages: `@web-kit/json-core` (a lossless JSON parser and AST, fixes, pa
 | Image Converter | media | PNG, JPG and WebP, resizing and quality. |
 | Video Player | media | Speed control, VTT subtitles, keyboard shortcuts, picture-in-picture. |
 
-#### Text Compare (planned)
+#### Text Compare
 
-This is a plan, not a shipped tool. `text-compare`, in the data category, will compare two texts or two files:
+[`text-compare`](https://arthurkrantsevich.github.io/web-kit/tools/text-compare/), in the data category, compares two texts or two files:
 
-- side by side or in one column;
-- differences highlighted by line, by word and by character;
-- options to ignore whitespace, case, empty lines and line endings;
-- synchronized scrolling, and going to the next or previous change;
-- moving a change to the other side (merge), and resetting;
-- statistics (+ added, − removed, ~ changed lines) and export as a unified diff (`.patch`);
-- opening files and dropping them on a side, with a worker for large files.
+- side by side, in two columns that scroll together, or in one column with removed lines above added ones;
+- changed lines paired and their changed words or characters highlighted (an emoji or an accented letter is never cut);
+- options to ignore whitespace (as `git diff -w`), case, blank lines and line endings; the result says when texts are identical only because of them;
+- unchanged runs folded to three lines of context, Previous and Next change (Alt+↑/↓, F7), and at most 5,000 rows drawn at once;
+- "Use left" and "Use right" copy a change to the other side, and Ctrl+Z in that input undoes it;
+- counts (+ added, − removed, ~ changed lines) and a unified diff to copy or download as `compare.patch`, with the file names; it matches `git diff --no-index -U3` on the recorded examples, so `git apply` and `patch` accept it;
+- notes on different line endings and a missing line break at the end; files opened or dropped on a side, up to 10 MB; texts over 1 MB compared in a Web Worker.
 
 ## Convenience in every tool
 
-- **Files.** Open file or drop a file on an input (UTF-8, byte order mark removed, up to 10 MB), and Download the result with a name that fits it (`formatted.json`, `converted.yaml`, `patch.json`, `schema.json`).
+- **Files.** Open file or drop a file on an input (UTF-8, byte order mark removed, up to 10 MB), and Download the result with a name that fits it (`formatted.json`, `converted.yaml`, `patch.json`, `schema.json`, `compare.patch`).
 - **Load from URL.** The browser fetches the address directly: `http:` and `https:` only, no cookies, up to 10 MB. The server must allow reading from other sites (CORS); nothing goes through a proxy.
 - **Share link.** The input and the options are compressed into the part of the link after `#`, which browsers never send to a server. Anyone with the link can see the data; the tool warns when a link is longer than messengers usually keep.
 - **Saved input.** Off by default. Turned on, the input is kept in this browser's storage for that tool until you turn it off or clear it.
-- **Keyboard shortcuts.** Ctrl+Enter (⌘+Enter on a Mac) formats in the formatter, swaps direction in the converter (JSON → CSV and CSV → JSON), swaps Left and Right in the diff, and generates a schema from the data in the validator; the formatter also has Ctrl+Shift+M (minify) and Ctrl+Shift+F (fix all). `?` shows the list. Browser shortcuts are left alone.
-- **Large inputs.** The formatter works on inputs over 1 MB in a Web Worker, so the page stays responsive, and says so while it works.
+- **Keyboard shortcuts.** Ctrl+Enter (⌘+Enter on a Mac) formats in the formatter, swaps direction in the converter (JSON → CSV and CSV → JSON), swaps Left and Right in the diff and in Text Compare, and generates a schema from the data in the validator; the formatter also has Ctrl+Shift+M (minify) and Ctrl+Shift+F (fix all), and Text Compare Alt+↓/Alt+↑ and F7/Shift+F7 (next and previous change). `?` shows the list. Browser shortcuts are left alone.
+- **Large inputs.** The formatter works on inputs over 1 MB, and Text Compare on texts over 1 MB together, in a Web Worker, so the page stays responsive, and each says so while it works.
 - **One interface.** The same actions look the same in every tool: Open file and Paste in the header of each input, Download and Copy in the header of the output, Sample, Clear and "More actions" in the toolbar. Every button has a tooltip that says what it will do, and nothing moves when a label changes or the page finishes loading.
 - **Light and dark themes**, following the system until you choose.
 
@@ -102,7 +102,7 @@ import "@web-kit/json-formatter/styles.css";
 - One CSS file per tool, built on CSS variables (`--wk-*` from `@web-kit/tokens`) that you can override. The shared styles sit in the `wk-ui` cascade layer, so your own rules win.
 - The React UI works in the Next.js App Router: the UI entry keeps its `"use client"` directive.
 
-See each package's README for its API: [json-core](packages/json-core), [json-formatter](packages/json-formatter), [json-convert](packages/json-convert), [json-diff](packages/json-diff), [json-schema-validator](packages/json-schema-validator), [ui](packages/ui).
+See each package's README for its API: [json-core](packages/json-core), [json-formatter](packages/json-formatter), [json-convert](packages/json-convert), [json-diff](packages/json-diff), [json-schema-validator](packages/json-schema-validator), [text-compare](packages/text-compare), [ui](packages/ui).
 
 ## Repository layout
 
@@ -117,6 +117,7 @@ packages/
   json-convert/
   json-diff/
   json-schema-validator/
+  text-compare/       its core also has a worker entry for large texts
 tooling/scripts/      build and package checks
 turbo/generators/     the template of `pnpm turbo gen utility`
 .github/workflows/    build, check and deploy
