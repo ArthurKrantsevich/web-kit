@@ -171,6 +171,18 @@ describe("validateSchema", () => {
     ]);
   });
 
+  it("tells a $ref to a subschema with its own $id apart from a remote $ref", () => {
+    const schema = (ref: string) =>
+      `{"$id":"https://example.com/root.json","$defs":{"n":{"$id":"num.json","type":"number"}},"properties":{"x":{"$ref":"${ref}"}}}`;
+    for (const ref of ["num.json", "https://example.com/num.json", "/num.json#/type"]) {
+      expect(problems(schema(ref))).toEqual(["#/properties/x/$ref: $ref to a subschema with its own $id is not supported"]);
+    }
+    expect(problems(schema("other.json"))).toEqual(["#/properties/x/$ref: remote $ref is not supported"]);
+    expect(problems('{"$ref":"urn:example:a","$defs":{"a":{"$id":"urn:example:a"}}}')).toEqual([
+      "#/$ref: $ref to a subschema with its own $id is not supported",
+    ]);
+  });
+
   it("accepts a $ref by the root $id", () => {
     expect(messages('"x"', '{"$id":"https://example.com/root.json","$defs":{"n":{"type":"number"}},"$ref":"https://example.com/root.json#/$defs/n"}')).toEqual([
       "Expected number, got string",

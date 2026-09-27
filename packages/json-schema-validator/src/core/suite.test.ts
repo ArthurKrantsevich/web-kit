@@ -60,31 +60,62 @@ interface Deviation {
   group: string;
   /** Only this test of the group; all tests when absent. */
   test?: string;
-  /** What we do instead of the suite's answer. */
-  expect: "schema error" | "invalid";
+  /**
+   * What we do instead of the suite's answer: a schema error with `message` among its problems,
+   * "invalid" where the suite expects "valid", or "unchecked": a result with `message` among its warnings that misses the error.
+   */
+  expect: "schema error" | "invalid" | "unchecked";
+  /** The exact problem or warning message we give. */
+  message?: string;
   reason: string;
 }
 
-const EMBEDDED = "$ref resolved against a nested $id (an embedded schema resource) is not supported: explicit schema error";
-const ANCHOR = "$ref to an anchor is not supported: explicit schema error";
+const REMOTE = "remote $ref is not supported";
+const EMBEDDED = "$ref to a subschema with its own $id is not supported";
+const ANCHOR = "$ref to an anchor is not supported";
+const UNEVALUATED = "keyword `unevaluatedProperties` is not checked";
 const ASSERTED = "these seven formats are asserted, not annotations (plan decision 2)";
+
+const embedded = (group: string): Deviation => ({
+  file: "ref.json",
+  group,
+  expect: "schema error",
+  message: EMBEDDED,
+  reason: "the $ref targets a subschema of the same document identified by its own (embedded) $id: explicit schema error",
+});
 
 /** Cases whose expected answer we knowingly do not give. Each one still runs and must fail in the stated, explicit way. */
 const DEVIATIONS: Deviation[] = [
-  { file: "ref.json", group: "remote ref, containing refs itself", expect: "schema error", reason: "remote $ref is not supported" },
-  { file: "ref.json", group: "Recursive references between schemas", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "refs with relative uris and defs", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "relative refs with absolute uris and defs", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "$id must be resolved against nearest parent, not just immediate parent", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "order of evaluation: $id and $ref", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "order of evaluation: $id and $anchor and $ref", expect: "schema error", reason: ANCHOR },
-  { file: "ref.json", group: "order of evaluation: $id and $ref on nested schema", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "URN base URI with URN and anchor ref", expect: "schema error", reason: ANCHOR },
-  { file: "ref.json", group: "URN ref with nested pointer ref", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "ref to if", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "ref to then", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "ref to else", expect: "schema error", reason: EMBEDDED },
-  { file: "ref.json", group: "ref with absolute-path-reference", expect: "schema error", reason: EMBEDDED },
+  { file: "ref.json", group: "remote ref, containing refs itself", expect: "schema error", message: REMOTE, reason: "the $ref points to another document (the meta-schema): explicit schema error" },
+  embedded("Recursive references between schemas"),
+  embedded("refs with relative uris and defs"),
+  embedded("relative refs with absolute uris and defs"),
+  embedded("$id must be resolved against nearest parent, not just immediate parent"),
+  embedded("order of evaluation: $id and $ref"),
+  { file: "ref.json", group: "order of evaluation: $id and $anchor and $ref", expect: "schema error", message: ANCHOR, reason: "the $ref points to an $anchor: explicit schema error" },
+  embedded("order of evaluation: $id and $ref on nested schema"),
+  { file: "ref.json", group: "URN base URI with URN and anchor ref", expect: "schema error", message: ANCHOR, reason: "the $ref points to an $anchor: explicit schema error" },
+  embedded("URN ref with nested pointer ref"),
+  embedded("ref to if"),
+  embedded("ref to then"),
+  embedded("ref to else"),
+  embedded("ref with absolute-path-reference"),
+  {
+    file: "ref.json",
+    group: "ref creates new scope when adjacent to keywords",
+    test: "referenced subschema doesn't see annotations from properties",
+    expect: "unchecked",
+    message: UNEVALUATED,
+    reason: "unevaluatedProperties is not checked (warning), so the extra property is missed",
+  },
+  {
+    file: "not.json",
+    group: "collect annotations inside a 'not', even if collection is disabled",
+    test: "annotations are still collected inside a 'not'",
+    expect: "unchecked",
+    message: UNEVALUATED,
+    reason: "unevaluatedProperties is not checked (warning), so the extra property is missed",
+  },
   ...["email", "ipv4", "ipv6", "date", "date-time", "uri", "uuid"].map(
     (format): Deviation => ({
       file: "format.json",
@@ -136,14 +167,19 @@ for (const file of FILES) {
             const result = validateSchema(data, schema);
             if (deviation) {
               used.add(deviation);
-              if (deviation.expect === "schema error") expect(result.ok || result.stage).toBe("schema");
-              else expect(result.ok && result.valid).toBe(false);
+              const messages = (list: { message: string }[]) => list.map((note) => note.message);
+              if (deviation.expect === "schema error") {
+                if (result.ok || result.stage !== "schema") throw new Error(`expected a schema error: ${JSON.stringify(result)}`);
+                expect(messages(result.problems)).toContain(deviation.message);
+              } else if (deviation.expect === "unchecked") {
+                if (!result.ok) throw new Error(`unexpected ${result.stage} error: ${JSON.stringify(result)}`);
+                expect(messages(result.warnings)).toContain(deviation.message);
+                expect(result.valid).toBe(true);
+              } else expect(result.ok && result.valid).toBe(false);
               return;
             }
             if (!result.ok) throw new Error(`unexpected ${result.stage} error: ${JSON.stringify(result)}`);
-            if (result.warnings.length === 0) expect(result.valid).toBe(valid);
-            // With unchecked keywords "valid" may miss an error, but a reported error must be real.
-            else if (valid) expect(result.valid).toBe(true);
+            expect(result.valid).toBe(valid);
           });
         }
       });

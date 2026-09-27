@@ -69,6 +69,15 @@ function resolvePointer(root: JsonNode, tokens: string[]): JsonNode | null {
   return node;
 }
 
+/** `ref` resolved against `base`, without its fragment; null when it cannot be resolved (a relative URI without a base). */
+function absolute(ref: string, base: string | null): string | null {
+  try {
+    return new URL(ref, base ?? undefined).href.replace(/#.*$/, "");
+  } catch {
+    return null;
+  }
+}
+
 /** Compiles a draft 2020-12 schema from its AST. Every subschema is visited, so all problems and warnings are found up front. */
 export function compileSchema(root: JsonNode, text: string): Compiled {
   const problems: Note[] = [];
@@ -81,6 +90,20 @@ export function compileSchema(root: JsonNode, text: string): Compiled {
   const rootMembers = root.type === "object" ? membersOf(root) : new Map<string, JsonMember>();
   const rootId = rootMembers.get("$id")?.value;
   const base = rootId?.type === "string" ? rootId.value.replace(/#.*$/, "") : null;
+  // Absolute URIs of the subschemas with their own $id, each resolved against its nearest parent's $id:
+  // a $ref to one of them is not remote, only unsupported.
+  const embeddedIds = new Set<string>();
+  const collectIds = (node: JsonNode, scope: string | null): void => {
+    if (node.type === "array") for (const item of node.items) collectIds(item, scope);
+    if (node.type !== "object") return;
+    const id = membersOf(node).get("$id")?.value;
+    if (id?.type === "string") {
+      scope = absolute(id.value, scope);
+      if (node !== root && scope !== null) embeddedIds.add(scope);
+    }
+    for (const member of node.members) collectIds(member.value, scope);
+  };
+  collectIds(root, null);
 
   function compile(node: JsonNode, path: string, embedded: boolean): Schema {
     const cached = cache.get(node);
@@ -145,8 +168,11 @@ export function compileSchema(root: JsonNode, text: string): Compiled {
     const hash = value.indexOf("#");
     const uri = hash === -1 ? value : value.slice(0, hash);
     const fragment = hash === -1 ? "" : value.slice(hash + 1);
-    if (uri !== "" && uri !== base) return void note("remote $ref is not supported");
     if (ref.embedded) return void note("$ref inside a subschema with its own $id is not supported");
+    if (uri !== "" && uri !== base) {
+      const target = absolute(uri, base === null ? null : absolute(base, null));
+      return void note(target !== null && embeddedIds.has(target) ? "$ref to a subschema with its own $id is not supported" : "remote $ref is not supported");
+    }
     if (fragment !== "" && !fragment.startsWith("/")) return void note("$ref to an anchor is not supported");
     let tokens: string[];
     try {
