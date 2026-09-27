@@ -3,13 +3,12 @@ import {
   useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useRef,
   useState,
   type PointerEvent,
   type ReactElement,
 } from "react";
-import { clampLeft, hideFromTopLayer, showInTopLayer, usePopoverSupport } from "./popover";
+import { clampLeft, hideFromTopLayer, showInTopLayer, useIsomorphicLayoutEffect, usePopoverSupport } from "./popover";
 
 export interface TooltipProps {
   /** What will happen, in a short sentence. */
@@ -21,9 +20,12 @@ export interface TooltipProps {
 /** Hover delay before a tooltip appears. Keyboard focus shows it at once. */
 export const TOOLTIP_DELAY = 400;
 
+/** Hides the tooltip that is open now. Only one is shown at a time: opening another hides it. */
+let hideOpenTooltip: (() => void) | undefined;
+
 /**
  * A dark label above its element (below when there is no room above). Shown after 400 ms of mouse hover or at once
- * on keyboard focus; hidden on leave, blur, Escape and click; never shown for touch. It describes the element and
+ * on keyboard focus; hidden on leave, blur, Escape, click, scroll and window resize; never shown for touch. One tooltip is shown at a time. It describes the element and
  * does not replace its accessible name.
  */
 export function Tooltip({ content, children }: TooltipProps): ReactElement {
@@ -33,8 +35,10 @@ export function Tooltip({ content, children }: TooltipProps): ReactElement {
   const anchor = useRef<HTMLSpanElement>(null);
   const tip = useRef<HTMLSpanElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  // Focus that follows a pointer press is not keyboard focus.
+  // Focus that follows a pointer press is not keyboard focus. The press ends wherever the pointer is released, so the
+  // release is watched on the window: a press dragged off the element must not block later keyboard focus.
   const pressed = useRef(false);
+  const stopWatchingRelease = useRef<(() => void) | undefined>(undefined);
 
   const cancel = useCallback((): void => {
     if (timer.current !== undefined) clearTimeout(timer.current);
@@ -45,9 +49,31 @@ export function Tooltip({ content, children }: TooltipProps): ReactElement {
     setOpen(false);
   }, [cancel]);
 
-  useEffect(() => cancel, [cancel]);
+  const release = useCallback((): void => {
+    pressed.current = false;
+    stopWatchingRelease.current?.();
+    stopWatchingRelease.current = undefined;
+  }, []);
+  const press = useCallback((): void => {
+    release();
+    pressed.current = true;
+    window.addEventListener("pointerup", release, true);
+    window.addEventListener("pointercancel", release, true);
+    stopWatchingRelease.current = () => {
+      window.removeEventListener("pointerup", release, true);
+      window.removeEventListener("pointercancel", release, true);
+    };
+  }, [release]);
 
-  useLayoutEffect(() => {
+  useEffect(
+    () => () => {
+      cancel();
+      release();
+    },
+    [cancel, release],
+  );
+
+  useIsomorphicLayoutEffect(() => {
     const element = tip.current;
     if (!element) return;
     if (!open) {
@@ -70,14 +96,19 @@ export function Tooltip({ content, children }: TooltipProps): ReactElement {
 
   useEffect(() => {
     if (!open) return;
+    if (hideOpenTooltip !== hide) hideOpenTooltip?.();
+    hideOpenTooltip = hide;
     const onKey = (event: KeyboardEvent): void => {
       if (event.key === "Escape") hide();
     };
     document.addEventListener("keydown", onKey);
     window.addEventListener("scroll", hide, true);
+    window.addEventListener("resize", hide);
     return () => {
+      if (hideOpenTooltip === hide) hideOpenTooltip = undefined;
       document.removeEventListener("keydown", onKey);
       window.removeEventListener("scroll", hide, true);
+      window.removeEventListener("resize", hide);
     };
   }, [open, hide]);
 
@@ -96,14 +127,8 @@ export function Tooltip({ content, children }: TooltipProps): ReactElement {
       onPointerEnter={onPointerEnter}
       onPointerLeave={hide}
       onPointerDown={() => {
-        pressed.current = true;
+        press();
         hide();
-      }}
-      onPointerUp={() => {
-        pressed.current = false;
-      }}
-      onPointerCancel={() => {
-        pressed.current = false;
       }}
       onFocus={() => {
         if (pressed.current) return;

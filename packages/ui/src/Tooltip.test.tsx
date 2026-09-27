@@ -82,6 +82,24 @@ describe("Tooltip", () => {
     expect(shown()).toBe(false);
   });
 
+  it("appears on keyboard focus after a press that was released elsewhere", () => {
+    renderButton();
+    fireEvent.pointerDown(button(), { pointerType: "mouse" });
+    // The pointer is dragged off the button and released over the page.
+    fireEvent.pointerUp(document.body, { pointerType: "mouse" });
+    fireEvent.blur(button());
+    fireEvent.focus(button());
+    expect(shown()).toBe(true);
+  });
+
+  it("appears on keyboard focus after a cancelled press", () => {
+    renderButton();
+    fireEvent.pointerDown(button(), { pointerType: "mouse" });
+    fireEvent.pointerCancel(document.body, { pointerType: "mouse" });
+    fireEvent.focus(button());
+    expect(shown()).toBe(true);
+  });
+
   it("never appears for touch", () => {
     renderButton();
     fireEvent.pointerEnter(button(), { pointerType: "touch" });
@@ -99,6 +117,39 @@ describe("Tooltip", () => {
     fireEvent.pointerEnter(button(), { pointerType: "mouse" });
     act(() => vi.advanceTimersByTime(400));
     fireEvent.click(button());
+    expect(shown()).toBe(false);
+  });
+
+  it("shows one tooltip at a time", () => {
+    render(
+      <>
+        <Button tooltip="First tip">One</Button>
+        <Button tooltip="Second tip">Two</Button>
+      </>,
+    );
+    const open = () =>
+      screen
+        .getAllByRole("tooltip")
+        .filter((element) => element.getAttribute("data-state") === "open")
+        .map((element) => element.textContent);
+    fireEvent.pointerEnter(screen.getByRole("button", { name: "One" }), { pointerType: "mouse" });
+    act(() => vi.advanceTimersByTime(400));
+    expect(open()).toEqual(["First tip"]);
+    fireEvent.focus(screen.getByRole("button", { name: "Two" }));
+    expect(open()).toEqual(["Second tip"]);
+  });
+
+  it("hides when the window is resized or scrolled", () => {
+    renderButton();
+    fireEvent.focus(button());
+    act(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+    expect(shown()).toBe(false);
+    fireEvent.blur(button());
+    fireEvent.focus(button());
+    expect(shown()).toBe(true);
+    fireEvent.scroll(window);
     expect(shown()).toBe(false);
   });
 

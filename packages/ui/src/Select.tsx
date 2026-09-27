@@ -1,6 +1,6 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
 import { Icon } from "./Icon";
-import { clampLeft, cx, showInTopLayer, usePopoverSupport } from "./popover";
+import { clampLeft, cx, showInTopLayer, useIsomorphicLayoutEffect, usePopoverSupport } from "./popover";
 
 export interface SelectOption<T extends string> {
   value: T;
@@ -61,7 +61,7 @@ export function Select<T extends string>({
     if (option && option.value !== value) onChange(option.value);
   }
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const element = list.current;
     const anchor = button.current;
     if (!open || !element || !anchor) return;

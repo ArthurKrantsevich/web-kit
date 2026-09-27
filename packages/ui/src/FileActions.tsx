@@ -9,6 +9,11 @@ export interface OpenFileButtonProps {
   /** The `accept` attribute of the file input. */
   accept: string;
   maxBytes: number;
+  /**
+   * Called when a chosen file starts being read, before `onText` or `onError`. A tool can note its input here and
+   * ignore a text that arrives after the user changed the input.
+   */
+  onReadStart?: () => void;
   /** The file's text, without a BOM. */
   onText: (text: string) => void;
   /** A message such as "File is larger than 10 MB". */
@@ -22,6 +27,7 @@ export function OpenFileButton({
   tooltip,
   accept,
   maxBytes,
+  onReadStart,
   onText,
   onError,
   iconOnly = false,
@@ -30,6 +36,7 @@ export function OpenFileButton({
 
   async function open(file: File | undefined): Promise<void> {
     if (!file) return;
+    onReadStart?.();
     const read = await readTextFile(file, maxBytes);
     if (read.ok) onText(read.value);
     else onError(read.error.message);

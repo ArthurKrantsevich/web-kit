@@ -1,4 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button, CopyButton } from "./Button";
 
@@ -42,6 +43,22 @@ describe("Button", () => {
     const button = screen.getByRole("button", { name: "Undo generate" }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     expect(button.className).toContain("wk-ui-button--primary");
+  });
+});
+
+describe("Button refs", () => {
+  it("passes a ref to the button element", () => {
+    const ref = createRef<HTMLButtonElement>();
+    render(
+      <Button ref={ref} tooltip="Clear the input">
+        Clear
+      </Button>,
+    );
+    expect(ref.current).toBe(screen.getByRole("button", { name: "Clear" }));
+  });
+
+  it("is a forwardRef component, so React 18 (which drops `ref` from function props) passes the ref too", () => {
+    expect((Button as unknown as { $$typeof?: symbol }).$$typeof).toBe(Symbol.for("react.forward_ref"));
   });
 });
 

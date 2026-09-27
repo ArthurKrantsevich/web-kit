@@ -1,4 +1,12 @@
-import { useEffect, useState, type ButtonHTMLAttributes, type ReactElement, type Ref } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useState,
+  type ButtonHTMLAttributes,
+  type ForwardRefExoticComponent,
+  type ReactElement,
+  type RefAttributes,
+} from "react";
 import { Icon, type IconName } from "./Icon";
 import { cx } from "./popover";
 import { Tooltip } from "./Tooltip";
@@ -12,22 +20,19 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   tooltip?: string;
   /** The label stays the accessible name; only the icon is visible. */
   iconOnly?: boolean;
-  ref?: Ref<HTMLButtonElement>;
 }
 
-/** A button in the shared style. `type` defaults to "button". */
-export function Button({
-  variant = "quiet",
-  icon,
-  tooltip,
-  iconOnly = false,
-  className,
-  children,
-  type = "button",
-  ...rest
-}: ButtonProps): ReactElement {
+/**
+ * A button in the shared style. `type` defaults to "button". A `ref` reaches the `<button>`; it is a forwardRef
+ * component so that React 18 passes the ref too.
+ */
+export const Button: ForwardRefExoticComponent<ButtonProps & RefAttributes<HTMLButtonElement>> = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = "quiet", icon, tooltip, iconOnly = false, className, children, type = "button", ...rest },
+  ref,
+): ReactElement {
   const button = (
     <button
+      ref={ref}
       type={type}
       className={cx(
         "wk-ui-button",
@@ -43,7 +48,7 @@ export function Button({
     </button>
   );
   return tooltip === undefined ? button : <Tooltip content={tooltip}>{button}</Tooltip>;
-}
+});
 
 export interface CopyButtonProps {
   /** Copied as is. The button is disabled while it is empty. */

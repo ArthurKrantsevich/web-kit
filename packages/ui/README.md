@@ -19,7 +19,7 @@ import "@web-kit/ui/styles.css";
 - **Tooltip** describes its element (`aria-describedby`); it appears after 400 ms of mouse hover or at once on keyboard focus, hides on leave, blur, Escape and click, and never appears for touch.
 - **CopyButton** shows "Copy", "✓ Copied" or "Copy failed" in one fixed width and announces the change through a polite live region.
 - **EditorShell**, **EditorToolbar**, **EditorPanes**, **EditorPane** and **StatusLine** build the editor layout: a toolbar named "Options", two panes side by side from 1024 px of component width, and a status line. Pane height: `--wk-editor-height` (default `max(420px, 70vh)`).
-- **OpenFileButton** and **PasteButton** read a file (UTF-8, BOM removed, size limit) or the clipboard. `downloadText(text, filename, mime)` saves text as a file; `readTextFile(file, maxBytes)` returns `{ ok, value }` or `{ ok: false, error: { message } }`.
+- **OpenFileButton** and **PasteButton** read a file (UTF-8, BOM removed, size limit) or the clipboard; `onReadStart` on OpenFileButton lets a tool drop a file that finishes reading after the user changed the input. `downloadText(text, filename, mime)` saves text as a file; `readTextFile(file, maxBytes)` returns `{ ok, value }` or `{ ok: false, error: { message } }`.
 
 Browsers without the Popover API (and jsdom) show the list and the tooltip as plain fixed elements; the list may then be clipped by a parent with `overflow: hidden`.
 

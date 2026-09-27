@@ -28,6 +28,29 @@ describe("OpenFileButton", () => {
     expect(input.value).toBe("");
   });
 
+  it("says when a chosen file starts being read, before its text arrives", async () => {
+    const events: string[] = [];
+    let finish: (text: string) => void = () => {};
+    const file = new File(["[1]"], "a.json");
+    vi.spyOn(file, "text").mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    render(
+      <OpenFileButton
+        tooltip="t"
+        accept=".json"
+        maxBytes={1024}
+        onReadStart={() => events.push("start")}
+        onText={(text) => events.push(`text ${text}`)}
+        onError={() => {}}
+      />,
+    );
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText("Open file"), { target: { files: [file] } });
+    });
+    expect(events).toEqual(["start"]);
+    await act(async () => finish("[1]"));
+    expect(events).toEqual(["start", "text [1]"]);
+  });
+
   it("reports a file over the limit", async () => {
     const onError = vi.fn();
     render(<OpenFileButton tooltip="t" accept=".json" maxBytes={3} onText={() => {}} onError={onError} />);

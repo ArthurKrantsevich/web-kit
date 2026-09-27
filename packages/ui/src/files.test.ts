@@ -40,6 +40,11 @@ describe("readTextFile", () => {
     expect(await readTextFile(file, 1024)).toEqual({ ok: true, value: '{"a":"é"}' });
   });
 
+  it("drops only the one BOM that marks the encoding, keeping a second U+FEFF that is part of the text", async () => {
+    const file = new File([new Uint8Array([0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf]), "{}"], "a.json");
+    expect(await readTextFile(file, 1024)).toEqual({ ok: true, value: "\uFEFF{}" });
+  });
+
   it("refuses files over the limit without reading them", async () => {
     const file = new File(["x"], "big.json");
     Object.defineProperty(file, "size", { value: 10 * 1024 * 1024 + 1 });

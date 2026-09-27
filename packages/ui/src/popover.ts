@@ -1,4 +1,10 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useSyncExternalStore } from "react";
+
+/**
+ * useLayoutEffect in the browser, useEffect on the server. React 18 warns when a layout effect is met during a server
+ * render; neither runs there, so nothing changes.
+ */
+export const useIsomorphicLayoutEffect: typeof useLayoutEffect = typeof document === "undefined" ? useEffect : useLayoutEffect;
 
 const noSubscription = (): (() => void) => () => {};
 const hasPopoverApi = (): boolean =>

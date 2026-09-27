@@ -26,7 +26,10 @@ export function formatLimit(bytes: number): string {
   return `${Number.isInteger(kb) ? kb : kb.toFixed(1)} KB`;
 }
 
-/** Reads a file as UTF-8 text without a leading BOM. Files larger than `maxBytes` are not read. */
+/**
+ * Reads a file as UTF-8 text without a leading BOM (Blob.text() decodes UTF-8 and already drops one; a second U+FEFF
+ * is part of the text and is kept). Files larger than `maxBytes` are not read.
+ */
 export async function readTextFile(file: File, maxBytes: number): Promise<Result<string>> {
   if (file.size > maxBytes) return { ok: false, error: { message: `File is larger than ${formatLimit(maxBytes)}` } };
   let text: string;
@@ -35,5 +38,5 @@ export async function readTextFile(file: File, maxBytes: number): Promise<Result
   } catch {
     return { ok: false, error: { message: "Could not read the file" } };
   }
-  return { ok: true, value: text.charCodeAt(0) === 0xfeff ? text.slice(1) : text };
+  return { ok: true, value: text };
 }
