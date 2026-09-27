@@ -198,23 +198,31 @@ test("code blocks announce every copy and keep Copied for 1.5 s after the last o
   await page.getByRole("tab", { name: "Install & Usage" }).click();
   const button = page.getByRole("button", { name: "Copy npm" });
   const live = button.locator("xpath=following-sibling::*[@role='status']");
-  // Every text the live region shows, in order.
+  // Recorded in the page with its own clock, so a slow test runner cannot shift the timings: every text of the live
+  // region, the time of each click, and when the button's label went back to "Copy".
   await live.evaluate((element) => {
-    const texts: string[] = [];
-    (window as unknown as { liveTexts: string[] }).liveTexts = texts;
-    new MutationObserver(() => texts.push(element.textContent ?? "")).observe(element, {
+    const log = { texts: [] as string[], clicks: [] as number[], idleAt: 0 };
+    (window as unknown as { copyLog: typeof log }).copyLog = log;
+    const button = element.previousElementSibling!;
+    button.addEventListener("click", () => log.clicks.push(performance.now()));
+    new MutationObserver(() => log.texts.push(element.textContent ?? "")).observe(element, {
       childList: true,
       characterData: true,
       subtree: true,
     });
+    new MutationObserver(() => {
+      if (button.textContent === "Copy") log.idleAt = performance.now();
+    }).observe(button, { childList: true, characterData: true, subtree: true });
   });
   await button.click();
   await expect(button).toHaveText("Copied");
   await page.waitForTimeout(1000);
   await button.click();
-  await expect.poll(() => page.evaluate(() => (window as unknown as { liveTexts: string[] }).liveTexts.filter((text) => text === "Copied").length)).toBe(2);
-  // 1.7 s after the first copy, 0.7 s after the second: still "Copied".
-  await page.waitForTimeout(700);
-  expect(await button.textContent()).toBe("Copied");
-  await expect(button).toHaveText("Copy");
+  await expect(button).toHaveText("Copy", { timeout: 5000 });
+  const log = await page.evaluate(() => (window as unknown as { copyLog: { texts: string[]; clicks: number[]; idleAt: number } }).copyLog);
+  expect(log.texts.filter((text) => text === "Copied"), "each copy is announced").toHaveLength(2);
+  expect(log.clicks).toHaveLength(2);
+  expect(log.clicks[1]! - log.clicks[0]!, "the second copy came before the first one's 1.5 s ran out").toBeLessThan(1500);
+  // "Copied" stays 1.5 s after the last copy, not after the first.
+  expect(log.idleAt - log.clicks[1]!).toBeGreaterThanOrEqual(1400);
 });
