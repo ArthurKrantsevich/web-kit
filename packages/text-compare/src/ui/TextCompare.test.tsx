@@ -214,13 +214,17 @@ describe("TextCompare navigation", () => {
     expect(current()).toBe(1);
   });
 
-  it("moves with Alt+↓ and Alt+↑, and with F7 and Shift+F7", () => {
+  it("moves with Alt+↓ and Alt+↑ outside the text fields, and with F7 and Shift+F7 anywhere", () => {
     render(<TextCompare initialLeft={LEFT} initialRight={RIGHT} />);
     const current = () => groups().findIndex((group) => group.hasAttribute("data-current"));
+    const next = screen.getByRole("button", { name: "Next change" });
+    // In a text field Alt with an arrow moves the caret, as the system does.
     fireEvent.keyDown(area("Left"), { key: "ArrowDown", altKey: true });
+    expect(current()).toBe(-1);
+    fireEvent.keyDown(next, { key: "ArrowDown", altKey: true });
     fireEvent.keyDown(area("Left"), { key: "F7" });
     expect(current()).toBe(1);
-    fireEvent.keyDown(area("Right"), { key: "ArrowUp", altKey: true });
+    fireEvent.keyDown(next, { key: "ArrowUp", altKey: true });
     expect(current()).toBe(0);
     fireEvent.keyDown(area("Right"), { key: "F7" });
     fireEvent.keyDown(area("Right"), { key: "F7", shiftKey: true });

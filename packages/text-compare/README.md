@@ -44,7 +44,7 @@ The component is built with `@web-kit/ui`. The toolbar has the layout (Side by s
 
 - Unchanged runs longer than eight lines are folded to three lines of context; "Show N unchanged lines" opens one, More actions → "Show all unchanged lines" all of them. At most 5,000 rows are drawn at once, with "Show more".
 - Each change has "Use left" (→) and "Use right" (←), shown on hover and keyboard focus and always on touch screens. They edit the input, so Ctrl+Z in that input undoes them (a side whose text has CR line breaks, from a file, is replaced as a whole: a text field keeps only LF). The result keeps its scroll.
-- Previous and Next frame the current change and bring it to the middle of the result; so do Alt+↓/Alt+↑ and F7/Shift+F7. Ctrl/⌘+Enter swaps the sides; `?` lists the keys.
+- Previous and Next frame the current change and bring it to the middle of the result; so do F7/Shift+F7 anywhere and Alt+↓/Alt+↑ outside the text fields (in a field they move the caret). Ctrl/⌘+Enter swaps the sides; a field's Ctrl+Z does not undo a swap. `?` lists the keys.
 - Texts over 1 MB together are compared in a Web Worker (`@web-kit/text-compare/worker`, started by the component itself): the result says "Comparing 5.2 MB…" and the page stays responsive; a new edit cancels the running comparison. Where no worker can start, the comparison runs on the page with a note.
 - The status line names what matters about the result: approximate, different line endings, a missing line break at the end.
 

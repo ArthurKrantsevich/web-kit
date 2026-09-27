@@ -68,7 +68,7 @@ const scopes: RefObject<HTMLElement | null>[] = [];
 
 /**
  * Keyboard shortcuts for one tool. A combination works while focus is inside `scope`, or when nothing has focus and
- * this is the first tool on the page. "?" works only outside text fields. Keys inside a dialog, during IME
+ * this is the first tool on the page. "?" and Alt with an arrow work only outside text fields. Keys inside a dialog, during IME
  * composition, or already handled by a control (a Select's Enter, for example) are left alone, and so is every
  * combination that is not in the map.
  */
@@ -88,7 +88,8 @@ export function useHotkeys(map: HotkeyMap, scope: RefObject<HTMLElement | null>)
       const apple = isApplePlatform();
       for (const [combo, run] of Object.entries(latest.current)) {
         if (!matchHotkey(combo, event, apple)) continue;
-        if (combo === "?" && isEditable(event.target)) return;
+        // In a text field "?" is typed and Alt with an arrow moves the caret: both are left to the field.
+        if ((combo === "?" || /^Alt\+Arrow/.test(combo)) && isEditable(event.target)) return;
         event.preventDefault();
         run();
         return;

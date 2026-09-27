@@ -111,9 +111,9 @@ describe("TextCompare links, saved input, URLs and drops", () => {
     fireEvent.keyDown(more, { key: "?" });
     const dialog = screen.getByRole("dialog", { name: "Keyboard shortcuts" });
     expect([...dialog.querySelectorAll("dd")].map((item) => item.textContent)).toEqual([
-      "Swap Left and Right",
-      "Next change",
-      "Previous change",
+      "Swap Left and Right (Ctrl+Z does not undo it)",
+      "Next change (outside the text fields)",
+      "Previous change (outside the text fields)",
       "Next change",
       "Previous change",
       "Show this list",

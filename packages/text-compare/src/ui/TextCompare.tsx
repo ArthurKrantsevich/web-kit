@@ -287,9 +287,10 @@ export function TextCompare(props: TextCompareProps): ReactElement {
   }
 
   const shortcuts: Shortcut[] = [
-    { keys: "Mod+Enter", label: "Swap Left and Right", run: swap },
-    { keys: "Alt+ArrowDown", label: "Next change", run: next },
-    { keys: "Alt+ArrowUp", label: "Previous change", run: previous },
+    // Swapping sets both fields at once, which a field's own undo cannot take back; the list says so.
+    { keys: "Mod+Enter", label: "Swap Left and Right (Ctrl+Z does not undo it)", run: swap },
+    { keys: "Alt+ArrowDown", label: "Next change (outside the text fields)", run: next },
+    { keys: "Alt+ArrowUp", label: "Previous change (outside the text fields)", run: previous },
     { keys: "F7", label: "Next change", run: next },
     { keys: "Shift+F7", label: "Previous change", run: previous },
   ];

@@ -120,6 +120,15 @@ describe("useHotkeys", () => {
     expect(help).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves Alt with an arrow to text fields, where it moves the caret, and runs it elsewhere", () => {
+    const run = vi.fn();
+    render(<Tool name="A" map={{ "Alt+ArrowDown": run }} />);
+    expect(fireEvent.keyDown(screen.getByLabelText("A input"), { key: "ArrowDown", altKey: true })).toBe(true);
+    expect(run).not.toHaveBeenCalled();
+    fireEvent.keyDown(screen.getByRole("button", { name: "A button" }), { key: "ArrowDown", altKey: true });
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
   it("leaves keys inside a dialog, during composition, or already handled alone", () => {
     const format = vi.fn();
     render(<Tool name="A" map={{ "Mod+Enter": format }} />);
