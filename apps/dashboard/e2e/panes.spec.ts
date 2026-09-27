@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 // A pane's header is one line at every width: its action labels give way to icons (the tooltip and the accessible
 // name stay) when the pane, not the whole editor, is too narrow for them. Two panes side by side have headers of the
 // same height, and a header does not grow when the size label does (B, then KB, then MB).
-const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator"] as const;
+const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare"] as const;
 /** The longest size label the tools show: formatBytes() of 1,048,575 bytes. */
 const LONGEST_SIZE = "1023.9 KB";
 

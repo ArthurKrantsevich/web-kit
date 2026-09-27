@@ -282,6 +282,7 @@ test.describe("before hydration", () => {
     ["json-convert", "Input"],
     ["json-diff", "Left"],
     ["json-schema-validator", "Data"],
+    ["text-compare", "Left"],
   ] as const) {
     test(`${tool}: typing before hydration is refused, never silently undone, and works after it`, async ({ page }) => {
       // Hold every script back until the test has tried to type.
@@ -313,6 +314,7 @@ test.describe("a file dropped beside the panes", () => {
   for (const [tool, field, hint] of [
     ["json-formatter", "Input", "Drop the file on the input to open it"],
     ["json-diff", "Left", "Drop the file on Left or Right to open it"],
+    ["text-compare", "Left", "Drop the file on Left or Right to open it"],
   ] as const) {
     test(`${tool}: the page stays, the input stays, and the tool says where to drop it`, async ({ page }) => {
       await open(page, `tools/${tool}/`);

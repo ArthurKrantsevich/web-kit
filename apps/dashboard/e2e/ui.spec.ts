@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator"];
+const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare"];
 
 type Boxes = Record<string, [number, number, number, number]>;
 

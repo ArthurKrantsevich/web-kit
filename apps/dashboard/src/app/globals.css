@@ -737,3 +737,7 @@ a.card:hover {
 .panel > .wk-schema {
   --wk-schema-height: max(320px, calc(100svh - 480px));
 }
+/* Text Compare shows its result under the inputs, as tall as they are: the two share what the screen has left. */
+.panel > .wk-compare {
+  --wk-compare-height: max(260px, calc((100svh - 380px) / 2));
+}

@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ACTIONS, type ActionId, type ActionPlace } from "@web-kit/ui";
 
-const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator"];
+const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare"];
 
 interface Found {
   row: number;

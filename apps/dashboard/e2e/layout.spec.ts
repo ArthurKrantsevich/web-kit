@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-for (const path of ["./", "about/", "tools/json-formatter/", "tools/json-convert/", "tools/json-diff/", "tools/json-schema-validator/"]) {
+for (const path of [
+  "./",
+  "about/",
+  "tools/json-formatter/",
+  "tools/json-convert/",
+  "tools/json-diff/",
+  "tools/json-schema-validator/",
+  "tools/text-compare/",
+]) {
   test(`no horizontal scroll at 390 px: ${path}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(path);
@@ -111,6 +119,7 @@ test("the editors follow the small viewport height, so they do not resize while 
     ["json-formatter", ".panel > .wk-json", "--wk-editor-height"],
     ["json-convert", ".panel > .wk-convert", "--wk-editor-height"],
     ["json-schema-validator", ".panel > .wk-schema", "--wk-schema-height"],
+    ["text-compare", ".panel > .wk-compare", "--wk-compare-height"],
   ] as const) {
     await page.goto(`tools/${tool}/`);
     const value = await page.locator(selector).evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);
