@@ -276,6 +276,26 @@ describe("JsonConvert editor", () => {
   });
 });
 
+/** The shared actions of a row, in order. */
+const actions = (row: Element | null) => [...(row?.querySelectorAll("[data-action]") ?? [])].map((button) => button.getAttribute("data-action"));
+
+describe("JsonConvert actions and fields", () => {
+  it("puts Open file and Paste in the input's header; Swap direction, Download and Copy in the output's; Sample, Clear and More in the toolbar", () => {
+    setClipboard({ readText: () => Promise.resolve(""), writeText: () => Promise.resolve() });
+    const { container } = render(<JsonConvert initialInput="[1]" />);
+    expect(actions(container.querySelector('[data-pane="input"] > .wk-ui-pane__head'))).toEqual(["open", "paste"]);
+    expect(actions(container.querySelector('[data-pane="output"] > .wk-ui-pane__head'))).toEqual(["custom", "download", "copy"]);
+    expect(actions(screen.getByRole("group", { name: "Options" }))).toEqual(["sample", "clear", "more"]);
+  });
+
+  it("takes at most 64 characters in Root element and Type name", () => {
+    render(<JsonConvert initialInput="[1]" initialTarget="xml" />);
+    expect((screen.getByRole("textbox", { name: "Root element" }) as HTMLInputElement).maxLength).toBe(64);
+    choose("Convert to", "TypeScript");
+    expect((screen.getByRole("textbox", { name: "Type name" }) as HTMLInputElement).maxLength).toBe(64);
+  });
+});
+
 describe("JsonConvert before hydration", () => {
   it("renders its text fields read-only in the server HTML, so nothing typed before hydration is silently lost", () => {
     const html = renderToString(<JsonConvert />);

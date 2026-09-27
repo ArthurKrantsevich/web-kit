@@ -1,7 +1,8 @@
 /* Default look for JsonConvert. The toolbar, panes, buttons and status line come from @web-kit/ui, whose styles are
    built into the start of this file. Colors come from @web-kit/tokens when present. */
+/* Root element and Type name: room for a usual name; longer ones scroll inside the field. */
 .wk-convert__name {
-  width: 8rem;
+  --wk-ui-input-width: 10rem;
 }
 /* The output keeps its line breaks and is colored by format (HighlightedOutput). */
 .wk-convert__output {

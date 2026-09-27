@@ -1,5 +1,6 @@
 import {
-  Button,
+  ActionButton,
+  actionTooltip,
   CopyButton,
   downloadText,
   EditorPane,
@@ -63,6 +64,9 @@ const OUTPUTS: Record<ConvertTarget, { format: string; file: string; mime: strin
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 const ACCEPT = ".json,.csv,.txt,application/json,text/csv,text/plain";
+
+/** Longest root element or type name that can be typed; a shared or saved longer one is kept as it is. */
+const NAME_MAX_LENGTH = 64;
 
 const TARGET_VALUES: readonly string[] = ["yaml", "csv", "xml", "typescript", "csv-to-json"];
 const DELIMITER_VALUES: readonly string[] = [",", ";", "\t"];
@@ -239,6 +243,7 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
             className="wk-ui-input wk-convert__name"
             aria-label="Root element"
             value={options.xmlRoot}
+            maxLength={NAME_MAX_LENGTH}
             spellCheck={false}
             onChange={(e) => setOptions({ xmlRoot: e.target.value })}
           />
@@ -253,23 +258,19 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
             className="wk-ui-input wk-convert__name"
             aria-label="Type name"
             value={options.typeName}
+            maxLength={NAME_MAX_LENGTH}
             spellCheck={false}
             onChange={(e) => setOptions({ typeName: e.target.value })}
           />
         </>
       )}
       <span className="wk-ui-spacer" />
-      <OpenFileButton tooltip="Open a .json, .csv or .txt file (up to 10 MB), or drop it on the input" drop={drop} />
-      <Button
-        icon="sample"
-        tooltip="Replace the input with an example"
+      <ActionButton
+        action="sample"
+        words={{ target: "the input" }}
         onClick={() => replaceInput(direction === "csv" ? CSV_SAMPLE : JSON_SAMPLE)}
-      >
-        Sample
-      </Button>
-      <Button icon="clear" tooltip="Empty the input" onClick={() => replaceInput("")}>
-        Clear
-      </Button>
+      />
+      <ActionButton action="clear" words={{ target: "the input" }} onClick={() => replaceInput("")} />
       <ToolMenu
         toolKey="json-convert"
         state={shared}
@@ -317,11 +318,17 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
     <EditorShell className={["wk-convert", props.className].filter(Boolean).join(" ")} toolbar={toolbar} status={status}>
       <EditorPanes>
         <EditorPane
+          kind="input"
           title="Input"
           labelFor={`${id}-input`}
           drop={drop}
           meta={`${direction === "csv" ? "CSV" : "JSON"} · ${formatBytes(inputBytes)}`}
-          actions={<PasteButton tooltip="Paste from the clipboard" onText={replaceInput} onError={setMessage} />}
+          actions={
+            <>
+              <OpenFileButton drop={drop} />
+              <PasteButton onText={replaceInput} onError={setMessage} />
+            </>
+          }
         >
           <textarea
             id={`${id}-input`}
@@ -334,27 +341,27 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
           />
         </EditorPane>
         <EditorPane
+          kind="output"
           title="Output"
           meta={`${outputInfo.format} · ${formatBytes(outputBytes)}`}
           actions={
             <>
-              <Button
+              <ActionButton
+                action="custom"
                 icon="swap"
                 tooltip="Make the output the input and convert the other way"
                 disabled={!canSwap}
                 onClick={swapDirection}
               >
                 Swap direction
-              </Button>
-              <Button
-                icon="download"
-                tooltip={`Save the output as ${outputInfo.file}`}
+              </ActionButton>
+              <ActionButton
+                action="download"
+                words={{ what: "the output", file: outputInfo.file }}
                 disabled={output === ""}
                 onClick={() => downloadText(output, outputInfo.file, outputInfo.mime)}
-              >
-                Download
-              </Button>
-              <CopyButton text={output} tooltip="Copy the output to the clipboard" />
+              />
+              <CopyButton text={output} tooltip={actionTooltip("copy", { what: "the output" })} variant="quiet" icon />
             </>
           }
         >
