@@ -1,6 +1,7 @@
 // Run from a package directory after build.
 // Asserts the React entry keeps "use client", the core entry (when the package has one) stays framework-free,
-// and a package that depends on @web-kit/ui ships ui's styles at the start of its own dist/styles.css.
+// a package that depends on @web-kit/ui ships ui's styles at the start of its own dist/styles.css, and a React peer
+// is optional.
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -25,6 +26,11 @@ if (pkg.exports?.["./core"]) {
     if (/from\s*["']react/.test(core)) failures.push("dist/core.js imports react");
   }
   if (read("core.d.ts") === null) failures.push("missing dist/core.d.ts");
+}
+
+// A core-only install must not pull React: the React peer is optional.
+if (pkg.peerDependencies?.react && pkg.peerDependenciesMeta?.react?.optional !== true) {
+  failures.push('package.json lists react as a peer without peerDependenciesMeta.react.optional: true');
 }
 
 if (styles === null) failures.push("missing dist/styles.css");
