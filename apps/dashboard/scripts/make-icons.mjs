@@ -1,4 +1,4 @@
-// Renders src/app/icon.svg into the two raster icons that sit next to it, in the light theme:
+// Renders src/app/icon.svg (one variant for light and dark tabs) into the two raster icons that sit next to it:
 // - apple-icon.png, 180 × 180, square and opaque (iOS rounds the corners itself and turns transparency black);
 // - icon.ico, 32 × 32, one PNG image in an ICO container (every browser since IE 11 reads PNG inside ICO).
 // Run it after changing icon.svg: `node scripts/make-icons.mjs`. The outputs are committed; nothing runs at build time.

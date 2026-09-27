@@ -25,7 +25,10 @@ test.describe("favicon", () => {
       const response = await request.get(file);
       expect([file, response.status(), response.headers()["content-type"]]).toEqual([file, 200, type]);
     }
-    // The SVG follows the tab's theme.
-    expect(await (await request.get("icon.svg")).text()).toContain("@media (prefers-color-scheme: dark)");
+    // One opaque variant that reads on light and dark tabs alike: the dark tile with light braces of the header mark.
+    const svg = await (await request.get("icon.svg")).text();
+    expect(svg).not.toContain("prefers-color-scheme");
+    expect(svg).toContain('fill="#141413"');
+    expect(svg).toContain('stroke="#faf9f5"');
   });
 });

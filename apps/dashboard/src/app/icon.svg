@@ -1,12 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <style>
-    .mark { fill: #141413; }
-    .braces { stroke: #faf9f5; }
-    @media (prefers-color-scheme: dark) {
-      .mark { fill: #f0eee6; }
-      .braces { stroke: #1a1918; }
-    }
-  </style>
-  <rect class="mark" width="32" height="32" rx="8"/>
-  <path class="braces" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M13 9h-1a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h1M19 9h1a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-1"/>
+  <!-- One opaque variant for light and dark tabs: the header mark of the light theme (--wk-primary, --wk-primary-fg). -->
+  <rect fill="#141413" width="32" height="32" rx="8"/>
+  <path stroke="#faf9f5" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M13 9h-1a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2h1M19 9h1a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2h-1"/>
 </svg>
