@@ -31,3 +31,30 @@ test.describe("footer", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 });
+
+test.describe("About", () => {
+  test("has a heading, four principles, the tools, and links to GitHub and flutter-kit", async ({ page }) => {
+    await page.goto("about/");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Small tools you can trust with your data.");
+    await expect(page.locator(".about__principle h3")).toHaveText([
+      "Your data stays on your device",
+      "Numbers stay exact",
+      "Only checked fixes",
+      "Logic without UI",
+    ]);
+    const main = page.getByRole("main");
+    for (const tool of tools) await expect(main.getByRole("link", { name: new RegExp(`^${tool.title}`) })).toHaveAttribute("href", `/web-kit/tools/${tool.id}/`);
+    await expect(main).toContainText(`${upcoming.length} more are planned`);
+    await expect(main.getByRole("link", { name: /^Source code/ })).toHaveAttribute("href", "https://github.com/ArthurKrantsevich/web-kit");
+    await expect(main.getByRole("link", { name: /^Also in Flutter/ })).toHaveAttribute("href", "https://arthurkrantsevich.github.io/flutter-kit/");
+  });
+
+  test("keeps its text within 720 px and uses one column on a phone", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("about/");
+    expect((await page.locator(".about__lead").boundingBox())!.width).toBeLessThanOrEqual(720);
+    await page.setViewportSize({ width: 390, height: 844 });
+    const lefts = await page.locator(".about__principle").evaluateAll((cards) => cards.map((card) => Math.round(card.getBoundingClientRect().left)));
+    expect(new Set(lefts).size).toBe(1);
+  });
+});
