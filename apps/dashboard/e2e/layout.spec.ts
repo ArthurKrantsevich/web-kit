@@ -52,6 +52,8 @@ test("formatter page loads without console errors", async ({ page }) => {
   page.on("console", (message) => {
     if (message.type() === "error") errors.push(message.text());
   });
+  // Uncaught exceptions (a failed hydration among them) are not console messages.
+  page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
   await page.goto("tools/json-formatter/");
   await page.getByLabel("Input", { exact: true }).waitFor();
   expect(errors).toEqual([]);
@@ -91,4 +93,16 @@ test("formatter: keeps its width inside a shrink-to-fit parent", async ({ page }
     return editor.getBoundingClientRect().width;
   });
   expect(width).toBeGreaterThan(800);
+});
+
+test("the editors follow the small viewport height, so they do not resize while the address bar hides", async ({ page }) => {
+  for (const [tool, selector, property] of [
+    ["json-formatter", ".panel > .wk-json", "--wk-editor-height"],
+    ["json-convert", ".panel > .wk-convert", "--wk-editor-height"],
+    ["json-schema-validator", ".panel > .wk-schema", "--wk-schema-height"],
+  ] as const) {
+    await page.goto(`tools/${tool}/`);
+    const value = await page.locator(selector).evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);
+    expect([tool, value]).toEqual([tool, expect.stringContaining("100svh")]);
+  }
 });

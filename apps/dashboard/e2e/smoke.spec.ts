@@ -142,6 +142,11 @@ test("breadcrumbs lead back to all tools", async ({ page }) => {
   await expect(page).toHaveURL(/\/web-kit\/$/);
 });
 
+test("the category crumb is not marked as the current page", async ({ page }) => {
+  await page.goto("tools/json-formatter/");
+  await expect(page.getByRole("navigation", { name: "Breadcrumb" }).locator("[aria-current]")).toHaveCount(0);
+});
+
 test("code blocks announce a copy", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("tools/json-formatter/");
@@ -185,4 +190,31 @@ test("json-schema-validator lists errors and selects them in the data", async ({
   await page.getByRole("button", { name: "Generate schema from data" }).click();
   await expect(statusLine.getByText("Valid", { exact: true })).toBeVisible();
   await expect(page.getByText("The data matches the schema.")).toBeVisible();
+});
+
+test("code blocks announce every copy and keep Copied for 1.5 s after the last one", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("tools/json-formatter/");
+  await page.getByRole("tab", { name: "Install & Usage" }).click();
+  const button = page.getByRole("button", { name: "Copy npm" });
+  const live = button.locator("xpath=following-sibling::*[@role='status']");
+  // Every text the live region shows, in order.
+  await live.evaluate((element) => {
+    const texts: string[] = [];
+    (window as unknown as { liveTexts: string[] }).liveTexts = texts;
+    new MutationObserver(() => texts.push(element.textContent ?? "")).observe(element, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  });
+  await button.click();
+  await expect(button).toHaveText("Copied");
+  await page.waitForTimeout(1000);
+  await button.click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { liveTexts: string[] }).liveTexts.filter((text) => text === "Copied").length)).toBe(2);
+  // 1.7 s after the first copy, 0.7 s after the second: still "Copied".
+  await page.waitForTimeout(700);
+  expect(await button.textContent()).toBe("Copied");
+  await expect(button).toHaveText("Copy");
 });

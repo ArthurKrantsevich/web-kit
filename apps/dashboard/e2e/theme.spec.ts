@@ -101,3 +101,31 @@ test("phone menu: Tab from the menu button reaches the first link", async ({ pag
   await page.keyboard.press("Tab");
   await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Tools" })).toBeFocused();
 });
+
+test.describe("before any script runs", () => {
+  test.use({ javaScriptEnabled: false });
+
+  for (const [scheme, icon] of [
+    ["dark", "sun"],
+    ["light", "moon"],
+  ] as const) {
+    test(`the theme toggle shows the ${icon} for a system ${scheme} theme`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto("./");
+      const toggle = page.getByRole("button", { name: "Toggle theme" });
+      const visible = toggle.locator("svg:visible");
+      await expect(visible).toHaveCount(1);
+      // The sun has a circle; the moon is one path.
+      await expect(visible.locator("circle")).toHaveCount(icon === "sun" ? 1 : 0);
+    });
+  }
+});
+
+test("the theme toggle shows the sun for a stored dark choice on a light system", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("wk-theme", "dark"));
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("./");
+  const visible = page.getByRole("button", { name: "Toggle theme" }).locator("svg:visible");
+  await expect(visible).toHaveCount(1);
+  await expect(visible.locator("circle")).toHaveCount(1);
+});

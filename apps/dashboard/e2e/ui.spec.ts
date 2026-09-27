@@ -194,9 +194,13 @@ test("tooltips appear on hover after a delay and at once on keyboard focus", asy
   const sample = page.getByRole("button", { name: "Sample" });
   const tip = page.getByRole("tooltip").filter({ hasText: "Replace the input with an example" });
 
+  // The delay is 400 ms: still hidden at 250 ms, shown by 600 ms.
   await sample.hover();
-  await expect(tip).toBeHidden();
-  await expect(tip).toBeVisible();
+  const hovered = Date.now();
+  await page.waitForTimeout(250);
+  expect(await tip.isVisible(), "hidden 250 ms after hover").toBe(false);
+  await page.waitForTimeout(Math.max(0, 600 - (Date.now() - hovered)));
+  expect(await tip.isVisible(), "visible 600 ms after hover").toBe(true);
   const button = (await sample.boundingBox())!;
   const box = (await tip.boundingBox())!;
   expect(box.y + box.height).toBeLessThanOrEqual(button.y);

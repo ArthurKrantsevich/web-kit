@@ -32,7 +32,8 @@ export default async function ToolPage({ params }: Props) {
                 <li>
                   <Link href="/">Tools</Link>
                 </li>
-                <li aria-current="page">{CATEGORY_LABELS[tool.category]}</li>
+                {/* The category has no page of its own; the current page is the tool, named by the heading. */}
+                <li>{CATEGORY_LABELS[tool.category]}</li>
               </ol>
             </nav>
             <h1>{tool.title}</h1>
@@ -40,4 +41,5 @@ export default async function ToolPage({ params }: Props) {
         }
       />
     </article>
-  );}
+  );
+}
