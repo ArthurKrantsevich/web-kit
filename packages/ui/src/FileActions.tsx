@@ -21,7 +21,10 @@ export interface OpenFileButtonProps {
   iconOnly?: boolean;
 }
 
-/** "Open file": a quiet button that opens the file picker and reads the chosen file with `readTextFile`. */
+/**
+ * "Open file": a quiet button that opens the file picker and reads the chosen file with `readTextFile`. When a second
+ * file is chosen before the first is read, only the second one's text or error is passed on.
+ */
 export function OpenFileButton({
   label = "Open file",
   tooltip,
@@ -33,11 +36,15 @@ export function OpenFileButton({
   iconOnly = false,
 }: OpenFileButtonProps): ReactElement {
   const input = useRef<HTMLInputElement>(null);
+  // Only the file chosen last counts: an earlier, slower read that finishes after it is dropped.
+  const latestRead = useRef(0);
 
   async function open(file: File | undefined): Promise<void> {
     if (!file) return;
+    const id = ++latestRead.current;
     onReadStart?.();
     const read = await readTextFile(file, maxBytes);
+    if (id !== latestRead.current) return;
     if (read.ok) onText(read.value);
     else onError(read.error.message);
   }

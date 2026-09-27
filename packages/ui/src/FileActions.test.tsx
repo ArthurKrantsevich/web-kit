@@ -51,6 +51,27 @@ describe("OpenFileButton", () => {
     expect(events).toEqual(["start", "text [1]"]);
   });
 
+  it("drops the text of an earlier file that finishes reading after a later one was chosen", async () => {
+    const texts: string[] = [];
+    const finish: Record<string, (text: string) => void> = {};
+    const file = (name: string) => {
+      const value = new File(["x"], name);
+      vi.spyOn(value, "text").mockReturnValue(new Promise((resolve) => (finish[name] = resolve)));
+      return value;
+    };
+    render(<OpenFileButton tooltip="t" accept=".json" maxBytes={1024} onText={(text) => texts.push(text)} onError={() => {}} />);
+    const input = screen.getByLabelText("Open file");
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file("a.json")] } });
+    });
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file("b.json")] } });
+    });
+    await act(async () => finish["b.json"]!("B"));
+    await act(async () => finish["a.json"]!("A"));
+    expect(texts).toEqual(["B"]);
+  });
+
   it("reports a file over the limit", async () => {
     const onError = vi.fn();
     render(<OpenFileButton tooltip="t" accept=".json" maxBytes={3} onText={() => {}} onError={onError} />);

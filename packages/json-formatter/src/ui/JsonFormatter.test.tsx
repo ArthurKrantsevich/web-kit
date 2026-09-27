@@ -348,6 +348,22 @@ describe("JsonFormatter editor", () => {
     );
   });
 
+  it("keeps the file opened last when an earlier, slower read finishes after it", async () => {
+    let finishA: (text: string) => void = () => {};
+    let finishB: (text: string) => void = () => {};
+    const a = new File(['{"a":1}'], "a.json");
+    const b = new File(['{"b":1}'], "b.json");
+    vi.spyOn(a, "text").mockReturnValue(new Promise((resolve) => (finishA = resolve)));
+    vi.spyOn(b, "text").mockReturnValue(new Promise((resolve) => (finishB = resolve)));
+    render(<JsonFormatter initialInput="{}" />);
+    await openFile(a);
+    await openFile(b);
+    await act(async () => finishB('{"b":1}'));
+    expect(inputArea().value).toBe('{"b":1}');
+    await act(async () => finishA('{"a":1}'));
+    expect(inputArea().value).toBe('{"b":1}');
+  });
+
   it("loads a slow file when the input did not change meanwhile", async () => {
     let finish: (text: string) => void = () => {};
     const file = new File(['{"file":1}'], "slow.json");
