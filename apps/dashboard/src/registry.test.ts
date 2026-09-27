@@ -20,17 +20,20 @@ describe("registry", () => {
     expect(new Set(previews).size).toBe(previews.length);
   });
 
+  it("lists Text Compare as ready, not planned", () => {
+    expect([tools.some((tool) => tool.id === "text-compare"), upcoming.some((tool) => tool.id === "text-compare")]).toEqual([true, false]);
+  });
+
   it("has no id twice, among ready and planned tools together", () => {
     const ids = [...tools, ...upcoming].map((tool) => tool.id);
     expect(ids.filter((id, index) => ids.indexOf(id) !== index)).toEqual([]);
   });
 
-  it("plans the tools of the first release that are not ready yet, and Text Compare", () => {
+  it("plans the tools of the first release that are not ready yet", () => {
     expect(upcoming.map((tool) => `${tool.category}:${tool.id}`)).toEqual([
       "data:base64",
       "data:url-encoder",
       "data:jwt-decoder",
-      "data:text-compare",
       "generators:uuid-generator",
       "generators:password-generator",
       "generators:hash-generator",

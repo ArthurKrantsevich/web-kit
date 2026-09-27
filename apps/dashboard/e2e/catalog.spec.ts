@@ -25,7 +25,8 @@ test.describe("home: empty states and planned tools", () => {
     await expect(cards).toHaveCount(all);
     await expect(empty).toHaveCount(0);
     await search(page).fill("json");
-    await expect(status).toHaveText(`${tools.length} tools ready, 0 planned`);
+    const json = tools.filter((tool) => /json/i.test(`${tool.title} ${tool.description} ${tool.tags.join(" ")}`));
+    await expect(status).toHaveText(`${json.length} tools ready, 0 planned`);
   });
 
   test("a category without ready tools says so and keeps its planned cards", async ({ page }) => {

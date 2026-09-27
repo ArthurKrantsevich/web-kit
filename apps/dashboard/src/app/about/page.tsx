@@ -85,7 +85,7 @@ export default function AboutPage() {
           ))}
         </ul>
         <p className="about__note">
-          {`${upcoming.length} more are planned, from Base64 and JWT to a text compare and an image converter. `}
+          {`${upcoming.length} more are planned, from Base64 and JWT to a password generator and an image converter. `}
           <Link href="/#tools">See the list</Link>.
         </p>
       </section>

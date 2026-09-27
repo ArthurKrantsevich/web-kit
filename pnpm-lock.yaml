@@ -232,6 +232,9 @@ importers:
       '@web-kit/json-schema-validator':
         specifier: workspace:*
         version: link:../../packages/json-schema-validator
+      '@web-kit/text-compare':
+        specifier: workspace:*
+        version: link:../../packages/text-compare
       '@web-kit/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -328,6 +331,12 @@ importers:
       '@types/node':
         specifier: ^26.6.2
         version: 26.6.2
+
+  packages/text-compare:
+    dependencies:
+      react:
+        specifier: '>=18'
+        version: 19.3.0
 
   packages/tokens: {}
 

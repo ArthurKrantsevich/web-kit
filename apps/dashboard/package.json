@@ -11,6 +11,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@web-kit/text-compare": "workspace:*",
     "@web-kit/json-schema-validator": "workspace:*",
     "@web-kit/json-diff": "workspace:*",
     "@web-kit/json-convert": "workspace:*",
