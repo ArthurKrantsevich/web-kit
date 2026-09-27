@@ -140,6 +140,29 @@ describe("applyJsonPatch", () => {
     ]);
   });
 
+  it("rejects a pointer with a \"~\" not followed by 0 or 1", () => {
+    const messages = [
+      apply('{"a":1}', [{ op: "add", path: "/a~2", value: "1" }]),
+      apply('{"a~":1}', [{ op: "remove", path: "/a~" }]),
+      apply('{"a":1}', [{ op: "copy", from: "/~x", path: "/b" }]),
+    ].map((result) => (result.ok ? "ok" : result.error.message));
+    expect(messages).toEqual([
+      'Operation 1 (add /a~2): "~" must be followed by 0 or 1 in a path ("~0" is "~", "~1" is "/")',
+      'Operation 1 (remove /a~): "~" must be followed by 0 or 1 in a path ("~0" is "~", "~1" is "/")',
+      'Operation 1 (copy /b): "~" must be followed by 0 or 1 in a path ("~0" is "~", "~1" is "/")',
+    ]);
+  });
+
+  it("treats a move onto the same path as a no-op, the root included", () => {
+    expect(apply('{"a":1,"b":2}', [{ op: "move", from: "/a", path: "/a" }])).toEqual({
+      ok: true,
+      value: '{\n  "a": 1,\n  "b": 2\n}',
+    });
+    expect(apply("[1,2]", [{ op: "move", from: "", path: "" }])).toEqual({ ok: true, value: "[\n  1,\n  2\n]" });
+    const missing = apply("{}", [{ op: "move", from: "/x", path: "/x" }]);
+    expect(missing.ok ? "ok" : missing.error.message).toBe("Operation 1 (move /x): /x does not exist");
+  });
+
   it("reports invalid input JSON", () => {
     expect(apply("{", []).ok).toBe(false);
   });

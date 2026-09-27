@@ -19,7 +19,7 @@ if (result.ok) {
 - Numbers compare as exact decimals: `1.0` equals `1`, big integers keep every digit. `numbers: "raw"` compares spelling.
 - Strings compare by value: `"A"` equals `"A"`. Key order does not matter; with duplicate keys the last one wins.
 - `arrayKey: "id"` matches objects in arrays by `id`, ignoring their order. A missing or repeated key, or an array that mixes objects and other values, is an error with its path. If items were added, removed or reordered, the JSON Patch replaces that array whole.
-- A patch `value` is JSON text, so numbers keep their spelling. `applyJsonPatch` supports `add`, `remove`, `replace`, `move`, `copy` and `test`, and prints the result with a two-space indent.
+- A patch `value` is JSON text, so numbers keep their spelling. `applyJsonPatch` supports `add`, `remove`, `replace`, `move`, `copy` and `test`, and prints the result with a two-space indent. A path with a `~` not followed by `0` or `1` is an error; a `move` onto its own path changes nothing.
 - Parse errors say which side failed: `{ ok: false, side: "right", error }`.
 
 ## React component

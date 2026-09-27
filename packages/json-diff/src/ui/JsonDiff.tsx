@@ -67,6 +67,14 @@ function formatError(side: Side, error: JsonError): string {
   return `${LABEL[side]}: Line ${error.line}, column ${error.column}: ${error.message}`;
 }
 
+/** "Changed $.b: 2 → 3", "Added $.c: 4", "Removed $.x: true": the row's visible parts, read as a sentence. */
+function describeChange(change: JsonChange): string {
+  const path = formatPath(change.path);
+  if (change.kind === "changed") return `Changed ${path}: ${preview(change.left!.raw)} → ${preview(change.right!.raw)}`;
+  if (change.kind === "added") return `Added ${path}: ${preview(change.right!.raw)}`;
+  return `Removed ${path}: ${preview(change.left!.raw)}`;
+}
+
 /** Ready-made JSON diff UI. Import "@web-kit/json-diff/styles.css" once for the default look. */
 export function JsonDiff(props: JsonDiffProps): ReactElement {
   const state = useJsonDiff(props);
@@ -103,6 +111,19 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
   }
 
   const diff = result?.ok ? result.value : null;
+  // A patch for older text would not turn the current Left into the current Right.
+  const freshPatch = fresh ? patch : "";
+  // Read out after each comparison. The element is always there, so the first result is announced too.
+  const announcement =
+    result === null
+      ? ""
+      : !result.ok
+        ? formatError(result.side, result.error)
+        : result.value.changes.length === 0
+          ? result.value.wholeArrays.length > 0
+            ? "Only the order of array items differs"
+            : "No differences"
+          : count(result.value.changes.length, "change");
 
   const toolbar = (
     <EditorToolbar>
@@ -240,21 +261,22 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
           <Button
             icon="download"
             tooltip="Save the JSON Patch as patch.json"
-            disabled={patch === ""}
-            onClick={() => downloadText(patch, "patch.json", "application/json")}
+            disabled={freshPatch === ""}
+            onClick={() => downloadText(freshPatch, "patch.json", "application/json")}
           >
             Download
           </Button>
-          <CopyButton text={patch} label="Copy JSON Patch" tooltip="Copy RFC 6902 operations that turn Left into Right" />
+          <CopyButton text={freshPatch} label="Copy JSON Patch" tooltip="Copy RFC 6902 operations that turn Left into Right" />
         </div>
+        <p role="status" aria-live="polite" className="wk-ui-sr-only">
+          {announcement}
+        </p>
         <div className="wk-diff__body">
           {result === null ? (
             <p className="wk-diff__placeholder">Paste JSON into both sides to compare.</p>
           ) : !result.ok ? (
             <div className="wk-diff__problem">
-              <p role="status" className="wk-diff__error">
-                {formatError(result.side, result.error)}
-              </p>
+              <p className="wk-diff__error">{formatError(result.side, result.error)}</p>
               <button
                 type="button"
                 className="wk-diff__link"
@@ -276,6 +298,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
                     <button
                       type="button"
                       className={`wk-diff__change wk-diff__change--${change.kind}`}
+                      aria-label={describeChange(change)}
                       disabled={!fresh}
                       onClick={() => show(change)}
                     >

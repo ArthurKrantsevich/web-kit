@@ -24,6 +24,34 @@ describe("JsonDiff", () => {
     expect(screen.getByText("~1")).toBeTruthy();
   });
 
+  it("gives each change row a clear accessible name", () => {
+    render(<JsonDiff initialLeft='{"a":1,"b":2,"x":true}' initialRight='{"a":1,"b":3,"c":4}' />);
+    expect(rows().map((row) => row.getAttribute("aria-label"))).toEqual([
+      "Changed $.b: 2 → 3",
+      "Removed $.x: true",
+      "Added $.c: 4",
+    ]);
+    expect(screen.getByRole("button", { name: "Changed $.b: 2 → 3" })).toBe(rows()[0]);
+  });
+
+  it("announces the result in one live region that is there from the start", () => {
+    render(<JsonDiff />);
+    const live = screen.getByRole("status");
+    expect(live.getAttribute("aria-live")).toBe("polite");
+    expect(live.textContent).toBe("");
+    fireEvent.change(area("Left"), { target: { value: '{"a":1}' } });
+    fireEvent.change(area("Right"), { target: { value: '{"a":2,"b":3}' } });
+    expect(screen.getByRole("status")).toBe(live);
+    expect(live.textContent).toBe("2 changes");
+    fireEvent.change(area("Right"), { target: { value: '{"a":1.0}' } });
+    expect(live.textContent).toBe("No differences");
+    fireEvent.change(area("Right"), { target: { value: "{" } });
+    expect(screen.getByRole("status")).toBe(live);
+    expect(live.textContent).toMatch(/^Right: Line 1, column 2: /);
+    fireEvent.change(area("Right"), { target: { value: "" } });
+    expect(live.textContent).toBe("");
+  });
+
   it("says there are no differences and copies an empty patch", async () => {
     const writeText = mockClipboard();
     render(<JsonDiff initialLeft='{"a":1.0,"b":[1]}' initialRight='{"b":[1],"a":1}' />);

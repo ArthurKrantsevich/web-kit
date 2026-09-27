@@ -101,6 +101,7 @@ class PatchError extends Error {}
 function parsePointer(pointer: string): string[] {
   if (pointer === "") return [];
   if (!pointer.startsWith("/")) throw new PatchError('a path must be empty or start with "/"');
+  if (/~(?![01])/.test(pointer)) throw new PatchError('"~" must be followed by 0 or 1 in a path ("~0" is "~", "~1" is "/")');
   return pointer
     .slice(1)
     .split("/")
@@ -207,6 +208,11 @@ export function applyJsonPatch(input: string, patch: JsonPatchOperation[]): Resu
           break;
         case "move": {
           const from = fromOf(op);
+          // RFC 6902 §4.4: "from" must exist. A move onto itself changes nothing, not even the key order.
+          if (op.path === from) {
+            doc.get(from);
+            break;
+          }
           // Checked before removing: moving a value into its own child would lose it.
           if (op.path !== from && op.path.startsWith(`${from}/`)) throw new PatchError("cannot move a value into itself");
           doc.add(op.path, doc.remove(from));
