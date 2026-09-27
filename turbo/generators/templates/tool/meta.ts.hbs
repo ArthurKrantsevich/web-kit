@@ -4,7 +4,8 @@ export const meta: ToolMeta = {
   id: "{{ id }}",
   title: {{{ json title }}},
   description: {{{ json description }}},
-  preview: `{{ camelCase id }}("…")`,
+  preview: `{{ camelCase id }}("…")
+// → "…"`,
   category: "{{ category }}",
   tags: ["{{ id }}"],
   pkg: "@web-kit/{{ id }}",
