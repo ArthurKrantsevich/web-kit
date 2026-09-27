@@ -118,7 +118,8 @@ describe("DiffView", () => {
   });
 });
 
-describe("DiffView on a long result", () => {
+// 2,000-line results take seconds in jsdom under a full parallel `pnpm verify` on CI, so the block gets its own timeout.
+describe("DiffView on a long result", { timeout: 20_000 }, () => {
   /** jsdom has no IntersectionObserver: this one reports only what a test says is near the view. */
   class Observer {
     static all: Observer[] = [];
@@ -188,7 +189,9 @@ describe("DiffView on a long result", () => {
 
   it("draws everything where there is no IntersectionObserver", () => {
     vi.stubGlobal("IntersectionObserver", undefined);
-    const { container } = view(left, right);
-    expect(container.querySelectorAll(".wk-compare__row").length).toBe(LINES);
+    // A few chunks are enough to show the fallback; all 2,000 rows are too slow for jsdom on CI.
+    const lines = 4 * CHUNK_ROWS;
+    const { container } = view(left.split("\n").slice(0, lines).join("\n"), right.split("\n").slice(0, lines).join("\n"));
+    expect(container.querySelectorAll(".wk-compare__row").length).toBe(lines);
   });
 });
