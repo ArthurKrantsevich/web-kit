@@ -61,11 +61,13 @@
   outline-offset: 2px;
 }
 .wk-ui-button:disabled,
-.wk-ui-select:disabled {
+.wk-ui-select:disabled,
+.wk-ui-button[aria-disabled="true"],
+.wk-ui-segment[aria-disabled="true"] {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.wk-ui-button--quiet:hover:not(:disabled) {
+.wk-ui-button--quiet:hover:not(:disabled, [aria-disabled="true"]) {
   background: var(--wk-surface-2, #f0eee6);
 }
 .wk-ui-button--primary {

@@ -35,7 +35,10 @@ const ROW_ESTIMATE = 21;
 const NEAR = "800px 0px";
 
 /** A piece of a chunk: an unchanged line, a fold, or the rows of one change block that fall into the chunk. */
-type Part = { type: "line"; row: LineRow } | { type: "fold"; row: FoldRow } | { type: "block"; block: number; rows: LineRow[]; first: boolean };
+type Part =
+  | { type: "line"; row: LineRow; index: number }
+  | { type: "fold"; row: FoldRow; index: number }
+  | { type: "block"; block: number; rows: LineRow[]; start: number; first: boolean };
 
 interface Chunk {
   parts: Part[];
@@ -53,13 +56,13 @@ function toChunks(model: RowModel, limit: number): Chunk[] {
     const row = model.rows[r]!;
     if (chunk === null || chunk.rows === CHUNK_ROWS) chunks.push((chunk = { parts: [], rows: 0, blocks: [] }));
     chunk.rows++;
-    if (row.type === "fold") chunk.parts.push({ type: "fold", row });
-    else if (row.kind === "equal") chunk.parts.push({ type: "line", row });
+    if (row.type === "fold") chunk.parts.push({ type: "fold", row, index: r });
+    else if (row.kind === "equal") chunk.parts.push({ type: "line", row, index: r });
     else {
       const last = chunk.parts.at(-1);
       if (last?.type === "block" && last.block === row.block) last.rows.push(row);
       else {
-        chunk.parts.push({ type: "block", block: row.block, rows: [row], first: r === model.firstRow[row.block] });
+        chunk.parts.push({ type: "block", block: row.block, rows: [row], start: r, first: r === model.firstRow[row.block] });
         chunk.blocks.push(row.block);
       }
     }
@@ -85,7 +88,8 @@ interface Context {
   total: number;
   canMerge: boolean;
   onMerge: (block: number, direction: "to-left" | "to-right") => void;
-  onExpand: (key: number) => void;
+  /** Opens the fold `key` found at row `index`. */
+  onExpand: (key: number, index: number) => void;
 }
 
 /**
@@ -99,7 +103,20 @@ export function DiffView(props: DiffViewProps): ReactElement {
   const latest = useRef(props);
   latest.current = props;
   const onMerge = useCallback((block: number, direction: "to-left" | "to-right") => latest.current.onMerge(block, direction), []);
-  const onExpand = useCallback((key: number) => latest.current.onExpand(key), []);
+  // A fold's button goes away when it opens: focus then moves to the first line it showed, at the fold's row.
+  const reveal = useRef<number | null>(null);
+  const onExpand = useCallback((key: number, index: number) => {
+    reveal.current = index;
+    latest.current.onExpand(key);
+  }, []);
+  useLayoutEffect(() => {
+    if (reveal.current === null) return;
+    const row = root.current?.querySelector<HTMLElement>(`[data-row="${reveal.current}"]`);
+    reveal.current = null;
+    if (!row) return;
+    row.tabIndex = -1;
+    row.focus({ preventScroll: true });
+  }, [model]);
   // One highlight per changed pair and view, shared by the two rows of a pair in the inline layout.
   const pieces = useMemo(() => {
     const cache = new Map<string, Pieces>();
@@ -226,10 +243,11 @@ interface ChunkProps {
 const ChunkView = memo(function ChunkView({ index, chunk, drawn, height, current, context }: ChunkProps): ReactElement {
   if (!drawn) return <div className="wk-compare__chunk" data-chunk={index} style={{ height: `${height}px` }} />;
   const { layout, lines, pieces, eof, order, total, canMerge, onMerge, onExpand } = context;
-  const line = (row: LineRow, first: boolean) => (
+  const line = (row: LineRow, first: boolean, index: number) => (
     <Line
       key={`${row.block}:${row.left}:${row.right}:${row.show}`}
       row={row}
+      index={index}
       layout={layout}
       left={row.left === null ? null : lines.left.lines[row.left]!}
       right={row.right === null ? null : lines.right.lines[row.right]!}
@@ -270,13 +288,13 @@ const ChunkView = memo(function ChunkView({ index, chunk, drawn, height, current
         if (part.type === "fold") {
           return (
             <div key={`fold:${part.row.key}`} className="wk-compare__fold">
-              <button type="button" className="wk-compare__unfold" onClick={() => onExpand(part.row.key)}>
+              <button type="button" className="wk-compare__unfold" onClick={() => onExpand(part.row.key, part.index)}>
                 {`Show ${count(part.row.count, "unchanged line")}`}
               </button>
             </div>
           );
         }
-        if (part.type === "line") return line(part.row, false);
+        if (part.type === "line") return line(part.row, false, part.index);
         const position = order.get(part.block)!;
         // A block cut by a chunk edge: only its first part is the named group with the merge buttons.
         return (
@@ -288,7 +306,7 @@ const ChunkView = memo(function ChunkView({ index, chunk, drawn, height, current
             data-block={part.block}
             data-current={part.block === current || undefined}
           >
-            {part.rows.map((each, k) => line(each, k === 0 && part.first))}
+            {part.rows.map((each, k) => line(each, k === 0 && part.first, part.start + k))}
           </div>
         );
       })}
@@ -298,6 +316,8 @@ const ChunkView = memo(function ChunkView({ index, chunk, drawn, height, current
 
 interface LineProps {
   row: LineRow;
+  /** The row's place in the model, for focus. */
+  index: number;
   layout: Layout;
   left: string | null;
   right: string | null;
@@ -333,11 +353,11 @@ function Text({ text, pieces, eof }: { text: string; pieces: Segment[] | null; e
   );
 }
 
-const Line = memo(function Line({ row, layout, left, right, pieces, eofLeft, eofRight, actions }: LineProps): ReactElement {
+const Line = memo(function Line({ row, index, layout, left, right, pieces, eofLeft, eofRight, actions }: LineProps): ReactElement {
   const number = (value: number | null) => <span className="wk-compare__num">{value === null ? "" : value + 1}</span>;
   if (layout === "split") {
     return (
-      <div className={`wk-compare__row wk-compare__row--${row.kind}`}>
+      <div className={`wk-compare__row wk-compare__row--${row.kind}`} data-row={index}>
         {number(row.left)}
         <span className={`wk-compare__text${SIDE_CLASS[row.kind].left}`}>
           {left !== null && <Text text={left} pieces={pieces?.left ?? null} eof={eofLeft} />}
@@ -355,7 +375,7 @@ const Line = memo(function Line({ row, layout, left, right, pieces, eofLeft, eof
   const kind = row.kind === "equal" ? "equal" : side === "left" ? "removed" : "added";
   const sign = kind === "equal" ? " " : kind === "removed" ? "−" : "+";
   return (
-    <div className={`wk-compare__row wk-compare__row--${kind}`}>
+    <div className={`wk-compare__row wk-compare__row--${kind}`} data-row={index}>
       <span className="wk-compare__actions">{actions}</span>
       {number(side === "left" || kind === "equal" ? row.left : null)}
       {number(side === "right" || kind === "equal" ? row.right : null)}

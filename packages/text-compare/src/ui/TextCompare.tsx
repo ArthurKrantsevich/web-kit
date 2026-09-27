@@ -150,6 +150,9 @@ export function TextCompare(props: TextCompareProps): ReactElement {
   const rightRef = useRef<HTMLTextAreaElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const centre = useRef(false);
+  const nextButton = useRef<HTMLButtonElement>(null);
+  /** After a merge: the place of the merged change among the changes, and the button used, for the focus. */
+  const refocus = useRef<{ index: number; direction: "to-left" | "to-right" } | null>(null);
   const hydrated = useHydrated();
   const id = useId();
   const refs = { left: leftRef, right: rightRef };
@@ -205,6 +208,18 @@ export function TextCompare(props: TextCompareProps): ReactElement {
     body.current.scrollTop = Math.max(0, top);
   }, [current, model, limit]);
 
+  // After a merge, once the result is fresh again, focus moves to the same button of the change that took the merged
+  // one's place, or to Next when none is left; the button that had it is gone.
+  useLayoutEffect(() => {
+    const target = refocus.current;
+    if (target === null || !fresh) return;
+    refocus.current = null;
+    const block = model?.changes[target.index];
+    const group = block === undefined ? null : body.current?.querySelector(`[data-block="${block}"]`);
+    const button = group?.querySelectorAll<HTMLButtonElement>(".wk-compare__merge")[target.direction === "to-right" ? 0 : 1];
+    (button ?? nextButton.current)?.focus({ preventScroll: true });
+  }, [model, fresh]);
+
   function go(to: number): void {
     if (!model || to < 0 || to >= changes) return;
     const row = model.firstRow[model.changes[to]!]!;
@@ -230,6 +245,7 @@ export function TextCompare(props: TextCompareProps): ReactElement {
   function merge(block: number, direction: "to-left" | "to-right"): void {
     if (!comparison || !fresh) return;
     const side: Side = direction === "to-left" ? "left" : "right";
+    refocus.current = { index: model?.changes.indexOf(block) ?? 0, direction };
     const result = applyBlock(comparison.left, comparison.right, comparison.diff, block, direction, comparison.options);
     replaceText(refs[side].current, text[side], result, (value) => set[side](value));
     body.current?.focus({ preventScroll: true });
@@ -450,17 +466,18 @@ export function TextCompare(props: TextCompareProps): ReactElement {
             icon="chevron-up"
             aria-label="Previous change"
             tooltip={`Previous change (Alt+↑ or Shift+F7). ${position}`}
-            disabled={current === null || current === 0}
+            aria-disabled={current === null || current === 0}
             onClick={previous}
           >
             Previous
           </ActionButton>
           <ActionButton
+            ref={nextButton}
             action="custom"
             icon="chevron-down"
             aria-label="Next change"
             tooltip={`Next change (Alt+↓ or F7). ${position}`}
-            disabled={changes === 0 || current === changes - 1}
+            aria-disabled={changes === 0 || current === changes - 1}
             onClick={next}
           >
             Next

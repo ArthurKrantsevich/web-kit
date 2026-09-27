@@ -300,3 +300,12 @@
     padding: 0 6px 0 4px;
   }
 }
+
+/* A line gets focus when the fold it was in opens (the fold's button is gone). */
+.wk-compare__row:focus {
+  outline: none;
+}
+.wk-compare__row:focus-visible {
+  outline: 2px solid var(--wk-accent, #b5532f);
+  outline-offset: -2px;
+}

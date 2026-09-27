@@ -102,6 +102,8 @@ describe("TextCompare", () => {
     ]);
     fireEvent.click(screen.getByRole("button", { name: "Show 16 unchanged lines" }));
     expect(within(body()).getAllByRole("button", { name: /unchanged lines$/ })).toHaveLength(1);
+    // The fold's button is gone: focus goes to the first line it showed.
+    expect((document.activeElement as HTMLElement).textContent).toBe("1line 11line 1");
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));
     fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Show all unchanged lines" }));
     expect(within(body()).queryAllByRole("button", { name: /unchanged lines$/ })).toEqual([]);
@@ -194,13 +196,20 @@ describe("TextCompare navigation", () => {
     const previous = screen.getByRole("button", { name: "Previous change" }) as HTMLButtonElement;
     const next = screen.getByRole("button", { name: "Next change" }) as HTMLButtonElement;
     const current = () => groups().findIndex((group) => group.hasAttribute("data-current"));
-    expect([previous.disabled, next.disabled, current()]).toEqual([true, false, -1]);
+    // aria-disabled, not disabled: a button that goes inert while focused keeps the focus.
+    const off = (button: HTMLButtonElement) => (button.disabled ? "disabled" : button.getAttribute("aria-disabled") === "true");
+    expect([off(previous), off(next), current()]).toEqual([true, false, -1]);
+    fireEvent.click(previous);
+    expect(current()).toBe(-1);
     fireEvent.click(next);
     expect([current(), screen.getByRole("status").textContent]).toEqual([0, "Change 1 of 3"]);
     expect(tooltipOf(next)).toBe("Next change (Alt+↓ or F7). Change 1 of 3");
     fireEvent.click(next);
+    next.focus();
     fireEvent.click(next);
-    expect([current(), next.disabled, previous.disabled]).toEqual([2, true, false]);
+    expect([current(), off(next), off(previous), document.activeElement]).toEqual([2, true, false, next]);
+    fireEvent.click(next);
+    expect(current()).toBe(2);
     fireEvent.click(previous);
     expect(current()).toBe(1);
   });
@@ -282,12 +291,20 @@ describe("TextCompare merges", () => {
     expect(body().textContent).toBe("Texts are identical.");
   });
 
-  it("keeps the scroll of the result and gives focus to it", () => {
-    render(<TextCompare initialLeft={numbered(40)} initialRight={numbered(40, { 5: "line 5 x", 30: "line 30 y" })} />);
+  it("keeps the scroll of the result and gives focus to the same button of the next change", () => {
+    render(<TextCompare initialLeft={numbered(40)} initialRight={numbered(40, { 5: "line 5 x", 20: "line 20 y", 30: "line 30 z" })} />);
     body().scrollTop = 120;
     fireEvent.click(within(groups()[1]!).getByRole("button", { name: "Use right" }));
-    expect([body().scrollTop, document.activeElement]).toEqual([120, body()]);
-    expect(groups()).toHaveLength(1);
+    expect(groups()).toHaveLength(2);
+    expect([body().scrollTop, document.activeElement]).toEqual([120, within(groups()[1]!).getByRole("button", { name: "Use right" })]);
+  });
+
+  it("gives focus to Next when no change is left after the merged one", () => {
+    render(<TextCompare initialLeft={numbered(40)} initialRight={numbered(40, { 5: "line 5 x", 30: "line 30 y" })} />);
+    fireEvent.click(within(groups()[1]!).getByRole("button", { name: "Use left" }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Next change" }));
+    fireEvent.click(within(groups()[0]!).getByRole("button", { name: "Use left" }));
+    expect([body().textContent, document.activeElement]).toEqual(["Texts are identical.", screen.getByRole("button", { name: "Next change" })]);
   });
 
   it("keeps the current change in range after a merge", () => {
