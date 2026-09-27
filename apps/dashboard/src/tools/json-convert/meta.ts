@@ -27,6 +27,6 @@ import { toYaml, toCsv, fromCsv, toXml, toTypeScript } from "@web-kit/json-conve
     { name: "fromCsv", signature: "fromCsv(input, { delimiter?, inferTypes? }): ConvertResult", description: "CSV with a header row → JSON array; types only for exact matches." },
     { name: "toXml", signature: "toXml(input, { rootName? }): ConvertResult", description: "JSON → XML 1.0 (one-way). Keys become valid element names." },
     { name: "toTypeScript", signature: "toTypeScript(input, { rootName? }): ConvertResult", description: "Interfaces inferred from the data; keys missing in some objects are optional." },
-    { name: "JsonConvert", signature: "<JsonConvert initialInput? initialTarget? className? />", description: "Ready-made UI with per-format options and copy." },
+    { name: "JsonConvert", signature: "<JsonConvert initialInput? initialTarget? className? />", description: "Ready-made editor: input and output side by side, per-format options, Open file, Paste, Download, Copy and Swap direction." },
   ],
 };

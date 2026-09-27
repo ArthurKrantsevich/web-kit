@@ -9,7 +9,16 @@
 *::after {
   box-sizing: border-box;
 }
+/* The scrollbar's room is always kept, so the content does not jump between short and long pages. */
+html {
+  scrollbar-gutter: stable;
+}
+/* A column as tall as the window: the footer sits at the bottom of short pages. */
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   background: var(--wk-bg);
   color: var(--wk-fg);
@@ -146,7 +155,9 @@ pre {
   }
 }
 .site-main {
-  min-height: 70vh;
+  flex: 1 0 auto;
+  /* A flex item with auto margins would shrink to its content; keep the container width. */
+  width: 100%;
   padding-top: 32px;
   padding-bottom: 80px;
 }
@@ -470,18 +481,19 @@ a.card:hover {
 .prose a {
   color: var(--wk-accent);
 }
-/* The formatter draws its own card; no second frame around it. */
-.panel:has(> .wk-json, > .wk-diff, > .wk-schema) {
+/* Every utility draws its own card; no second frame around it. */
+.panel:has(> .wk-ui-editor) {
   padding: 0;
   overflow: visible;
   border: 0;
   background: none;
 }
-/* On the tool page the editor fills the rest of the screen, status line included. */
-.panel:has(> .wk-json) > .wk-json {
-  --wk-json-height: max(420px, calc(100dvh - 310px));
+/* On the tool page the formatter and the converter fill the rest of the screen, status line included. */
+.panel > .wk-json,
+.panel > .wk-convert {
+  --wk-editor-height: max(420px, calc(100dvh - 310px));
 }
 /* The validator's results sit under the panes: leave room for the demo's five errors and the status line. */
-.panel:has(> .wk-schema) > .wk-schema {
+.panel > .wk-schema {
   --wk-schema-height: max(320px, calc(100dvh - 480px));
 }

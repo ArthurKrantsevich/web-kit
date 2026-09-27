@@ -47,7 +47,7 @@ if (result.ok) console.log(toJsonPatch(result.value));`,
     {
       name: "JsonDiff",
       signature: "<JsonDiff initialLeft? initialRight? className? />",
-      description: "Ready-made UI: two inputs, options, a clickable list of changes and Copy JSON Patch.",
+      description: "Ready-made UI: two inputs with Paste and Open file, options, a clickable list of changes, Download and Copy JSON Patch.",
     },
     {
       name: "useJsonDiff",

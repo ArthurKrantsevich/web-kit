@@ -44,7 +44,7 @@ console.log(summarizeSchemaResult(result)); // "Not valid: 1 error"`,
     {
       name: "JsonSchemaValidator",
       signature: "<JsonSchemaValidator initialData? initialSchema? className? />",
-      description: "Ready-made UI: Data and Schema side by side, Generate schema from data, a clickable list of errors and warnings.",
+      description: "Ready-made UI: Data and Schema side by side with Paste and Open file, Generate schema from data, Download and Copy the schema, a clickable list of errors and warnings.",
     },
     {
       name: "useJsonSchemaValidator",
