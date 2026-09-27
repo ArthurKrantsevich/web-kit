@@ -22,16 +22,24 @@ export interface Run {
   failures: Failure[];
   /** "schema id:data offset" pairs being evaluated; meeting one again means a $ref loop that never ends. */
   active: Set<string>;
-  /** Subschema evaluations so far; past EVALUATION_BUDGET the run stops with TooExpensive. */
+  /** Subschema evaluations so far; past `budget` the run stops with TooExpensive. */
   steps: number;
+  /** See evaluationBudget. */
+  budget: number;
 }
 
-/** About a second of work. A schema that needs more (e.g. $refs that branch at every level) is stopped, not run. */
-export const EVALUATION_BUDGET = 1_000_000;
+/**
+ * How many subschema evaluations a run may make: 50 per data node, at least 1,000,000. Ordinary schemas visit each
+ * node a few times, so data under the 10 MB file limit never reaches it; $refs that branch at every level (2^30
+ * evaluations of one value) do, and are stopped in well under a second.
+ */
+export function evaluationBudget(dataNodes: number): number {
+  return Math.max(1_000_000, 50 * dataNodes);
+}
 
 export class TooExpensive extends Error {
   constructor() {
-    super("The schema is too expensive to check");
+    super("Too expensive to check: the schema re-checks the same data too many times");
   }
 }
 
@@ -66,7 +74,7 @@ export function worst(a: Status, b: Status): Status {
 }
 
 export function evaluate(schema: Schema, data: JsonNode, path: JsonPath, run: Run): Status {
-  if (++run.steps > EVALUATION_BUDGET) throw new TooExpensive();
+  if (++run.steps > run.budget) throw new TooExpensive();
   if (schema.value === true) return "pass";
   if (schema.value === false) {
     run.failures.push({

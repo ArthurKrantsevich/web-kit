@@ -54,6 +54,18 @@ describe("JsonSchemaValidator", () => {
     expect(live.textContent).toBe("Valid");
   });
 
+  it("keeps a keyword name with a backtick whole inside the code", () => {
+    render(<JsonSchemaValidator initialData="1" initialSchema={'{"a`b":1}'} />);
+    const message = rows("Warnings")[0]!.querySelector(".wk-schema__message")!;
+    expect(message.innerHTML).toBe("keyword <code>a`b</code> is not checked");
+  });
+
+  it("leaves other messages with backticks as plain text", () => {
+    render(<JsonSchemaValidator initialData="1" initialSchema={'{"$ref":"#/$defs/`x`"}'} />);
+    const message = rows("Schema errors")[0]!.querySelector(".wk-schema__message")!;
+    expect(message.innerHTML).toBe("$ref points to nothing: #/$defs/`x`");
+  });
+
   it("shows backtick-quoted words of a message as code", () => {
     render(<JsonSchemaValidator initialData='{"long":1}' initialSchema='{"propertyNames":{"maxLength":3}}' />);
     const message = rows("Warnings")[0]!.querySelector(".wk-schema__message")!;

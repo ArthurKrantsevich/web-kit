@@ -175,6 +175,14 @@ describe("validateSchema", () => {
     ]);
   });
 
+  it("checks a large ordinary document without calling it too expensive", () => {
+    const data = `[${Array.from({ length: 1_000_000 }, (_, i) => i).join(",")}]`;
+    const started = Date.now();
+    const result = validateSchema(data, '{"type":"array","items":{"type":"number"}}');
+    expect(Date.now() - started).toBeLessThan(15_000);
+    expect(result.ok ? { valid: result.valid, errors: result.errors.length } : result).toEqual({ valid: true, errors: 0 });
+  }, 30_000);
+
   it("stops a schema that is too expensive to check instead of freezing", () => {
     const defs: string[] = [];
     for (let i = 0; i < 30; i++) defs.push(`"d${i}":{"allOf":[{"$ref":"#/$defs/d${i + 1}"},{"$ref":"#/$defs/d${i + 1}"}]}`);
@@ -184,7 +192,7 @@ describe("validateSchema", () => {
     const result = validateSchema("1", schema);
     expect(Date.now() - started).toBeLessThan(5000);
     expect(result.ok ? "checked" : result.stage === "schema" ? result.problems.map((p) => [p.schemaPath, p.message]) : "parse").toEqual([
-      ["#", "The schema is too expensive to check"],
+      ["#", "Too expensive to check: the schema re-checks the same data too many times"],
     ]);
   });
 

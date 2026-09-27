@@ -71,11 +71,23 @@ function formatBytes(bytes: number): string {
 
 const count = (n: number, word: string): string => `${n} ${n === 1 ? word : `${word}s`}`;
 
-/** A core message with its `backtick-quoted` parts (keyword names) as <code>. The message text itself is unchanged. */
+/**
+ * The warning templates of the core, with the quoted name in group 2. Only these get <code>: other messages can hold
+ * user text with backticks of its own (a $ref value, a pattern), which must stay as written.
+ */
+const QUOTED_NAME = /^(keyword|format) `(.*)` is not checked(: only draft 2020-12 is supported)?$/s;
+
+/** A warning with its keyword or format name as <code>; any other message as plain text. */
 function richMessage(message: string): ReactNode {
-  const parts = message.split(/`([^`]+)`/);
-  if (parts.length === 1) return message;
-  return parts.map((part, index) => (index % 2 === 1 ? <code key={index}>{part}</code> : part));
+  const match = QUOTED_NAME.exec(message);
+  if (!match) return message;
+  return (
+    <>
+      {`${match[1]} `}
+      <code>{match[2]}</code>
+      {` is not checked${match[3] ?? ""}`}
+    </>
+  );
 }
 
 function parseErrorText(input: Input, error: JsonError): string {

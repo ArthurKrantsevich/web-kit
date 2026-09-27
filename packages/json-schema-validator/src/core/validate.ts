@@ -1,8 +1,21 @@
-import { parseJson, stripBom } from "@web-kit/json-core";
+import { parseJson, stripBom, type JsonNode } from "@web-kit/json-core";
 import { compileSchema } from "./compile";
-import { evaluate, RefLoop, TooExpensive, type Run } from "./evaluate";
+import { evaluate, evaluationBudget, RefLoop, TooExpensive, type Run } from "./evaluate";
 import { locator } from "./text";
 import type { ParseProblem, SchemaResult, SchemaWarning } from "./types";
+
+/** Values in the data, containers included. Iterative: deep data must not overflow the stack here. */
+function countNodes(root: JsonNode): number {
+  let count = 0;
+  const stack: JsonNode[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    count++;
+    if (node.type === "array") for (const item of node.items) stack.push(item);
+    else if (node.type === "object") for (const member of node.members) stack.push(member.value);
+  }
+  return count;
+}
 
 /** Checks JSON data against a draft 2020-12 JSON Schema. Numbers are compared exactly, never through Number(). */
 export function validateSchema(data: string, schema: string): SchemaResult {
@@ -30,7 +43,7 @@ export function validateSchema(data: string, schema: string): SchemaResult {
   }));
   if (problems.length > 0) return { ok: false, stage: "schema", problems, warnings };
 
-  const run: Run = { failures: [], active: new Set(), steps: 0 };
+  const run: Run = { failures: [], active: new Set(), steps: 0, budget: evaluationBudget(countNodes(parsedData.value)) };
   let status;
   try {
     status = evaluate(compiled.root, parsedData.value, [], run);
