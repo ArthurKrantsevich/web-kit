@@ -26,3 +26,11 @@ export { escapeJson, unescapeJson, type Unescaped } from "./escape";
 export { inferShape, mergeShapes, type ObjectShape, type Primitive, type TypeShape } from "./shape";
 export { queryJson, searchJson, type QueryError, type QueryMatch, type QueryResult } from "./query";
 export { compareCodePoints } from "./print";
+export {
+  answerJsonJob,
+  runJsonJob,
+  type JsonJob,
+  type JsonJobResult,
+  type JsonWorkerRequest,
+  type JsonWorkerResponse,
+} from "./job";
