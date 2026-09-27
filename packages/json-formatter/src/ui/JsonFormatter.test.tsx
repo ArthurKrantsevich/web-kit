@@ -499,7 +499,7 @@ describe("JsonFormatter tooltips", () => {
       ["Minify", "Remove all whitespace"],
       ["Escape", "Turn any text into a JSON string literal"],
       ["Unescape", "Turn a JSON string literal back into its text"],
-      ["Open file", "Open a .json or .txt file (up to 10 MB)"],
+      ["Open file", "Open a .json or .txt file (up to 10 MB), or drop it on the input"],
       ["Sample", "Replace the input with an example"],
       ["Clear", "Empty the input"],
       ["Paste", "Paste from the clipboard"],
@@ -508,6 +508,7 @@ describe("JsonFormatter tooltips", () => {
       ["Use output as input", "Replace the input with the output"],
       ["Download", "Save the output as formatted.json"],
       ["Copy", "Copy the output to the clipboard"],
+      ["More actions", "Load from a URL, share, save, keyboard shortcuts"],
     ];
     for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
   });

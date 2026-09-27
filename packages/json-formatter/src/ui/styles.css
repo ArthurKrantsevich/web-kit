@@ -141,11 +141,16 @@
   }
 }
 @container (max-width: 639px) {
-  /* The four modes share the first row. */
+  /* The four modes and the More actions button share the first row (the second row has no room left for it).
+     More stays last in the tab order, as in the wide layout. */
   .wk-json__modes {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    width: 100%;
+    order: -2;
+    width: calc(100% - 36px);
+  }
+  .wk-json .wk-ui-menu-button {
+    order: -1;
   }
   .wk-json__modes .wk-ui-segment {
     padding: 0 4px;

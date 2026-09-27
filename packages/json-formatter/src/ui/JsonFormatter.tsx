@@ -11,11 +11,14 @@ import {
   Segmented,
   Select,
   StatusLine,
+  ToolMenu,
   Tooltip,
+  useFileDrop,
   type SegmentedOption,
   type SelectOption,
+  type Shortcut,
 } from "@web-kit/ui";
-import { useDeferredValue, useId, useRef, useState, type ReactElement } from "react";
+import { useDeferredValue, useId, useMemo, useRef, useState, type ReactElement } from "react";
 import { utf8Length } from "@web-kit/json-core";
 import { codeFrame, type Indent, type JsonError } from "../core/index";
 import { HighlightedJson } from "./HighlightedJson";
@@ -67,8 +70,12 @@ const INDENTS: SelectOption<IndentValue>[] = [
   { value: "tab", label: "Tab" },
 ];
 
-/** Larger files are not read: parsing them would freeze the page. */
+/** Larger files and downloads are not read: parsing them would freeze the page. */
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const ACCEPT = ".json,application/json,.txt,text/plain";
+
+const MODE_VALUES: readonly string[] = ["format", "minify", "escape", "unescape"];
 
 const SAMPLE =
   '{"name":"web-kit","version":"1.0.0","tools":[{"id":"json-formatter","stable":true,"size_kb":4.2},{"id":"json-convert","stable":true,"size_kb":5}],"homepage":null}';
@@ -121,6 +128,17 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
   // The input when the file being opened started to be read; its text is dropped if the input changed since.
   const inputAtRead = useRef<string | null>(null);
   const fileName = downloadName(mode, note === PLAIN_TEXT_NOTE);
+  const drop = useFileDrop({
+    accept: ACCEPT,
+    maxBytes: MAX_FILE_BYTES,
+    onReadStart: () => {
+      inputAtRead.current = inputRef.current?.value ?? input;
+    },
+    onText: openedFile,
+    onError: setMessage,
+  });
+  // What a share link carries and what "Save input in this browser" keeps.
+  const shared = useMemo(() => ({ input, mode, indent, sortKeys }), [input, mode, indent, sortKeys]);
 
   function replaceInput(value: string): void {
     setMessage(null);
@@ -141,6 +159,28 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
     area.focus();
     area.setSelectionRange(start + shift, Math.min(end + shift, input.length));
   }
+
+  /** Puts back a shared or saved state. It comes from outside, so every field is checked. */
+  function restore(state: Record<string, unknown>): void {
+    if (typeof state.input === "string") replaceInput(state.input);
+    if (typeof state.mode === "string" && MODE_VALUES.includes(state.mode)) setMode(state.mode as JsonFormatterMode);
+    if (state.indent === 2 || state.indent === 4 || state.indent === "\t") setIndent(state.indent);
+    if (typeof state.sortKeys === "boolean") setSortKeys(state.sortKeys);
+  }
+
+  /** Ctrl/⌘+Shift+F: the checked Fix all, or the only checked fix; otherwise says why nothing changed. */
+  function fixAll(): void {
+    if (repair) replaceInput(repair.value);
+    else if (fixes.length === 1) replaceInput(fixes[0]!.text);
+    else if (!error) setMessage("Nothing to fix");
+    else setMessage(fixes.length === 0 ? "No checked fix for this error" : "Several fixes are possible; choose one below");
+  }
+
+  const shortcuts: Shortcut[] = [
+    { keys: "Mod+Enter", label: "Format", run: () => setMode("format") },
+    { keys: "Mod+Shift+M", label: "Minify", run: () => setMode("minify") },
+    { keys: "Mod+Shift+F", label: "Fix all (or the only checked fix)", run: fixAll },
+  ];
 
   function showError(): void {
     if (!error) return;
@@ -173,22 +213,22 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         Sort keys
       </label>
       <span className="wk-ui-spacer" />
-      <OpenFileButton
-        tooltip="Open a .json or .txt file (up to 10 MB)"
-        accept=".json,application/json,.txt,text/plain"
-        maxBytes={MAX_FILE_BYTES}
-        onReadStart={() => {
-          inputAtRead.current = inputRef.current?.value ?? input;
-        }}
-        onText={openedFile}
-        onError={setMessage}
-      />
+      <OpenFileButton tooltip="Open a .json or .txt file (up to 10 MB), or drop it on the input" drop={drop} />
       <Button icon="sample" tooltip="Replace the input with an example" onClick={() => replaceInput(SAMPLE)}>
         Sample
       </Button>
       <Button icon="clear" tooltip="Empty the input" onClick={() => replaceInput("")}>
         Clear
       </Button>
+      <ToolMenu
+        toolKey="json-formatter"
+        state={shared}
+        onRestore={restore}
+        urlTargets={[{ label: "Load from URL…", onText: replaceInput }]}
+        shortcuts={shortcuts}
+        onNotice={setMessage}
+        maxBytes={MAX_FILE_BYTES}
+      />
     </EditorToolbar>
   );
 
@@ -238,6 +278,7 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         <EditorPane
           className="wk-json__pane--input"
           title="Input"
+          drop={drop}
           labelFor={`${id}-input`}
           meta={<span className="wk-json__size">{formatBytes(inputBytes)}</span>}
           actions={
