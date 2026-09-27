@@ -13,10 +13,11 @@
   *::after {
     box-sizing: border-box;
   }
-  /* The scrollbar's room is always kept, so the content does not jump between short and long pages. Anchors and
+  /* No room is kept for a scrollbar the page does not have, so the header and the footer reach the window's edge
+     on a short page (the room would show the page's background beside them: a browser paints nothing else there).
+     .container centres in the window instead, so the content does not jump when a scrollbar appears. Anchors and
      focused elements stop below the sticky header (64 px) with some air. */
   html {
-    scrollbar-gutter: stable;
     scroll-padding-top: 80px;
     scrollbar-color: var(--wk-scrollbar) transparent;
   }
@@ -82,9 +83,11 @@
   white-space: nowrap;
   border: 0;
 }
+/* Centred in the window (100vw), not in the room beside a scrollbar, so it stays put when a scrollbar appears. */
 .container {
   max-width: 1280px;
-  margin: 0 auto;
+  margin-left: max(0px, (100vw - 1280px) / 2);
+  margin-right: auto;
   padding: 0 16px;
 }
 @media (min-width: 640px) {
