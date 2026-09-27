@@ -192,6 +192,8 @@ test.describe("the worker", () => {
   }
 
   test("formats more than 1 MB off the main thread, says so, and a new input cancels the running job", async ({ page }) => {
+    // 6 MB take about 18 s on the test machine alone; other tests running beside it can add more.
+    test.slow();
     // Hold the worker script back, so the job is still running when the next input arrives.
     await page.route("**/_next/static/chunks/turbopack-worker-*.js", async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -208,7 +210,7 @@ test.describe("the worker", () => {
     await expect(status(page)).toHaveText(/^Formatting \d+\.\d MB…$/);
     await expect(page.locator(".wk-json__body")).toContainText("Formatting");
     await fillBig(page, "second");
-    await expect(status(page)).toContainText("Valid JSON", { timeout: 20_000 });
+    await expect(status(page)).toContainText("Valid JSON", { timeout: 60_000 });
     await expect(page.getByLabel("Output", { exact: true })).toContainText('"name": "second 0"');
     expect(workers.length).toBe(2);
     await expect.poll(() => workers[0]!.closed).toBe(true);

@@ -285,6 +285,8 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
             key={input}
             // The Schema pane also receives the generated schema, so it has the output's Download and Copy.
             kind={input === "schema" ? "input output" : "input"}
+            // Four labelled actions: they give way to icons sooner.
+            crowded={input === "schema"}
             className={`wk-schema__pane--${input}`}
             title={LABEL[input]}
             labelFor={`${id}-${input}`}

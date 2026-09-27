@@ -3,7 +3,7 @@
   /* An inline-size container ignores its content's width; without this it collapses in shrink-to-fit parents. */
   width: 100%;
   box-sizing: border-box;
-  container-type: inline-size;
+  container: wk-ui-editor / inline-size;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -28,7 +28,9 @@
   /* A tool may set --wk-ui-panes-height from its own variable (e.g. --wk-json-height). */
   height: var(--wk-ui-panes-height, var(--wk-editor-height, max(420px, 70vh)));
 }
+/* Each pane is a container: its header's labels depend on the pane's width, not the editor's (see the end). */
 .wk-ui-pane {
+  container: wk-ui-pane / inline-size;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -41,9 +43,10 @@
   flex: 1 1 auto;
   min-height: 0;
 }
+/* Always one line: the actions keep their size, the size label gives way with an ellipsis as the last resort. */
 .wk-ui-pane__head {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px 8px;
   min-height: 44px;
@@ -54,13 +57,26 @@
 .wk-ui-pane__head .wk-ui-segmented {
   margin-left: -4px;
 }
+.wk-ui-pane__head > * {
+  flex: none;
+}
+.wk-ui-pane__head > .wk-ui-spacer {
+  flex: 1 1 0;
+  min-width: 0;
+}
 .wk-ui-pane__title {
   font-size: 0.8125rem;
   font-weight: 600;
+  white-space: nowrap;
 }
-.wk-ui-pane__meta {
+.wk-ui-pane__head > .wk-ui-pane__meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   color: var(--wk-muted, #5e5d59);
   font-size: 0.8125rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .wk-ui-pane__head .wk-ui-button {
   height: 30px;
@@ -209,7 +225,7 @@
 }
 
 /* Width of the component, not of the window: it may sit in a narrow column. */
-@container (min-width: 1024px) {
+@container wk-ui-editor (min-width: 1024px) {
   .wk-ui-editor__panes {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -218,7 +234,7 @@
     border-left: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
   }
 }
-@container (max-width: 639px) {
+@container wk-ui-editor (max-width: 639px) {
   .wk-ui-editor__toolbar {
     gap: 8px 6px;
     padding: 8px;
@@ -239,6 +255,36 @@
   }
   .wk-ui-editor__toolbar .wk-ui-button--quiet.wk-ui-button--has-icon .wk-ui-button__label,
   .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon .wk-ui-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+/* A pane's header shows its action labels only when the pane has room for them (measured with the longest size
+   label, 1023.9 KB: at most 466 px for a usual header, 582 px for a crowded one, plus a margin for other fonts). */
+@container wk-ui-pane (max-width: 499px) {
+  .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon {
+    width: 30px;
+    padding: 0;
+  }
+  .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon .wk-ui-button__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+@container wk-ui-pane (max-width: 619px) {
+  .wk-ui-pane--crowded .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon {
+    width: 30px;
+    padding: 0;
+  }
+  .wk-ui-pane--crowded .wk-ui-pane__head .wk-ui-button--quiet.wk-ui-button--has-icon .wk-ui-button__label {
     position: absolute;
     width: 1px;
     height: 1px;

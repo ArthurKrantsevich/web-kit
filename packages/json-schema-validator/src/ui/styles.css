@@ -126,7 +126,7 @@
   color: var(--wk-fg, #141413);
 }
 
-@container (max-width: 639px) {
+@container wk-ui-editor (max-width: 639px) {
   .wk-schema__where {
     margin-left: 0;
     flex-basis: 100%;

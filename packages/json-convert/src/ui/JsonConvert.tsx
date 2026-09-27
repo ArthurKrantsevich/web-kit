@@ -343,6 +343,8 @@ export function JsonConvert(props: JsonConvertProps): ReactElement {
         <EditorPane
           kind="output"
           title="Output"
+          // The format name makes the size label long ("TypeScript · 1023.9 KB"): the labels give way sooner.
+          crowded
           meta={`${outputInfo.format} · ${formatBytes(outputBytes)}`}
           actions={
             <>

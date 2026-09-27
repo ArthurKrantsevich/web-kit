@@ -135,12 +135,12 @@
 }
 
 /* Width of the component, not of the window: it may sit in a narrow column. */
-@container (min-width: 1024px) {
+@container wk-ui-editor (min-width: 1024px) {
   .wk-json .wk-ui-editor__panes {
     grid-template-rows: minmax(0, 1fr);
   }
 }
-@container (max-width: 639px) {
+@container wk-ui-editor (max-width: 639px) {
   /* The four modes and the More actions button share the first row (the second row has no room left for it).
      More stays last in the tab order, as in the wide layout. */
   .wk-json__modes {
@@ -350,7 +350,7 @@
 
 /* Narrow component: the search field and the selected path get their own rows; Expand all and Collapse all keep
    only their icons (the label stays the accessible name, the tooltip says more), so the toolbar needs two rows. */
-@container (max-width: 639px) {
+@container wk-ui-editor (max-width: 639px) {
   .wk-tree__search,
   .wk-tree__path {
     flex-basis: 100%;

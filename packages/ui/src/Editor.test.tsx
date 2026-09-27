@@ -5,6 +5,18 @@ import { EditorPane, EditorPanes, EditorShell, EditorToolbar, StatusLine } from 
 afterEach(cleanup);
 
 describe("editor layout", () => {
+  it("marks a crowded pane, whose header gives its labels up sooner", () => {
+    const { container } = render(
+      <EditorPanes>
+        <EditorPane title="Data">x</EditorPane>
+        <EditorPane title="Schema" crowded>
+          y
+        </EditorPane>
+      </EditorPanes>,
+    );
+    expect([...container.querySelectorAll(".wk-ui-pane")].map((pane) => pane.className)).toEqual(["wk-ui-pane", "wk-ui-pane wk-ui-pane--crowded"]);
+  });
+
   it("builds the card from a toolbar, labelled panes and a status line", () => {
     const { container } = render(
       <EditorShell

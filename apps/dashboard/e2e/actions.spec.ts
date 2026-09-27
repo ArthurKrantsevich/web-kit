@@ -12,6 +12,7 @@ interface Found {
   labelShown: boolean;
   icon: boolean;
   quiet: boolean;
+  crowded: boolean;
 }
 
 /** Every button of the toolbar and of the pane headers: shared actions with what they look like, and the rest. */
@@ -47,6 +48,8 @@ function rows(page: Page): Promise<{ found: Found[]; unlisted: string[] }> {
           labelShown: !!box && box.width > 1 && !label!.classList.contains("wk-ui-sr-only"),
           icon: button.querySelector("svg.wk-ui-icon") !== null,
           quiet: button.classList.contains("wk-ui-button--quiet"),
+          // A crowded pane (four labelled actions, or a long size label) shows icons only below 620 px.
+          crowded: row.parentElement!.classList.contains("wk-ui-pane--crowded"),
         });
       }
     });
@@ -75,7 +78,7 @@ for (const [width, height] of [
           `${button.name} sits in ${button.places.join("/")}, ACTIONS says ${spec.places.join(" or ")}`,
         ).toEqual([button.name, true]);
         expect([button.name, button.icon, button.quiet]).toEqual([button.name, true, true]);
-        expect([button.name, button.labelShown]).toEqual([button.name, wide && !spec.iconOnly]);
+        expect([button.name, button.labelShown]).toEqual([button.name, wide && !spec.iconOnly && !button.crowded]);
         // The tool's own action names itself; a shared one shows the table's label ("Copy JSON Patch" says what it copies).
         if (button.action !== "custom") expect(button.label.startsWith(spec.label), `${button.name}: "${button.label}"`).toBe(true);
       }

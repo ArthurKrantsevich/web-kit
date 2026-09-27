@@ -59,6 +59,11 @@ export interface EditorPaneProps {
    * or "input output" for an input that also receives a result, like a generated schema.
    */
   kind?: "input" | "output" | "input output";
+  /**
+   * The header holds more than a title, a size and three actions (four labelled actions, or a long size label):
+   * its action labels give way to icons below a 620 px wide pane instead of 500 px, so it stays one line.
+   */
+  crowded?: boolean;
 }
 
 export function EditorPane({
@@ -71,10 +76,11 @@ export function EditorPane({
   drop,
   dropLabel = "Drop the file to open it",
   kind,
+  crowded = false,
 }: EditorPaneProps): ReactElement {
   return (
     <section
-      className={cx("wk-ui-pane", className)}
+      className={cx("wk-ui-pane", crowded && "wk-ui-pane--crowded", className)}
       data-pane={kind}
       data-dragging={drop === undefined ? undefined : drop.isDragging}
       {...drop?.dropProps}
