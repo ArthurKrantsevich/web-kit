@@ -92,6 +92,9 @@ export function ToolMenu({
 
   // A share link wins over the saved input; either is applied once.
   const { clear } = store;
+  // After a share link opened, its state is not saved over the user's own saved input until they edit it: the first
+  // state seen after the restore is the link's, and saving resumes once the state differs from it.
+  const linkState = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (restored || !share.ready || !store.ready) return;
     setRestored(true);
@@ -100,7 +103,10 @@ export function ToolMenu({
     const text = share.initial ?? store.saved;
     if (text === null) return;
     const value = deserialize(text);
-    if (value !== null) restore(value);
+    if (value !== null) {
+      if (share.initial !== null) linkState.current = null;
+      restore(value);
+    }
     else if (share.initial !== null) notice("The shared link is damaged; nothing was loaded from it");
     else {
       clear();
@@ -111,7 +117,13 @@ export function ToolMenu({
   const serialized = useMemo(() => (restored && store.enabled ? serialize(state) : null), [restored, store.enabled, state]);
   const { save } = store;
   useEffect(() => {
-    if (serialized !== null) save(serialized);
+    if (serialized === null) return;
+    if (linkState.current === null) linkState.current = serialized;
+    if (linkState.current !== undefined) {
+      if (serialized === linkState.current) return;
+      linkState.current = undefined;
+    }
+    save(serialized);
   }, [serialized, save]);
 
   useEffect(() => {
@@ -233,7 +245,8 @@ function UrlDialog({ target, maxBytes, onClose }: { target: UrlTarget; maxBytes:
         </>
       }
     >
-      <form id={`${id}-form`} onSubmit={(event) => void load(event)}>
+      {/* noValidate: loadFromUrl's own messages ("Enter a full address…") explain a bad address better than the browser's bubble. */}
+      <form id={`${id}-form`} noValidate onSubmit={(event) => void load(event)}>
         <input
           className="wk-ui-input"
           type="url"
@@ -259,6 +272,12 @@ function ShareDialog({ make, onClose }: { make: () => Promise<string>; onClose: 
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const build = useRef(make);
+  const field = useRef<HTMLInputElement>(null);
+
+  // The link arrives after the dialog opened (and focused its Close button): move focus to it, selected, ready to copy.
+  useEffect(() => {
+    if (link !== null) field.current?.focus();
+  }, [link]);
 
   useEffect(() => {
     let live = true;
@@ -294,6 +313,7 @@ function ShareDialog({ make, onClose }: { make: () => Promise<string>; onClose: 
       ) : (
         <>
           <input
+            ref={field}
             className="wk-ui-input"
             aria-label="Share link"
             readOnly

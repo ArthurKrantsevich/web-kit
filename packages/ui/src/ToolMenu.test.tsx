@@ -187,6 +187,51 @@ describe("ToolMenu", () => {
     expect(input().value).toBe("[1]");
   });
 
+  it("lets its own message explain an address without a scheme, instead of the browser's bubble", async () => {
+    render(<Harness />);
+    choose("Load Left from URL…");
+    const field = screen.getByLabelText("URL") as HTMLInputElement;
+    expect(field.form?.noValidate).toBe(true);
+    fireEvent.change(field, { target: { value: "example.com/data.json" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Load" }));
+    });
+    expect(screen.getByRole("status").textContent).toBe("Enter a full address that starts with https:// or http://");
+  });
+
+  it("keeps Copy link disabled until the link exists, then puts focus on the link", async () => {
+    render(<Harness />);
+    choose("Share link…");
+    const dialog = screen.getByRole("dialog", { name: "Share link" });
+    expect((within(dialog).getByRole("button", { name: "Copy link" }) as HTMLButtonElement).disabled).toBe(true);
+    const field = await within(dialog).findByLabelText("Share link");
+    expect((within(dialog).getByRole("button", { name: "Copy link" }) as HTMLButtonElement).disabled).toBe(false);
+    await waitFor(() => expect(document.activeElement).toBe(field));
+  });
+
+  it("does not overwrite the saved input with a shared link until the input is edited", async () => {
+    history.replaceState(null, "", `/tools/json-formatter/#json-formatter=${await compressText('{"v":1,"state":{"input":"[42]"}}')}`);
+    localStorage.setItem("wk:json-formatter:autosave", "1");
+    localStorage.setItem("wk:json-formatter:input", '{"v":1,"state":{"input":"[7]"}}');
+    const view = render(<Harness />);
+    await waitFor(() => expect(input().value).toBe("[42]"));
+    await new Promise((resolve) => setTimeout(resolve, SAVE_DELAY * 2));
+    expect(localStorage.getItem("wk:json-formatter:input")).toContain("[7]");
+    fireEvent.change(input(), { target: { value: "[43]" } });
+    await waitFor(() => expect(localStorage.getItem("wk:json-formatter:input")).toContain("[43]"), { timeout: SAVE_DELAY * 4 });
+    view.unmount();
+  });
+
+  it("does not save a shared link on leaving the page when nothing was edited", async () => {
+    history.replaceState(null, "", `/tools/json-formatter/#json-formatter=${await compressText('{"v":1,"state":{"input":"[42]"}}')}`);
+    localStorage.setItem("wk:json-formatter:autosave", "1");
+    localStorage.setItem("wk:json-formatter:input", '{"v":1,"state":{"input":"[7]"}}');
+    const view = render(<Harness />);
+    await waitFor(() => expect(input().value).toBe("[42]"));
+    view.unmount();
+    expect(localStorage.getItem("wk:json-formatter:input")).toContain("[7]");
+  });
+
   it("runs shortcuts inside the tool and lists them on ?", () => {
     const format = vi.fn();
     render(<Harness format={format} />);
