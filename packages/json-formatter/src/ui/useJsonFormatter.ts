@@ -49,6 +49,7 @@ export interface UseJsonFormatter {
   treeSource: string;
   /** True when `tree` matches the current input, so its offsets can be used to select text in the input. */
   treeFresh: boolean;
+  /** Facts about the valid JSON: the input in Format and Minify, the unescaped text when Unescape finds JSON. */
   stats: JsonStats | null;
 }
 
@@ -64,7 +65,11 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
   const [sortKeys, setSortKeys] = useState(false);
   const jsonMode = mode === "format" || mode === "minify";
 
-  const { result, note } = useMemo((): { result: Result<string> | null; note: string | null } => {
+  const { result, note, unescapedStats } = useMemo((): {
+    result: Result<string> | null;
+    note: string | null;
+    unescapedStats?: JsonStats;
+  } => {
     if (mode === "escape") {
       // Whitespace is content here; a leading BOM is not.
       return input === "" ? { result: null, note: null } : { result: { ok: true, value: escapeJson(stripBom(input)) }, note: null };
@@ -82,7 +87,11 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
         : inner.value.type === "string"
           ? "The value is itself a JSON string; unescape it again to go one level deeper."
           : "The string contains JSON; shown formatted.";
-      return { result: { ok: true, value: printJson(inner.value, { indent, sortKeys }) }, note };
+      return {
+        result: { ok: true, value: printJson(inner.value, { indent, sortKeys }) },
+        note,
+        unescapedStats: getStats(inner.value, text),
+      };
     }
     if (!sortKeys) return { result: mode === "format" ? formatJson(input, { indent }) : minifyJson(input), note: null };
     const parsed = parseJson(input);
@@ -140,6 +149,6 @@ export function useJsonFormatter(options: UseJsonFormatterOptions = {}): UseJson
     tree: shown?.root ?? null,
     treeSource: shown?.source ?? "",
     treeFresh: fresh && shown !== null && shown === deferredAst,
-    stats: shown?.stats ?? null,
+    stats: mode === "unescape" ? (unescapedStats ?? null) : (shown?.stats ?? null),
   };
 }

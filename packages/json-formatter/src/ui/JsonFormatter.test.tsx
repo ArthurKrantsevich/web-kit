@@ -2,9 +2,23 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonFormatter } from "./JsonFormatter";
 
+const originalClipboard = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+const originalCreateObjectURL = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+const originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
+
+/** Puts back a global property a test replaced, or removes it when there was none. */
+function restore(target: object, key: string, descriptor: PropertyDescriptor | undefined): void {
+  if (descriptor) Object.defineProperty(target, key, descriptor);
+  else delete (target as Record<string, unknown>)[key];
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
+  restore(navigator, "clipboard", originalClipboard);
+  restore(URL, "createObjectURL", originalCreateObjectURL);
+  restore(URL, "revokeObjectURL", originalRevokeObjectURL);
 });
 
 const inputArea = () => screen.getByLabelText("Input") as HTMLTextAreaElement;
@@ -163,6 +177,19 @@ describe("JsonFormatter", () => {
     expect(screen.getByText("The value is itself a JSON string; unescape it again to go one level deeper.")).toBeTruthy();
   });
 
+  it("says Valid JSON with stats when the unescaped text is JSON", () => {
+    const { container } = render(<JsonFormatter />);
+    fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
+    type('"{\\"a\\":[1]}"');
+    const status = container.querySelector(".wk-ui-status")!;
+    expect(status.className).toContain("wk-ui-status--valid");
+    expect(status.textContent).toBe(
+      "Valid JSON9 B · 1 key · depth 2 · 1 object · 1 array · 0 strings · 1 number · 0 booleans · 0 null values · longest array 1",
+    );
+    type('"hello"');
+    expect(status.textContent).toBe("5 B");
+  });
+
   it("announces the note politely", () => {
     render(<JsonFormatter />);
     fireEvent.click(screen.getByRole("button", { name: "Unescape" }));
@@ -297,6 +324,38 @@ describe("JsonFormatter editor", () => {
     expect(screen.getByText("File is larger than 10 MB")).toBeTruthy();
     type("[]");
     expect(screen.queryByText("File is larger than 10 MB")).toBeNull();
+  });
+
+  it("shows a message alone on empty input, without the empty-input hint", async () => {
+    const { container } = render(<JsonFormatter />);
+    const big = new File(["x"], "big.json");
+    Object.defineProperty(big, "size", { value: 10 * 1024 * 1024 + 1 });
+    await openFile(big);
+    expect(container.querySelector(".wk-ui-status")?.textContent).toBe("File is larger than 10 MB");
+  });
+
+  it("does not replace text typed while a file was being read", async () => {
+    let finish: (text: string) => void = () => {};
+    const file = new File(['{"file":1}'], "slow.json");
+    vi.spyOn(file, "text").mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    const { container } = render(<JsonFormatter initialInput="{}" />);
+    await openFile(file);
+    type('{"typed":1}');
+    await act(async () => finish('{"file":1}'));
+    expect(inputArea().value).toBe('{"typed":1}');
+    expect(container.querySelector(".wk-ui-status")?.textContent).toContain(
+      "File not loaded: the input changed while reading",
+    );
+  });
+
+  it("loads a slow file when the input did not change meanwhile", async () => {
+    let finish: (text: string) => void = () => {};
+    const file = new File(['{"file":1}'], "slow.json");
+    vi.spyOn(file, "text").mockReturnValue(new Promise((resolve) => (finish = resolve)));
+    render(<JsonFormatter initialInput="{}" />);
+    await openFile(file);
+    await act(async () => finish('{"file":1}'));
+    expect(inputArea().value).toBe('{"file":1}');
   });
 
   it("pastes from the clipboard", async () => {
@@ -441,5 +500,14 @@ describe("JsonFormatter tooltips", () => {
     render(<JsonFormatter initialInput="[1]" />);
     fireEvent.click(screen.getByRole("button", { name: "Escape" }));
     expect(tooltipOf(screen.getByRole("button", { name: "Download" }))).toBe("Save the output as escaped.txt");
+  });
+});
+
+describe("JsonFormatter test isolation", () => {
+  // Runs last: earlier tests replaced these globals, and each must have been put back.
+  it("leaves navigator.clipboard and the object URL functions as they were", () => {
+    expect(Object.getOwnPropertyDescriptor(navigator, "clipboard")).toEqual(originalClipboard);
+    expect(Object.getOwnPropertyDescriptor(URL, "createObjectURL")).toEqual(originalCreateObjectURL);
+    expect(Object.getOwnPropertyDescriptor(URL, "revokeObjectURL")).toEqual(originalRevokeObjectURL);
   });
 });

@@ -15,6 +15,7 @@ import {
   type SelectOption,
 } from "@web-kit/ui";
 import { useDeferredValue, useId, useMemo, useRef, useState, type ReactElement } from "react";
+import { utf8Length } from "@web-kit/json-core";
 import { codeFrame, type Indent, type JsonError } from "../core/index";
 import { HighlightedJson } from "./HighlightedJson";
 import { formatBytes, formatStats } from "./JsonStats";
@@ -71,7 +72,8 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const SAMPLE =
   '{"name":"web-kit","version":"1.0.0","tools":[{"id":"json-formatter","stable":true,"size_kb":4.2},{"id":"json-convert","stable":true,"size_kb":5}],"homepage":null}';
 
-const encoder = new TextEncoder();
+/** Shown when a file finishes reading after the user changed the input: the file would overwrite that change. */
+const STALE_FILE_MESSAGE = "File not loaded: the input changed while reading";
 
 /** The extension tells whether the downloaded output is JSON. */
 function downloadName(mode: JsonFormatterMode, plainText: boolean): string {
@@ -112,13 +114,21 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
   // Highlighting a large output is slower than typing; let it lag behind the input.
   const highlighted = useDeferredValue(output);
   const shift = hasBom(input) ? 1 : 0;
-  const inputBytes = useMemo(() => encoder.encode(input).length, [input]);
-  const outputBytes = useMemo(() => encoder.encode(output).length, [output]);
+  const inputBytes = useMemo(() => utf8Length(input), [input]);
+  // The input when the file being opened started to be read; its text is dropped if the input changed since.
+  const inputAtRead = useRef<string | null>(null);
   const fileName = downloadName(mode, note === PLAIN_TEXT_NOTE);
 
   function replaceInput(value: string): void {
     setMessage(null);
     setInput(value);
+  }
+
+  function openedFile(text: string): void {
+    const current = inputRef.current?.value ?? input;
+    if (inputAtRead.current !== null && inputAtRead.current !== current) setMessage(STALE_FILE_MESSAGE);
+    else replaceInput(text);
+    inputAtRead.current = null;
   }
 
   /** Selects `start..end`, given as offsets in the text without a BOM, in the input field. */
@@ -164,7 +174,10 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
         tooltip="Open a .json or .txt file (up to 10 MB)"
         accept=".json,application/json,.txt,text/plain"
         maxBytes={MAX_FILE_BYTES}
-        onText={replaceInput}
+        onReadStart={() => {
+          inputAtRead.current = inputRef.current?.value ?? input;
+        }}
+        onText={openedFile}
         onError={setMessage}
       />
       <Button icon="sample" tooltip="Replace the input with an example" onClick={() => replaceInput(SAMPLE)}>
@@ -184,10 +197,13 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
     </StatusLine>
   ) : output === "" ? (
     <StatusLine state="idle">
-      <span>Paste JSON, open a file or load a sample.</span>
-      {message && <span className="wk-json__message">{message}</span>}
+      {message === null ? (
+        <span>Paste JSON, open a file or load a sample.</span>
+      ) : (
+        <span className="wk-json__message">{message}</span>
+      )}
     </StatusLine>
-  ) : jsonMode ? (
+  ) : jsonMode || stats !== null ? (
     <StatusLine state="valid">
       <span>Valid JSON</span>
       {message === null ? (
@@ -198,7 +214,11 @@ export function JsonFormatter(props: JsonFormatterProps): ReactElement {
     </StatusLine>
   ) : (
     <StatusLine state="idle">
-      {message === null ? <span>{formatBytes(outputBytes)}</span> : <span className="wk-json__message">{message}</span>}
+      {message === null ? (
+        <span>{formatBytes(utf8Length(output))}</span>
+      ) : (
+        <span className="wk-json__message">{message}</span>
+      )}
     </StatusLine>
   );
 
