@@ -17,6 +17,7 @@ export {
   type StatusState,
 } from "./Editor";
 export { OpenFileButton, PasteButton, type OpenFileButtonProps, type PasteButtonProps } from "./FileActions";
+export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { downloadText, readTextFile, type Result } from "./files";
 export { Dialog, type DialogProps } from "./Dialog";
 export {

@@ -17,7 +17,8 @@ export type IconName =
   | "more"
   | "close"
   | "expand"
-  | "collapse";
+  | "collapse"
+  | "search";
 
 const PATHS: Record<IconName, string> = {
   open: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
@@ -37,6 +38,7 @@ const PATHS: Record<IconName, string> = {
   close: "M6 6l12 12M18 6L6 18",
   expand: "M7 15l5 5 5-5M7 9l5-5 5 5",
   collapse: "M7 4l5 5 5-5M7 20l5-5 5 5",
+  search: "M4 11a7 7 0 1 0 14 0a7 7 0 1 0-14 0M16 16l4.5 4.5",
 };
 
 export interface IconProps {

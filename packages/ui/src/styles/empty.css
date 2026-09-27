@@ -1,0 +1,55 @@
+/* ── EmptyState: an icon in a circle, a title, a muted line and one next step ── */
+.wk-ui-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  padding: 48px 24px;
+  color: var(--wk-fg, #141413);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  text-align: center;
+}
+.wk-ui-empty__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--wk-surface-2, #f0eee6);
+  color: var(--wk-muted, #5e5d59);
+}
+.wk-ui-empty__title {
+  margin: 0;
+  font-family: var(--wk-font-display, Georgia, serif);
+  font-size: 1.375rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.wk-ui-empty__text {
+  max-width: 36rem;
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.wk-ui-empty__action {
+  margin-top: 8px;
+}
+/* Compact, inside a pane of a tool. */
+.wk-ui-empty--sm {
+  gap: 6px;
+  padding: 24px 16px;
+}
+.wk-ui-empty--sm .wk-ui-empty__icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 2px;
+}
+.wk-ui-empty--sm .wk-ui-empty__title {
+  font-size: 1.0625rem;
+}
+.wk-ui-empty--sm .wk-ui-empty__text {
+  font-size: 0.8125rem;
+}
