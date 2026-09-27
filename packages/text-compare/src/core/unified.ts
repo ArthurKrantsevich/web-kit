@@ -53,7 +53,7 @@ export function toUnifiedDiff(left: string, right: string, diff: TextDiff, optio
   }
   if (hunks.length === 0) return "";
 
-  let out = `--- ${leftName}\n+++ ${rightName}\n`;
+  let out = `--- ${headerName(leftName)}\n+++ ${headerName(rightName)}\n`;
   for (const [from, to] of hunks) {
     // The first line of each side in the hunk; for a side without lines in it, how many lines come before it.
     let leftBefore = -1;
@@ -82,6 +82,12 @@ export function toUnifiedDiff(left: string, right: string, diff: TextDiff, optio
     out += `@@ -${range(leftBefore, leftCount)} +${range(rightBefore, rightCount)} @@\n${body}`;
   }
   return out;
+}
+
+/** A file name for a header line: without control characters, and ended by a tab when it has a space, as git does. */
+function headerName(name: string): string {
+  const clean = name.replace(/[\u0000-\u001f\u007f]/g, "");
+  return clean.includes(" ") ? `${clean}\t` : clean;
 }
 
 function line(sign: string, split: SplitText, index: number): string {

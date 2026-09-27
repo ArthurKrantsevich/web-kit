@@ -52,6 +52,12 @@ describe("toUnifiedDiff", () => {
     );
   });
 
+  it("ends a name with spaces with a tab, as git does, and drops control characters from names", () => {
+    expect(patch("a\n", "b\n", {}, { leftName: "my old.txt", rightName: "new\r\n+++ evil\u0007.txt" })).toBe(
+      "--- my old.txt\t\n+++ new+++ evil.txt\t\n@@ -1 +1 @@\n-a\n+b\n",
+    );
+  });
+
   it("is empty when nothing changed", () => {
     expect(patch("a\n", "a\n")).toBe("");
     expect(patch("", "")).toBe("");

@@ -47,6 +47,14 @@ describe("TextCompare links, saved input, URLs and drops", () => {
     expect(screen.getByRole("button", { name: /^Ignore/ }).textContent).toBe("Ignore (1)");
   });
 
+  it("drops line breaks and other control characters from names in a link", async () => {
+    const state = { left: "a\n", right: "b\n", leftName: "old\r\n+++ x\u0000.txt", rightName: "new.txt" };
+    history.replaceState(null, "", `/tools/text-compare/#text-compare=${await compressText(JSON.stringify({ v: 1, state }))}`);
+    render(<TextCompare />);
+    await waitFor(() => expect(area("Right").value).toBe("b\n"), SLOW);
+    expect(area("Left").getAttribute("aria-label")).toBe("Left: old+++ x.txt");
+  });
+
   it("saves both sides while saving is on, and brings them back", async () => {
     const { unmount } = render(<TextCompare />);
     fireEvent.click(screen.getByRole("button", { name: "More actions" }));

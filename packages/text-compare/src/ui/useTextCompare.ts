@@ -67,6 +67,11 @@ export interface UseTextCompare {
   workerNote: string | null;
 }
 
+/** A file name without line breaks and other control characters (it goes into titles and patch headers). */
+function cleanName(name: string | null): string | null {
+  return name === null ? null : name.replace(/[\u0000-\u001f\u007f]/g, "");
+}
+
 /** Headless state for comparing two texts: the texts, file names, view settings, options and the comparison. */
 export function useTextCompare(settings: UseTextCompareOptions = {}): UseTextCompare {
   const [left, setLeftText] = useState(settings.initialLeft ?? "");
@@ -113,11 +118,11 @@ export function useTextCompare(settings: UseTextCompareOptions = {}): UseTextCom
     right,
     setLeft: (text, name) => {
       setLeftText(text);
-      if (name !== undefined) setLeftName(name);
+      if (name !== undefined) setLeftName(cleanName(name));
     },
     setRight: (text, name) => {
       setRightText(text);
-      if (name !== undefined) setRightName(name);
+      if (name !== undefined) setRightName(cleanName(name));
     },
     leftName,
     rightName,
