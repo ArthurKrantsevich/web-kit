@@ -1,6 +1,7 @@
 /* @web-kit/ui: shared look of the web-kit utilities. Colors come from @web-kit/tokens when the app loads it;
-   the fallbacks match its light theme. The build joins src/styles/*.css into dist/styles.css, and every tool's
-   styles.css starts with that file. */
+   the fallbacks match its light theme. The build joins src/styles/*.css into dist/styles.css inside
+   `@layer wk-ui { … }`, and every tool's styles.css starts with that file. Unlayered rules (a tool's own, or the
+   app's) win over the layer whatever their specificity or order. */
 
 .wk-ui-sr-only {
   position: absolute;

@@ -4,41 +4,46 @@
   --wk-font-sans: var(--font-sans, system-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
   --wk-font-mono: var(--font-mono, ui-monospace), ui-monospace, Menlo, Consolas, monospace;
 }
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-/* The scrollbar's room is always kept, so the content does not jump between short and long pages. */
-html {
-  scrollbar-gutter: stable;
-}
-/* A column as tall as the window: the footer sits at the bottom of short pages. */
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
-  margin: 0;
-  background: var(--wk-bg);
-  color: var(--wk-fg);
-  font-family: var(--wk-font-sans);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-a {
-  color: inherit;
-}
-a:hover {
-  color: var(--wk-accent);
-}
-code,
-pre {
-  font-family: var(--wk-font-mono);
-}
-:focus-visible {
-  outline: 2px solid var(--wk-accent);
-  outline-offset: 2px;
+/* Element defaults go in a sublayer of wk-ui: the ui rules (unlayered inside wk-ui) beat them whatever order the
+   stylesheets load in, and the page's own class rules below still win over both. Unlayered, `:focus-visible` would
+   override the ui's own focus rings (inset on the text areas, none on an open select list). */
+@layer wk-ui.page {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  /* The scrollbar's room is always kept, so the content does not jump between short and long pages. */
+  html {
+    scrollbar-gutter: stable;
+  }
+  /* A column as tall as the window: the footer sits at the bottom of short pages. */
+  body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    margin: 0;
+    background: var(--wk-bg);
+    color: var(--wk-fg);
+    font-family: var(--wk-font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: inherit;
+  }
+  a:hover {
+    color: var(--wk-accent);
+  }
+  code,
+  pre {
+    font-family: var(--wk-font-mono);
+  }
+  :focus-visible {
+    outline: 2px solid var(--wk-accent);
+    outline-offset: 2px;
+  }
 }
 .sr-only {
   position: absolute;

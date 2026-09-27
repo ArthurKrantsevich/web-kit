@@ -5,6 +5,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import { layered, readSources } from "./build-ui-styles.mjs";
 
 const dist = join(process.cwd(), "dist");
 const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
@@ -34,10 +35,16 @@ if (pkg.peerDependencies?.react && pkg.peerDependenciesMeta?.react?.optional !==
 }
 
 if (styles === null) failures.push("missing dist/styles.css");
-else if (pkg.dependencies?.["@web-kit/ui"]) {
+else if (pkg.name === "@web-kit/ui") {
+  // Exactly src/styles/*.css inside `@layer wk-ui { … }`, so tools' unlayered rules always win over it.
+  if (styles !== layered(readSources(join(process.cwd(), "src/styles")))) {
+    failures.push("dist/styles.css is not src/styles/*.css inside @layer wk-ui");
+  }
+} else if (pkg.dependencies?.["@web-kit/ui"]) {
   const require = createRequire(join(process.cwd(), "package.json"));
   const ui = readFileSync(require.resolve("@web-kit/ui/styles.css"), "utf8");
   if (!styles.startsWith(ui)) failures.push("dist/styles.css does not start with @web-kit/ui/styles.css");
+  if (!ui.startsWith("@layer wk-ui {")) failures.push("@web-kit/ui/styles.css is not inside @layer wk-ui");
   if (!styles.includes(".wk-ui-select__list")) failures.push("dist/styles.css has no .wk-ui-select__list rule");
 }
 

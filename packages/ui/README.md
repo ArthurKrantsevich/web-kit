@@ -25,6 +25,8 @@ Browsers without the Popover API (and jsdom) show the list and the tooltip as pl
 
 Every web-kit utility's `styles.css` starts with this package's styles, so an app imports one file per utility. Colors come from `@web-kit/tokens` (`--wk-*`), with light-theme fallbacks.
 
+The styles sit in the `wk-ui` cascade layer, so every utility's own rules win over them whichever utility's file loads last. Unlayered rules in your app win too, whatever their specificity: put element resets such as `button { … }` or `:focus-visible { … }` in a layer (for example `@layer base`, declared before the utilities' files, or `@layer wk-ui.page` to sit under the ui rules in any order).
+
 ## License
 
 MIT
