@@ -57,6 +57,9 @@ test.describe("About", () => {
     const main = page.getByRole("main");
     for (const tool of tools) await expect(main.getByRole("link", { name: new RegExp(`^${tool.title}`) })).toHaveAttribute("href", `/web-kit/tools/${tool.id}/`);
     await expect(main).toContainText(`${upcoming.length} more are planned`);
+    // The packages are not published yet: About does not say "npm package" and says where they stand.
+    await expect(main).not.toContainText(/npm package/i);
+    await expect(main).toContainText("not on npm yet");
     await expect(main.getByRole("link", { name: /^Source code/ })).toHaveAttribute("href", "https://github.com/ArthurKrantsevich/web-kit");
     await expect(main.getByRole("link", { name: /^Also in Flutter/ })).toHaveAttribute("href", "https://arthurkrantsevich.github.io/flutter-kit/");
   });

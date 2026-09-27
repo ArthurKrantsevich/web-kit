@@ -28,7 +28,7 @@ const PRINCIPLES: { title: string; icon: string; text: string }[] = [
   {
     title: "Logic without UI",
     icon: "M4 7l8-4 8 4-8 4zM4 12l8 4 8-4M4 17l8 4 8-4",
-    text: "Every tool is an npm package whose core needs no React and no DOM, so the same logic runs in Node, in a worker or in any framework.",
+    text: "Every tool is its own package whose core needs no React and no DOM, so the same logic runs in Node, in a worker or in any framework.",
   },
 ];
 
@@ -94,7 +94,7 @@ export default function AboutPage() {
         <h2 id="built">How it is built</h2>
         <ul className="about__facts">
           <li>
-            {`${PACKAGES.length} npm packages: `}
+            {`${PACKAGES.length} packages, not on npm yet: `}
             {PACKAGES.map((name, index) => (
               <span key={name}>
                 {index > 0 && ", "}

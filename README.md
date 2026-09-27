@@ -18,7 +18,7 @@
 
 ## What is this
 
-`web-kit` is a collection of small tools for everyday work with data. Each tool is its own npm package: you can use only its logic, which needs no React and no DOM, or the logic together with a ready-made React UI. The [live demo](https://arthurkrantsevich.github.io/web-kit/) runs every tool.
+`web-kit` is a collection of small tools for everyday work with data. Each tool is its own package (not on npm yet, see Status): you can use only its logic, which needs no React and no DOM, or the logic together with a ready-made React UI. The [live demo](https://arthurkrantsevich.github.io/web-kit/) runs every tool.
 
 The same tools are planned for Flutter in [flutter-kit](https://github.com/ArthurKrantsevich/flutter-kit). The two collections share the design, not the code.
 
