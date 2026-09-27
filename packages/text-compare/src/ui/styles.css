@@ -281,8 +281,37 @@
   font-family: var(--wk-font-sans, system-ui, sans-serif);
   font-size: 0.8125rem;
 }
+/* The status line is one line at any width: the summary and each note give way with an ellipsis, and a note's whole
+   text is in its tooltip (and read out). */
+.wk-compare .wk-ui-status {
+  flex-wrap: nowrap;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.wk-compare .wk-ui-status > * {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.wk-compare .wk-ui-status > .wk-compare__summary {
+  flex-shrink: 2;
+}
+.wk-compare__summary {
+  display: inline-flex;
+  min-width: 0;
+}
+.wk-compare__clip,
 .wk-compare__note {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wk-compare__note {
+  max-width: 100%;
   color: var(--wk-fg, #141413);
+}
+.wk-compare__note:focus-visible {
+  outline: 2px solid var(--wk-accent, #b5532f);
+  outline-offset: 1px;
 }
 
 /* Narrow component: slimmer segments leave room for the actions. */

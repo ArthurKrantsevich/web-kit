@@ -29,7 +29,7 @@ import { toUnifiedDiff } from "../core/unified";
 import { DiffView } from "./DiffView";
 import { count, formatBytes } from "./format";
 import { buildRows, PAGE_ROWS } from "./rows";
-import { DEFAULT_OPTIONS, useTextCompare, type IgnoreOptions, type Layout, type UseTextCompareOptions } from "./useTextCompare";
+import { DEFAULT_OPTIONS, useTextCompare, WORKER_FALLBACK_NOTE, type IgnoreOptions, type Layout, type UseTextCompareOptions } from "./useTextCompare";
 
 export interface TextCompareProps extends UseTextCompareOptions {
   className?: string;
@@ -328,16 +328,25 @@ export function TextCompare(props: TextCompareProps): ReactElement {
   const position = current === null ? count(changes, "change") : `Change ${current + 1} of ${changes}`;
   const announcement = said || (comparison === null ? "" : identical ? sameTitle.slice(0, -1) : count(changes, "change"));
 
-  const notes: string[] = [];
-  if (diff?.approximate) notes.push("Too many differences for an exact result; the diff is correct but may be longer than needed.");
+  // Each note is short on the status line, which stays one line on a phone; the whole note is in its tooltip.
+  const notes: { short: string; full: string }[] = [];
+  if (diff?.approximate) {
+    notes.push({ short: "Approximate", full: "Too many differences for an exact result; the diff is correct but may be longer than needed." });
+  }
   if (diff && diff.lineEndings.left !== diff.lineEndings.right && diff.lineEndings.left !== "none" && diff.lineEndings.right !== "none") {
-    notes.push(`Left ends lines with ${ENDING_NAMES[diff.lineEndings.left]}, Right with ${ENDING_NAMES[diff.lineEndings.right]}`);
+    notes.push({
+      short: "Line endings differ",
+      full: `Left ends lines with ${ENDING_NAMES[diff.lineEndings.left]}, Right with ${ENDING_NAMES[diff.lineEndings.right]}`,
+    });
   }
   if (diff && diff.finalNewline.left !== diff.finalNewline.right) {
-    notes.push(`${diff.finalNewline.left ? "Right" : "Left"} has no newline at the end`);
+    const side = diff.finalNewline.left ? "Right" : "Left";
+    notes.push({ short: `No final newline (${side})`, full: `${side} has no newline at the end` });
   }
-  if (state.workerNote) notes.push(state.workerNote);
-  if (notice) notes.push(notice);
+  if (state.workerNote) {
+    notes.push({ short: state.workerNote === WORKER_FALLBACK_NOTE ? "Compared on the page" : "Worker failed", full: state.workerNote });
+  }
+  if (notice) notes.push({ short: notice, full: notice });
 
   const statusState: StatusState = comparison === null ? "idle" : diff?.approximate ? "warning" : identical ? "valid" : "idle";
   const summary =
@@ -402,12 +411,17 @@ export function TextCompare(props: TextCompareProps): ReactElement {
 
   const status = (
     <StatusLine state={statusState}>
-      <span>{summary}</span>
+      <span className="wk-compare__summary">
+        <span className="wk-compare__clip">{summary}</span>
+      </span>
       {notes.map((note) => (
-        <span key={note} className="wk-compare__note">
-          {note}
-        </span>
+        <Tooltip key={note.full} content={note.full}>
+          <span className="wk-compare__note" tabIndex={0}>
+            {note.short}
+          </span>
+        </Tooltip>
       ))}
+      {notes.length > 0 && <span className="wk-ui-sr-only">{notes.map((note) => note.full.replace(/\.?$/, ".")).join(" ")}</span>}
     </StatusLine>
   );
 

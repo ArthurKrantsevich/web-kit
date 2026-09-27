@@ -243,6 +243,39 @@ test("the result's counts are never cut, from 320 px up and with five-digit coun
   await expect(page.getByRole("region", { name: "Changes" })).toBeVisible();
 });
 
+test("the status line keeps one height from 320 to 768 px, whatever it notes", async ({ page }) => {
+  const widths = [320, 360, 390, 480, 600, 768];
+  const heights = async () => {
+    const out: number[] = [];
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 900 });
+      out.push(await page.locator(".wk-ui-status").evaluate((status) => Math.round(status.getBoundingClientRect().height)));
+    }
+    return out;
+  };
+  await open(page, 320);
+  const plain = await heights();
+  // Every note at once: groups of lines reversed (too many differences for an exact result), CRLF against LF, no
+  // line break at the end of Right, and a file that was refused.
+  const make = `const lines = Array.from({ length: 3000 }, (_, i) => "row " + (i % 300));
+    if (arg) for (let i = 0; i < lines.length; i += 10) lines.splice(i, 10, ...lines.slice(i, i + 10).reverse());
+    return arg ? lines.join("\\n") : lines.join("\\r\\n") + "\\r\\n";`;
+  await dropFile(page, "left", "left.txt", make, false);
+  await dropFile(page, "right", "right.txt", make, true);
+  const image = await page.evaluateHandle(() => {
+    const data = new DataTransfer();
+    data.items.add(new File(["x"], "photo.png", { type: "image/png" }));
+    return data;
+  });
+  for (const type of ["dragenter", "dragover", "drop"]) await page.locator(".wk-compare__pane--left").dispatchEvent(type, { dataTransfer: image });
+  const status = page.locator(".wk-ui-status");
+  await expect(status).toContainText("Too many differences for an exact result");
+  await expect(status).toContainText("Left ends lines with CRLF, Right with LF");
+  await expect(status).toContainText("Right has no newline at the end");
+  await expect(status).toContainText("photo.png");
+  expect(await heights()).toEqual(plain);
+});
+
 test("Download saves the unified diff as compare.patch", async ({ page }) => {
   await open(page);
   await left(page).fill("a\nb\n");

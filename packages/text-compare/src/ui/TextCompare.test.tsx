@@ -131,10 +131,14 @@ describe("TextCompare", () => {
 
   it("notes different line endings and a missing line break at the end", () => {
     render(<TextCompare initialLeft={"a\r\nb\r\nc\r\n"} initialRight={"a\nB\nc"} />);
-    expect([...document.querySelectorAll(".wk-compare__note")].map((note) => note.textContent)).toEqual([
-      "Left ends lines with CRLF, Right with LF",
-      "Right has no newline at the end",
+    // Short on the line, so it stays one line on a phone; the whole note in its tooltip and for screen readers.
+    const notes = [...document.querySelectorAll<HTMLElement>(".wk-compare__note")];
+    expect(notes.map((note) => [note.textContent, tooltipOf(note)])).toEqual([
+      ["Line endings differ", "Left ends lines with CRLF, Right with LF"],
+      ["No final newline (Right)", "Right has no newline at the end"],
     ]);
+    expect(notes.every((note) => note.tabIndex === 0)).toBe(true);
+    expect(document.querySelector(".wk-ui-status .wk-ui-sr-only")!.textContent).toBe("Left ends lines with CRLF, Right with LF. Right has no newline at the end.");
   });
 
   it("puts Open file and Paste in each input header, Swap, Sample, Clear and More in the toolbar, and Previous, Next, Download and Copy over the result", () => {
