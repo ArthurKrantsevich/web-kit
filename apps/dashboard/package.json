@@ -15,6 +15,7 @@
     "@web-kit/json-convert": "workspace:*",
     "@web-kit/json-formatter": "workspace:*",
     "@web-kit/tokens": "workspace:*",
+    "@web-kit/ui": "workspace:*",
     "next": "^16.3.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

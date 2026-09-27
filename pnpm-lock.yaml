@@ -235,6 +235,9 @@ importers:
       '@web-kit/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@web-kit/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       next:
         specifier: ^16.3.5
         version: 16.3.5(@playwright/test@1.63.0)(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
