@@ -1,0 +1,119 @@
+/* ── Menu: the list reuses the option look of Select ── */
+.wk-ui-menu {
+  position: fixed;
+  inset: auto;
+  z-index: 1000;
+  box-sizing: border-box;
+  min-width: 260px;
+  max-width: calc(100vw - 16px);
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+  border-radius: 12px;
+  background: var(--wk-surface, #ffffff);
+  color: var(--wk-fg, #141413);
+  box-shadow:
+    0 12px 32px rgba(20, 20, 19, 0.12),
+    0 2px 6px rgba(20, 20, 19, 0.06);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+  font-size: 0.875rem;
+}
+.wk-ui-menu:focus {
+  outline: none;
+}
+.wk-ui-menu:focus-visible .wk-ui-option--active {
+  box-shadow: inset 0 0 0 2px var(--wk-accent, #b5532f);
+}
+.wk-ui-menu__item {
+  gap: 8px;
+  padding-left: 8px;
+}
+.wk-ui-menu__item[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.wk-ui-menu__check {
+  display: inline-flex;
+  flex: none;
+  width: 16px;
+}
+.wk-ui-menu__shortcut {
+  flex: none;
+  padding: 1px 6px;
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+  border-radius: 6px;
+  color: var(--wk-muted, #5e5d59);
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+}
+
+/* ── Dialog ── */
+.wk-ui-dialog {
+  box-sizing: border-box;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  border: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+  border-radius: var(--wk-radius-lg, 16px);
+  background: var(--wk-surface, #ffffff);
+  color: var(--wk-fg, #141413);
+  box-shadow: 0 24px 64px rgba(20, 20, 19, 0.24);
+  font-family: var(--wk-font-sans, system-ui, sans-serif);
+}
+/* Without showModal() (old browsers, jsdom) the dialog is a plain fixed box. */
+.wk-ui-dialog:not(:modal) {
+  position: fixed;
+  inset: 0;
+  z-index: 1002;
+}
+.wk-ui-dialog::backdrop {
+  background: rgba(20, 20, 19, 0.45);
+}
+.wk-ui-dialog__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 4px 20px;
+}
+.wk-ui-dialog__title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.wk-ui-dialog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 20px 16px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.wk-ui-dialog__body p {
+  margin: 0;
+}
+.wk-ui-dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+}
+.wk-ui-dialog .wk-ui-input {
+  width: 100%;
+}
+.wk-ui-note {
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.8125rem;
+}
+.wk-ui-warning {
+  color: var(--wk-syntax-number, #9a5210);
+  font-weight: 500;
+}
+.wk-ui-problem {
+  color: var(--wk-danger, #b3261e);
+  font-weight: 500;
+}

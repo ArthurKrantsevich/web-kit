@@ -8,7 +8,13 @@
     "url": "git+https://github.com/ArthurKrantsevich/web-kit.git",
     "directory": "packages/ui"
   },
-  "keywords": ["react", "ui", "select", "tooltip", "popover"],
+  "keywords": [
+    "react",
+    "ui",
+    "select",
+    "tooltip",
+    "popover"
+  ],
   "type": "module",
   "files": [
     "dist"
@@ -34,7 +40,7 @@
     {
       "name": "ui",
       "path": "dist/index.js",
-      "limit": "5 kB"
+      "limit": "10 kB"
     }
   ],
   "peerDependencies": {

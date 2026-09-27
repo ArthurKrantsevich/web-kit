@@ -12,7 +12,12 @@ export type IconName =
   | "swap"
   | "generate"
   | "undo"
-  | "chevron-down";
+  | "chevron-down"
+  | "chevron-up"
+  | "more"
+  | "close"
+  | "expand"
+  | "collapse";
 
 const PATHS: Record<IconName, string> = {
   open: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
@@ -27,6 +32,11 @@ const PATHS: Record<IconName, string> = {
   generate: "M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6",
   undo: "M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
   "chevron-down": "M6 9l6 6 6-6",
+  "chevron-up": "M6 15l6-6 6 6",
+  more: "M4.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M10.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0M16.5 12a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0",
+  close: "M6 6l12 12M18 6L6 18",
+  expand: "M7 15l5 5 5-5M7 9l5-5 5 5",
+  collapse: "M7 4l5 5 5-5M7 20l5-5 5 5",
 };
 
 export interface IconProps {

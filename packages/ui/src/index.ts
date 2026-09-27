@@ -18,3 +18,5 @@ export {
 } from "./Editor";
 export { OpenFileButton, PasteButton, type OpenFileButtonProps, type PasteButtonProps } from "./FileActions";
 export { downloadText, readTextFile, type Result } from "./files";
+export { Dialog, type DialogProps } from "./Dialog";
+export { Menu, type MenuItem, type MenuProps } from "./Menu";
