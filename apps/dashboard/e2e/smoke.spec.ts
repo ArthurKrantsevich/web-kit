@@ -1,5 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { tools, upcoming } from "../src/registry";
+
+/**
+ * Opens a tool page and waits for hydration (Paste appears only then). Typing or clicking before it races React:
+ * with the heavier 4b pages the full suite lost a fill about one run in three.
+ */
+async function openTool(page: Page, path: string): Promise<void> {
+  await page.goto(path);
+  await expect(page.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+}
 
 test("home lists utilities and filters them", async ({ page }) => {
   await page.goto("./");
@@ -24,7 +33,7 @@ for (const tool of tools) {
 }
 
 test("json-formatter works inside the dashboard", async ({ page }) => {
-  await page.goto("tools/json-formatter/");
+  await openTool(page, "tools/json-formatter/");
   const input = page.getByLabel("Input", { exact: true });
 
   await input.fill('{"a": }');
@@ -52,7 +61,7 @@ test("unknown path shows the 404 page", async ({ page }) => {
 });
 
 test("tabs switch with the keyboard", async ({ page }) => {
-  await page.goto("tools/json-formatter/");
+  await openTool(page, "tools/json-formatter/");
   const demo = page.getByRole("tab", { name: "Demo" });
   const usage = page.getByRole("tab", { name: "Install & Usage" });
   const api = page.getByRole("tab", { name: "API" });
@@ -79,7 +88,7 @@ test("tabs switch with the keyboard", async ({ page }) => {
 });
 
 test("tree view shows the path of a node and stats", async ({ page }) => {
-  await page.goto("tools/json-formatter/");
+  await openTool(page, "tools/json-formatter/");
   await page.getByRole("button", { name: "Tree" }).click();
   await page.getByRole("treeitem", { name: /hello/ }).click();
   await expect(page.getByLabel("Selected path")).toHaveText("$.hello");
@@ -87,7 +96,7 @@ test("tree view shows the path of a node and stats", async ({ page }) => {
 });
 
 test("sort keys and unescape in the formatter", async ({ page }) => {
-  await page.goto("tools/json-formatter/");
+  await openTool(page, "tools/json-formatter/");
   const input = page.getByLabel("Input", { exact: true });
   const output = page.getByLabel("Output", { exact: true });
   await input.fill('{"b":1,"a":2}');
@@ -99,7 +108,7 @@ test("sort keys and unescape in the formatter", async ({ page }) => {
 });
 
 test("json-convert turns JSON into TypeScript", async ({ page }) => {
-  await page.goto("tools/json-convert/");
+  await openTool(page, "tools/json-convert/");
   await page.getByRole("button", { name: "Convert to" }).click();
   await page.getByRole("option", { name: "TypeScript" }).click();
   await expect(page.getByLabel("Output", { exact: true })).toContainText("export interface Root {");
@@ -107,7 +116,7 @@ test("json-convert turns JSON into TypeScript", async ({ page }) => {
 });
 
 test("JSONPath in the tree selects the match", async ({ page }) => {
-  await page.goto("tools/json-formatter/");
+  await openTool(page, "tools/json-formatter/");
   await page.getByRole("button", { name: "Tree" }).click();
   await page.getByLabel("Search or JSONPath").fill("$.list[?@ > 1]");
   await expect(page.getByText("1 of 2")).toBeVisible();
@@ -149,7 +158,7 @@ test("the category crumb is not marked as the current page", async ({ page }) =>
 
 test("code blocks announce a copy", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("tools/json-formatter/");
+  await openTool(page, "tools/json-formatter/");
   await page.getByRole("tab", { name: "Install & Usage" }).click();
   await page.getByRole("button", { name: "Copy npm" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Copied" })).toHaveCount(1);
@@ -157,7 +166,7 @@ test("code blocks announce a copy", async ({ page, context }) => {
 
 test("json-diff compares and copies a JSON Patch", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("tools/json-diff/");
+  await openTool(page, "tools/json-diff/");
   await page.getByLabel("Left", { exact: true }).fill('{"a":1,"b":2}');
   await page.getByLabel("Right", { exact: true }).fill('{"a":1.0,"b":3,"c":4}');
   await expect(page.getByRole("list", { name: "Changes" }).getByRole("listitem")).toHaveCount(2);
