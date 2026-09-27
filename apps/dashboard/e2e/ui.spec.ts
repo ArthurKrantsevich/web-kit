@@ -57,6 +57,49 @@ for (const tool of TOOLS) {
   });
 }
 
+test("json-schema-validator at 390 px: Undo appears after Generate without moving or wrapping anything", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("tools/json-schema-validator/");
+  await expect(page.getByRole("button", { name: "Paste into Schema" })).toBeVisible();
+  const rows = [".wk-ui-editor__toolbar", ".wk-schema__pane--schema .wk-ui-pane__head"];
+  /** Height of the toolbar and the Schema header, and the box of every visible button in them. */
+  const boxes = () =>
+    page.evaluate((selectors) => {
+      const buttons: Record<string, [number, number, number, number]> = {};
+      const heights: number[] = [];
+      for (const selector of selectors) {
+        const row = document.querySelector(selector)!;
+        heights.push(Math.round(row.getBoundingClientRect().height));
+        for (const button of row.querySelectorAll("button")) {
+          const box = button.getBoundingClientRect();
+          if (box.width === 0) continue;
+          buttons[button.getAttribute("aria-label") ?? button.textContent ?? ""] = [box.x, box.y, box.width, box.height].map(
+            (value) => Math.round(value * 2) / 2,
+          ) as [number, number, number, number];
+        }
+      }
+      return { buttons, heights };
+    }, rows);
+  const before = await boxes();
+  expect(Object.keys(before.buttons)).not.toContain("Undo generate");
+
+  await page.getByRole("button", { name: "Generate schema from data" }).click();
+  const undo = page.getByRole("button", { name: "Undo generate" });
+  await expect(undo).toBeVisible();
+  const after = await boxes();
+
+  expect(after.heights, "neither row grows a second line").toEqual(before.heights);
+  for (const [key, box] of Object.entries(before.buttons)) expect([key, after.buttons[key]]).toEqual([key, box]);
+  // Undo is in the status line, next to the notice, with its label.
+  expect(Object.keys(after.buttons)).not.toContain("Undo generate");
+  await expect(page.locator(".wk-ui-status").getByRole("button", { name: "Undo generate" })).toHaveText("Undo");
+  await expect(undo).toHaveAccessibleDescription("Bring back the schema you had before generating");
+});
+
 test("the footer sits at the bottom of a short page", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("about/");

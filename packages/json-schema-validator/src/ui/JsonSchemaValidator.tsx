@@ -185,6 +185,22 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
     <StatusLine state={result ? stateOf(result) : "idle"}>
       <span>{result ? summarizeSchemaResult(result) : "Nothing to check yet."}</span>
       {notice && <span className="wk-schema__notice">{notice}</span>}
+      {/* In the status line, next to "Schema generated from the data.": the toolbar and the Schema header have no
+          room left at 390 px, and nothing in them may move when it appears. */}
+      {state.previousSchema !== null && (
+        <Button
+          icon="undo"
+          className="wk-schema__undo"
+          tooltip="Bring back the schema you had before generating"
+          aria-label="Undo generate"
+          onClick={() => {
+            setNotice("");
+            state.undoGenerate();
+          }}
+        >
+          Undo
+        </Button>
+      )}
     </StatusLine>
   );
 
@@ -200,18 +216,6 @@ export function JsonSchemaValidator(props: JsonSchemaValidatorProps): ReactEleme
             meta={formatBytes(encoder.encode(text[input]).length)}
             actions={
               <>
-                {input === "schema" && state.previousSchema !== null && (
-                  <Button
-                    tooltip="Bring back the schema you had before generating"
-                    aria-label="Undo generate"
-                    onClick={() => {
-                      setNotice("");
-                      state.undoGenerate();
-                    }}
-                  >
-                    Undo
-                  </Button>
-                )}
                 {/* Paste comes before Open file: it appears after hydration, and nothing to its right may move. */}
                 <PasteButton
                   label={`Paste into ${LABEL[input]}`}

@@ -68,8 +68,10 @@ describe("JsonSchemaValidator", () => {
     expect(area("Schema").value).toBe(
       '{\n  "$schema": "https://json-schema.org/draft/2020-12/schema",\n  "type": "object",\n  "properties": {\n    "a": {\n      "type": "number"\n    }\n  },\n  "required": [\n    "a"\n  ]\n}',
     );
-    expect(status()).toBe("ValidSchema generated from the data.");
-    fireEvent.click(screen.getByRole("button", { name: "Undo generate" }));
+    expect(status()).toMatch(/^ValidSchema generated from the data\.Undo/);
+    // Undo sits in the status line, so neither the toolbar nor the Schema header changes when it appears.
+    const line = document.querySelector<HTMLElement>(".wk-ui-status")!;
+    fireEvent.click(within(line).getByRole("button", { name: "Undo generate" }));
     expect(area("Schema").value).toBe('{"type":"string"}');
     expect(screen.queryByRole("button", { name: "Undo generate" })).toBeNull();
   });

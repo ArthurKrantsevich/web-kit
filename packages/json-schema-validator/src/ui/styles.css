@@ -4,6 +4,13 @@
   /* --wk-schema-height still sets the pane height; the results sit under the panes. */
   --wk-ui-panes-height: var(--wk-schema-height, var(--wk-editor-height, max(360px, 45vh)));
 }
+/* Undo generate sits in the status line; it keeps the line's height. */
+.wk-schema__undo {
+  height: 22px;
+  margin: -2px 0;
+  padding: 0 6px;
+  font-size: inherit;
+}
 .wk-schema__result {
   border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
 }
