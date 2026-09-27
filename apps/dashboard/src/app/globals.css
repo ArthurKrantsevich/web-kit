@@ -13,9 +13,11 @@
   *::after {
     box-sizing: border-box;
   }
-  /* The scrollbar's room is always kept, so the content does not jump between short and long pages. */
+  /* The scrollbar's room is always kept, so the content does not jump between short and long pages. Anchors and
+     focused elements stop below the sticky header (64 px) with some air. */
   html {
     scrollbar-gutter: stable;
+    scroll-padding-top: 80px;
     scrollbar-color: var(--wk-scrollbar) transparent;
   }
   /* Thin scrollbars everywhere, with a round thumb; Safari (no scrollbar-color) gets the same through ::-webkit-. */
@@ -92,9 +94,30 @@
 }
 
 /* ── shell ── */
+/* Sticky over the content, under the ui's popups (they are in the top layer). The border is always there, so
+   nothing moves when it appears: it only turns from transparent to --wk-border once the page is scrolled. */
 .site-header {
-  position: relative;
-  border-bottom: 1px solid var(--wk-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  border-bottom: 1px solid transparent;
+  background: var(--wk-bg);
+  transition: border-color 0.15s;
+}
+@supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+  .site-header {
+    background: color-mix(in srgb, var(--wk-bg) 85%, transparent);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+}
+.site-header[data-scrolled="true"] {
+  border-bottom-color: var(--wk-border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header {
+    transition: none;
+  }
 }
 .site-header__inner {
   height: 64px;
@@ -181,9 +204,10 @@
   .site-nav__links {
     display: none;
   }
+  /* Under the sticky header and part of it, so it stays in place while the page scrolls. */
   .site-nav__links[data-open="true"] {
     position: absolute;
-    top: 64px;
+    top: 65px;
     left: 0;
     right: 0;
     z-index: 10;
@@ -191,8 +215,10 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0;
+    max-height: calc(100dvh - 65px);
     margin: 0;
     padding: 8px 16px 16px;
+    overflow-y: auto;
     background: var(--wk-bg);
     border-bottom: 1px solid var(--wk-border);
   }

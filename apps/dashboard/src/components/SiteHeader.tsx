@@ -3,12 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { GITHUB_URL } from "@/links";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  // The header stays at the top; its bottom border shows once the page is scrolled under it.
+  const [scrolled, setScrolled] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 0);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   // A followed link closes the phone menu.
   useEffect(() => {
@@ -27,7 +37,7 @@ export function SiteHeader() {
   }, [open]);
 
   return (
-    <header className="site-header">
+    <header className="site-header" data-scrolled={scrolled}>
       <div className="container site-header__inner">
         <Link href="/" className="logo">
           <span className="logo__mark" aria-hidden="true">
@@ -59,7 +69,7 @@ export function SiteHeader() {
               <Link href="/about/">About</Link>
             </li>
             <li>
-              <a href="https://github.com/ArthurKrantsevich/web-kit">GitHub</a>
+              <a href={GITHUB_URL}>GitHub</a>
             </li>
           </ul>
           <ThemeToggle />
