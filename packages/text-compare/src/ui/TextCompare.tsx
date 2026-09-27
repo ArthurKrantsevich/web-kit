@@ -180,6 +180,12 @@ export function TextCompare(props: TextCompareProps): ReactElement {
     [comparison, layout, expanded, showAll],
   );
   const changes = model?.changes.length ?? 0;
+  // A new comparison starts with one page of rows again, so a large result is never drawn at once.
+  const [seenComparison, setSeenComparison] = useState(comparison);
+  if (comparison !== seenComparison) {
+    setSeenComparison(comparison);
+    if (limit !== PAGE_ROWS) setLimit(PAGE_ROWS);
+  }
   // A new result may have fewer changes: the current one stays in range, or is none.
   const [seen, setSeen] = useState(model);
   if (model !== seen) {

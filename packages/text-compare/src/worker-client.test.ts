@@ -2,7 +2,7 @@
 // The browser transform would rewrite `new Worker(new URL(…))` into Vite's own worker import; the test checks the call.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { compareTexts } from "./core/compare";
-import { answerCompareJob, type CompareJob, type CompareWorkerRequest, type CompareWorkerResponse } from "./job";
+import { answerCompareJob, packDiff, unpackDiff, type CompareJob, type CompareWorkerRequest, type CompareWorkerResponse } from "./job";
 import { CompareWorkerError, createCompareJobRunner, createCompareWorker, type WorkerLike } from "./worker-client";
 
 /** A worker that answers only when the test says so. */
@@ -50,8 +50,16 @@ afterEach(() => {
 });
 
 describe("answerCompareJob", () => {
-  it("answers with the diff of the job", () => {
-    expect(answerCompareJob({ id: 3, job: job("a\nc\n") })).toEqual({ id: 3, value: compareTexts("a\nb\n", "a\nc\n") });
+  it("answers with the diff of the job, packed into typed arrays that unpack to it", () => {
+    const answer = answerCompareJob({ id: 3, job: job("a\nc\n") });
+    if (!("packed" in answer)) throw new Error("no diff");
+    expect([answer.id, answer.packed.blocks, answer.packed.pairs].map((value) => value.constructor.name)).toEqual(["Number", "Int32Array", "Int32Array"]);
+    expect(unpackDiff(answer.packed)).toEqual(compareTexts("a\nb\n", "a\nc\n"));
+  });
+
+  it("packs and unpacks every kind of block, with and without pairs", () => {
+    const diff = compareTexts("a\n\nb\nc\nd\r\n", "a\nB\n\n\nc\ne", { ignoreBlankLines: true });
+    expect(unpackDiff(packDiff(diff))).toEqual(diff);
   });
 
   it("answers `failed` without the texts when the comparison throws", () => {

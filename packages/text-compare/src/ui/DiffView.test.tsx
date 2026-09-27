@@ -1,9 +1,9 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { compareTexts } from "../core/compare";
 import { splitLines } from "../core/lines";
 import type { Granularity } from "../core/types";
-import { DiffView, type DiffViewProps } from "./DiffView";
+import { CHUNK_ROWS, DiffView, type DiffViewProps } from "./DiffView";
 import { buildRows } from "./rows";
 import { DEFAULT_OPTIONS, type IgnoreOptions, type Layout } from "./useTextCompare";
 
@@ -115,5 +115,80 @@ describe("DiffView", () => {
   it("sizes the line number columns for the longest side", () => {
     const { container } = view("a\n".repeat(1200), `${"a\n".repeat(1200)}b\n`);
     expect((container.firstElementChild as HTMLElement).style.getPropertyValue("--wk-compare-digits")).toBe("4");
+  });
+});
+
+describe("DiffView on a long result", () => {
+  /** jsdom has no IntersectionObserver: this one reports only what a test says is near the view. */
+  class Observer {
+    static all: Observer[] = [];
+    readonly seen = new Set<Element>();
+    constructor(private readonly callback: IntersectionObserverCallback) {
+      Observer.all.push(this);
+    }
+    observe(element: Element): void {
+      this.seen.add(element);
+    }
+    unobserve(element: Element): void {
+      this.seen.delete(element);
+    }
+    disconnect(): void {
+      this.seen.clear();
+    }
+    report(element: Element, near: boolean): void {
+      const entry = { target: element, isIntersecting: near, boundingClientRect: { height: 500 } };
+      this.callback([entry as unknown as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+    }
+  }
+  beforeEach(() => vi.stubGlobal("IntersectionObserver", Observer));
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Observer.all = [];
+  });
+
+  // Every other line changed: a change block of one row between single unchanged lines.
+  const LINES = 2000;
+  const left = Array.from({ length: LINES }, (_, i) => (i % 2 ? `line ${i} with old words` : `same ${i}`)).join("\n");
+  const right = Array.from({ length: LINES }, (_, i) => (i % 2 ? `line ${i} with new words` : `same ${i}`)).join("\n");
+  const chunks = (container: HTMLElement) => [...container.querySelectorAll<HTMLElement>(".wk-compare__chunk")];
+
+  it("draws only the rows of the chunks near the view; the others keep their place with their height", () => {
+    const { container } = view(left, right);
+    const all = chunks(container);
+    expect(all).toHaveLength(LINES / CHUNK_ROWS);
+    expect(container.querySelectorAll(".wk-compare__row").length).toBe(CHUNK_ROWS);
+    const waiting = all.filter((chunk) => chunk.dataset.drawn === undefined);
+    expect(waiting).toHaveLength(all.length - 1);
+    expect(waiting.every((chunk) => Number.parseFloat(chunk.style.height) > 0)).toBe(true);
+  });
+
+  it("computes the highlight only for the rows it draws", () => {
+    const { container } = view(left, right);
+    expect(highlighted(container)).toHaveLength(CHUNK_ROWS);
+  });
+
+  it("draws a chunk when it comes near the view, and puts it back to its height when it leaves", () => {
+    const { container } = view(left, right);
+    const observer = Observer.all[0]!;
+    const fifth = chunks(container)[5]!;
+    expect(observer.seen.has(fifth)).toBe(true);
+    act(() => observer.report(fifth, true));
+    expect(chunks(container)[5]!.dataset.drawn).toBe("");
+    expect(container.querySelectorAll(".wk-compare__row").length).toBe(2 * CHUNK_ROWS);
+    act(() => observer.report(chunks(container)[5]!, false));
+    expect(chunks(container)[5]!.dataset.drawn).toBeUndefined();
+    expect(chunks(container)[5]!.style.height).toBe("500px");
+  });
+
+  it("always draws the chunk of the current change", () => {
+    const { container } = view(left, right, { current: 700 });
+    expect(container.querySelector('[data-current="true"]')).not.toBeNull();
+    expect(screen.getByRole("group", { name: "Change 701 of 1000" })).toBeTruthy();
+  });
+
+  it("draws everything where there is no IntersectionObserver", () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    const { container } = view(left, right);
+    expect(container.querySelectorAll(".wk-compare__row").length).toBe(LINES);
   });
 });

@@ -13,7 +13,11 @@ export default defineConfig({
     baseURL: BASE,
     trace: "on-first-retry",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /\.large\.spec\.ts$/ },
+    // Timing tests on megabytes of text run after the others, one at a time, so other tests do not load the machine.
+    { name: "large", use: { ...devices["Desktop Chrome"] }, testMatch: /\.large\.spec\.ts$/, dependencies: ["chromium"], workers: 1 },
+  ],
   webServer: {
     command: "node scripts/serve-out.mjs",
     url: BASE,

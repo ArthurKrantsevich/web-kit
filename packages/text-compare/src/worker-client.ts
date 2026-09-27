@@ -1,5 +1,5 @@
 import type { TextDiff } from "./core/types";
-import type { CompareJob, CompareWorkerRequest, CompareWorkerResponse } from "./job";
+import { unpackDiff, type CompareJob, type CompareWorkerRequest, type CompareWorkerResponse } from "./job";
 
 // The runner follows @web-kit/json-core's createJsonJobRunner; that one is typed for JSON jobs and starts json-core's
 // own worker file, so this package has its own (see the iteration 5 plan, decision 1).
@@ -97,7 +97,7 @@ export function createCompareJobRunner(create: () => WorkerLike | null = createC
       const job = pending;
       pending = null;
       if ("error" in event.data) job.reject(new CompareWorkerError("failed"));
-      else job.resolve(event.data.value);
+      else job.resolve(unpackDiff(event.data.packed));
     });
     instance.addEventListener("error", () => {
       // The script did not load or the worker crashed: do not try again on this page.

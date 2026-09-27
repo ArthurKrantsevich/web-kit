@@ -117,6 +117,16 @@ describe("TextCompare", () => {
     expect(body().querySelectorAll(".wk-compare__row")).toHaveLength(5200);
   });
 
+  it("goes back to one page of rows when the comparison changes", { timeout: 30_000 }, () => {
+    const left = Array.from({ length: 5200 }, (_, i) => `left line ${i}`).join("\n");
+    const right = Array.from({ length: 5200 }, (_, i) => `right line ${i}`).join("\n");
+    render(<TextCompare initialLeft={left} initialRight={right} />);
+    fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+    expect(body().querySelector(".wk-compare__more")).toBeNull();
+    type("Right", `${right}\nmore`);
+    expect(body().querySelector(".wk-compare__more")!.textContent).toBe("Showing 5,000 of 5,201 rows.Show more");
+  });
+
   it("notes different line endings and a missing line break at the end", () => {
     render(<TextCompare initialLeft={"a\r\nb\r\nc\r\n"} initialRight={"a\nB\nc"} />);
     expect([...document.querySelectorAll(".wk-compare__note")].map((note) => note.textContent)).toEqual([

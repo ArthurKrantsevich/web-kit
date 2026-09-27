@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { compareTexts } from "../core/compare";
 import type { TextDiff } from "../core/types";
 import type { CompareJob } from "../job";
@@ -56,7 +56,8 @@ export function useCompareJob(job: CompareJob | null): CompareJobState {
         (value) => {
           if (!live) return;
           busy.current = false;
-          setDone({ job, value });
+          // A large result takes a while to draw: as a transition React can split that work, and input stays quick.
+          startTransition(() => setDone({ job, value }));
         },
         (error: unknown) => {
           if (!live) return;
