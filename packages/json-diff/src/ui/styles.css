@@ -118,3 +118,10 @@
 .wk-diff__notice {
   color: var(--wk-fg, #141413);
 }
+
+/* Narrow component: slimmer segments leave room for More actions next to Swap, Sample and Clear. */
+@container (max-width: 639px) {
+  .wk-diff .wk-ui-editor__toolbar .wk-ui-segment {
+    padding: 0 8px;
+  }
+}

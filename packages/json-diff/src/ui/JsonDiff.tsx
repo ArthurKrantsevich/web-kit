@@ -11,9 +11,13 @@ import {
   PasteButton,
   Segmented,
   StatusLine,
+  ToolMenu,
+  Tooltip,
+  useFileDrop,
   type SegmentedOption,
+  type Shortcut,
 } from "@web-kit/ui";
-import { useId, useRef, useState, type ReactElement } from "react";
+import { useId, useMemo, useRef, useState, type ReactElement } from "react";
 import type { JsonChange, JsonSpan } from "../core/types";
 import { useJsonDiff, type UseJsonDiffOptions } from "./useJsonDiff";
 
@@ -31,8 +35,10 @@ const SAMPLE_RIGHT =
 /** Rows beyond this are not rendered: a huge list would freeze the page. The patch still has every change. */
 const LIST_LIMIT = 1000;
 
-/** Larger files are not read: comparing them would freeze the page. */
+/** Larger files and downloads are not read: comparing them would freeze the page. */
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const ACCEPT = ".json,application/json,.txt,text/plain";
 
 const ARRAY_MODES: SegmentedOption<"index" | "key">[] = [
   { value: "index", label: "By index", tooltip: "Compare array items at the same position" },
@@ -97,6 +103,32 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
   };
 
   /** Selects `start..end` (offsets without a BOM) in one of the inputs. */
+  const files = { accept: ACCEPT, maxBytes: MAX_FILE_BYTES, onError: setNotice };
+  const leftDrop = useFileDrop({ ...files, label: "Open file into Left", onText: set.left });
+  const rightDrop = useFileDrop({ ...files, label: "Open file into Right", onText: set.right });
+  const drops = { left: leftDrop, right: rightDrop };
+  // What a share link carries and what "Save input in this browser" keeps.
+  const shared = useMemo(
+    () => ({ left, right, arrayMode: state.arrayMode, arrayKey: state.arrayKey, numbers: state.numbers }),
+    [left, right, state.arrayMode, state.arrayKey, state.numbers],
+  );
+
+  /** Puts back a shared or saved state. It comes from outside, so every field is checked. */
+  function restore(value: Record<string, unknown>): void {
+    if (typeof value.left === "string") set.left(value.left);
+    if (typeof value.right === "string") set.right(value.right);
+    if (value.arrayMode === "index" || value.arrayMode === "key") state.setArrayMode(value.arrayMode);
+    if (typeof value.arrayKey === "string") state.setArrayKey(value.arrayKey);
+    if (value.numbers === "value" || value.numbers === "raw") state.setNumbers(value.numbers);
+  }
+
+  function swap(): void {
+    set.left(right);
+    set.right(left);
+  }
+
+  const shortcuts: Shortcut[] = [{ keys: "Mod+Enter", label: "Swap Left and Right", run: swap }];
+
   function select(side: Side, start: number, end: number): void {
     const area = refs[side].current;
     if (!area) return;
@@ -146,14 +178,7 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
       </span>
       <Segmented label="Compare numbers" value={state.numbers} options={NUMBER_MODES} onChange={state.setNumbers} />
       <span className="wk-ui-spacer" />
-      <Button
-        icon="swap"
-        tooltip="Swap Left and Right"
-        onClick={() => {
-          set.left(right);
-          set.right(left);
-        }}
-      >
+      <Button icon="swap" tooltip="Swap Left and Right" onClick={swap}>
         Swap
       </Button>
       <Button
@@ -176,6 +201,18 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
       >
         Clear
       </Button>
+      <ToolMenu
+        toolKey="json-diff"
+        state={shared}
+        onRestore={restore}
+        urlTargets={[
+          { label: "Load Left from URL…", onText: set.left },
+          { label: "Load Right from URL…", onText: set.right },
+        ]}
+        shortcuts={shortcuts}
+        onNotice={setNotice}
+        maxBytes={MAX_FILE_BYTES}
+      />
     </EditorToolbar>
   );
 
@@ -212,6 +249,8 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
             title={LABEL[side]}
             labelFor={`${id}-${side}`}
             meta={formatBytes(encoder.encode(text[side]).length)}
+            drop={drops[side]}
+            dropLabel={`Drop the file to open it in ${LABEL[side]}`}
             actions={
               <>
                 {/* Paste comes first: it appears after hydration, and nothing to its right may move. */}
@@ -224,12 +263,9 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
                 />
                 <OpenFileButton
                   label={`Open file into ${LABEL[side]}`}
-                  tooltip={`Open a .json or .txt file into ${LABEL[side]} (up to 10 MB)`}
-                  accept=".json,application/json,.txt,text/plain"
-                  maxBytes={MAX_FILE_BYTES}
+                  tooltip={`Open a .json or .txt file into ${LABEL[side]} (up to 10 MB), or drop it on ${LABEL[side]}`}
                   iconOnly
-                  onText={set[side]}
-                  onError={setNotice}
+                  drop={drops[side]}
                 />
               </>
             }
@@ -277,14 +313,16 @@ export function JsonDiff(props: JsonDiffProps): ReactElement {
           ) : !result.ok ? (
             <div className="wk-diff__problem">
               <p className="wk-diff__error">{formatError(result.side, result.error)}</p>
-              <button
-                type="button"
-                className="wk-diff__link"
-                disabled={!fresh}
-                onClick={() => select(result.side, result.error.offset, result.error.offset + 1)}
-              >
-                {`Show in ${LABEL[result.side]}`}
-              </button>
+              <Tooltip content={`Select the error in ${LABEL[result.side]}`}>
+                <button
+                  type="button"
+                  className="wk-diff__link"
+                  disabled={!fresh}
+                  onClick={() => select(result.side, result.error.offset, result.error.offset + 1)}
+                >
+                  {`Show in ${LABEL[result.side]}`}
+                </button>
+              </Tooltip>
             </div>
           ) : result.value.changes.length === 0 ? (
             <p className="wk-diff__same">

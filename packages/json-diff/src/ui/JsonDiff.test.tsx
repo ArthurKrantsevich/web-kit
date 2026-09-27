@@ -238,12 +238,13 @@ describe("JsonDiff actions", () => {
       ["Swap", "Swap Left and Right"],
       ["Sample", "Replace both sides with an example"],
       ["Clear", "Empty both sides"],
-      ["Open file into Left", "Open a .json or .txt file into Left (up to 10 MB)"],
+      ["Open file into Left", "Open a .json or .txt file into Left (up to 10 MB), or drop it on Left"],
       ["Paste into Left", "Paste from the clipboard into Left"],
-      ["Open file into Right", "Open a .json or .txt file into Right (up to 10 MB)"],
+      ["Open file into Right", "Open a .json or .txt file into Right (up to 10 MB), or drop it on Right"],
       ["Paste into Right", "Paste from the clipboard into Right"],
       ["Download", "Save the JSON Patch as patch.json"],
       ["Copy JSON Patch", "Copy RFC 6902 operations that turn Left into Right"],
+      ["More actions", "Load from a URL, share, save, keyboard shortcuts"],
     ];
     for (const [name, tip] of expected) expect([name, tooltipOf(screen.getByRole("button", { name }))]).toEqual([name, tip]);
   });
