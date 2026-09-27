@@ -152,6 +152,28 @@ describe("Select", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
   });
 
+  it("closes on a click on its button although the press moved focus from the list to the button", () => {
+    render(<Harness />);
+    fireEvent.click(trigger());
+    const list = screen.getByRole("listbox");
+    // What a browser does on a press on the button: pointerdown, mousedown, focus moves to the button, click.
+    fireEvent.pointerDown(trigger());
+    fireEvent.mouseDown(trigger());
+    fireEvent.blur(list, { relatedTarget: trigger() });
+    fireEvent.click(trigger());
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(trigger().getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("keeps focus in the open list on a press on its button, so Safari and Chrome behave the same", () => {
+    render(<Harness />);
+    // Closed: the press is left alone, so the button takes focus as usual.
+    expect(fireEvent.mouseDown(trigger())).toBe(true);
+    fireEvent.click(trigger());
+    // Open: the default is prevented; fireEvent returns false when it was.
+    expect(fireEvent.mouseDown(trigger())).toBe(false);
+  });
+
   it("stays closed while disabled", () => {
     render(<Select label="Indent" value="2" options={OPTIONS} onChange={() => {}} disabled />);
     expect((trigger() as HTMLButtonElement).disabled).toBe(true);

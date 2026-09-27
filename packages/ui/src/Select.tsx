@@ -160,6 +160,10 @@ export function Select<T extends string>({
         aria-controls={open ? `${id}-list` : undefined}
         disabled={disabled}
         onClick={() => (open ? close(false) : show())}
+        onMouseDown={(event) => {
+          // Keep focus in the open list, so the click below toggles it closed (Safari does not focus buttons at all).
+          if (open) event.preventDefault();
+        }}
         onKeyDown={onButtonKeyDown}
       >
         <span id={`${id}-value`} className="wk-ui-select__value">
@@ -179,7 +183,10 @@ export function Select<T extends string>({
           className="wk-ui-select__list"
           onKeyDown={onListKeyDown}
           onBlur={(event) => {
-            if (!(event.relatedTarget instanceof Node) || !list.current?.contains(event.relatedTarget)) close(false);
+            const next = event.relatedTarget;
+            // Focus moving to the own button is a press on it: its click closes the list, closing here would reopen it.
+            if (next instanceof Node && (list.current?.contains(next) || button.current?.contains(next))) return;
+            close(false);
           }}
         >
           {options.map((option, index) => (

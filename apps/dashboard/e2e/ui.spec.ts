@@ -103,6 +103,20 @@ for (const [width, height] of [
   });
 }
 
+test("a click on the button of an open select closes it", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("tools/json-convert/");
+  const select = page.getByRole("button", { name: "Convert to" });
+  const list = page.getByRole("listbox", { name: "Convert to" });
+  await select.click();
+  await expect(list).toBeVisible();
+  await select.click();
+  await expect(select).toHaveAttribute("aria-expanded", "false");
+  await expect(list).toBeHidden();
+  await select.click();
+  await expect(list).toBeVisible();
+});
+
 test("a select near the bottom edge opens upward", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 340 });
   await page.goto("tools/json-formatter/");
