@@ -2,6 +2,7 @@ import type { JsonWorkerRequest, JsonWorkerResponse } from "@web-kit/json-core";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { JsonFormatter } from "./JsonFormatter";
+import { JOB_DELAY } from "./useJsonJob";
 import { WORKER_FALLBACK_NOTE } from "./useJsonFormatter";
 
 /** Stand-ins for the json-core worker: each answers only when the test calls answer(). */
@@ -74,16 +75,48 @@ describe("JsonFormatter with a large input", () => {
     render(<JsonFormatter initialInput={BIG} />);
     fireEvent.click(screen.getByRole("button", { name: "Minify" }));
     expect(status()).toBe("Minifying 1.2 MB…");
+    // The Format job was still running: it is cancelled and the Minify job starts JOB_DELAY ms later.
+    await waitFor(() => expect(workers.all).toHaveLength(2));
     await answer();
     expect(screen.getByLabelText("Output").textContent).toBe(BIG);
   });
 
   it("cancels the running job on new input: its worker is terminated and only one worker is alive", async () => {
-    render(<JsonFormatter initialInput={BIG} />);
-    type(`${BIG} `);
-    expect(workers.all.map((worker) => worker.terminated)).toEqual([true, false]);
-    type(`${BIG}  `);
-    expect(alive()).toHaveLength(1);
+    vi.useFakeTimers();
+    try {
+      render(<JsonFormatter initialInput={BIG} />);
+      type(`${BIG} `);
+      expect(workers.all.map((worker) => worker.terminated)).toEqual([true]);
+      act(() => vi.advanceTimersByTime(JOB_DELAY));
+      expect(workers.all.map((worker) => worker.terminated)).toEqual([true, false]);
+      type(`${BIG}  `);
+      act(() => vi.advanceTimersByTime(JOB_DELAY));
+      expect(alive()).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+    await answer();
+    expect(status()).toMatch(/^Valid JSON/);
+  });
+
+  it("starts one worker for a burst of keystrokes, once the typing pauses, and runs the latest text", async () => {
+    vi.useFakeTimers();
+    try {
+      render(<JsonFormatter initialInput={BIG} />);
+      expect(workers.all).toHaveLength(1);
+      for (let extra = 1; extra <= 5; extra++) {
+        type(BIG + " ".repeat(extra));
+        act(() => vi.advanceTimersByTime(JOB_DELAY / 3));
+      }
+      expect(workers.all).toHaveLength(1);
+      expect(workers.all[0]!.terminated).toBe(true);
+      expect(status()).toBe("Formatting 1.2 MB…");
+      act(() => vi.advanceTimersByTime(JOB_DELAY));
+      expect(workers.all).toHaveLength(2);
+      expect(workers.all[1]!.requests.map((request) => request.job.input)).toEqual([BIG + " ".repeat(5)]);
+    } finally {
+      vi.useRealTimers();
+    }
     await answer();
     expect(status()).toMatch(/^Valid JSON/);
   });
