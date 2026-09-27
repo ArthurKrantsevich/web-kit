@@ -11,10 +11,11 @@ test.describe("favicon", () => {
           new URL(link.getAttribute("href")!, location.href).pathname,
         ]),
       );
-      expect(links).toEqual([
+      // Next orders the icon links as the file system lists app/, which differs between machines.
+      expect(links.sort()).toEqual([
+        ["apple-touch-icon", "image/png", "/web-kit/apple-icon.png"],
         ["icon", "image/svg+xml", "/web-kit/icon.svg"],
         ["icon", "image/x-icon", "/web-kit/icon.ico"],
-        ["apple-touch-icon", "image/png", "/web-kit/apple-icon.png"],
       ]);
     }
     for (const [file, type] of [
