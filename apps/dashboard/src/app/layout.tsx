@@ -4,6 +4,7 @@ import "@web-kit/tokens/tokens.css";
 // The ui styles (empty states, buttons) for the pages; each tool's own styles.css repeats them, which is harmless.
 import "@web-kit/ui/styles.css";
 import "./globals.css";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { THEME_SCRIPT } from "@/theme";
 
@@ -27,14 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SiteHeader />
         <main className="container site-main">{children}</main>
-        <footer className="site-footer">
-          <div className="container site-footer__inner">
-            <span>Everything runs in your browser. Your data never leaves your device.</span>
-            <span>
-              MIT · Also built with Flutter: <a href="https://arthurkrantsevich.github.io/flutter-kit/">flutter-kit</a>
-            </span>
-          </div>
-        </footer>
+        <SiteFooter />
       </body>
     </html>
   );

@@ -212,7 +212,8 @@ test("json-schema-validator at 390 px: Undo appears after Generate without movin
 
 test("the footer sits at the bottom of a short page", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("about/");
+  // About has grown long; the page for an unknown address is still short.
+  await page.goto("tools/does-not-exist/");
   const footer = (await page.getByRole("contentinfo").boundingBox())!;
   expect(Math.round(footer.y + footer.height)).toBe(800);
   expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(800);
