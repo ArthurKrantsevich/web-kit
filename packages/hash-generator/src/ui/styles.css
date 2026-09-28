@@ -184,6 +184,16 @@
   .wk-ui-editor__toolbar .wk-hash__hmac .wk-ui-field {
     display: inline;
   }
+  /* The actions share the HMAC switch's row, right-aligned; the key's row (kept, unseen, while HMAC is off) comes
+     after them, so no empty band sits above the actions and turning HMAC on moves nothing. */
+  .wk-ui-editor__toolbar > .wk-hash__hmac {
+    flex: 1 1 100%;
+    order: 1;
+  }
+  /* The encodings take their own row, so the switch and the actions always share the next one. */
+  .wk-hash .wk-ui-editor__toolbar > .wk-ui-segmented {
+    flex: 1 1 100%;
+  }
   .wk-hash__verify {
     padding: 8px;
   }

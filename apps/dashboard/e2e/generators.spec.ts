@@ -505,6 +505,21 @@ test.describe("hash-generator", () => {
         if (hmac === "on") await page.getByRole("switch", { name: "HMAC" }).click();
         const tops = await Promise.all(["Sample", "Clear", "More actions"].map(async (name) => Math.round((await page.getByRole("button", { name, exact: true }).boundingBox())!.y)));
         if (new Set(tops).size !== 1) problems.push(`${width} px, HMAC ${hmac}: ${tops.join(", ")}`);
+        // Below 640 px they share the HMAC switch's row (no empty band above them); the key's row comes after.
+        const tool = (await page.locator(".wk-hash").boundingBox())!.width;
+        if (tool < 640) {
+          const middle = async (locator: ReturnType<Page["locator"]>) => {
+            const box = (await locator.boundingBox())!;
+            return box.y + box.height / 2;
+          };
+          const [toggle, sample, key] = [
+            await middle(page.locator(".wk-ui-editor__toolbar .wk-ui-switch")),
+            await middle(page.getByRole("button", { name: "Sample", exact: true })),
+            (await page.locator(".wk-hash__hmac").boundingBox())!.y,
+          ];
+          if (Math.abs(toggle - sample) > 4) problems.push(`${width} px, HMAC ${hmac}: the actions are not on the HMAC row`);
+          if (key < sample) problems.push(`${width} px, HMAC ${hmac}: the key row is above the actions`);
+        }
         if (hmac === "on") await page.getByRole("switch", { name: "HMAC" }).click();
       }
     }
