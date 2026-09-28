@@ -20,8 +20,10 @@ describe("registry", () => {
     expect(new Set(previews).size).toBe(previews.length);
   });
 
-  it("lists Text Compare as ready, not planned", () => {
-    expect([tools.some((tool) => tool.id === "text-compare"), upcoming.some((tool) => tool.id === "text-compare")]).toEqual([true, false]);
+  it("lists Text Compare and the UUID, password and hash generators as ready, not planned", () => {
+    for (const id of ["text-compare", "uuid-generator", "password-generator", "hash-generator"]) {
+      expect([id, tools.some((tool) => tool.id === id), upcoming.some((tool) => tool.id === id)]).toEqual([id, true, false]);
+    }
   });
 
   it("has no id twice, among ready and planned tools together", () => {
@@ -34,9 +36,6 @@ describe("registry", () => {
       "data:base64",
       "data:url-encoder",
       "data:jwt-decoder",
-      "generators:uuid-generator",
-      "generators:password-generator",
-      "generators:hash-generator",
       "generators:qr-generator",
       "generators:palette-generator",
       "media:image-converter",

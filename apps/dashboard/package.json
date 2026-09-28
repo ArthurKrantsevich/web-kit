@@ -11,6 +11,9 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@web-kit/uuid-generator": "workspace:*",
+    "@web-kit/password-generator": "workspace:*",
+    "@web-kit/hash-generator": "workspace:*",
     "@web-kit/text-compare": "workspace:*",
     "@web-kit/json-schema-validator": "workspace:*",
     "@web-kit/json-diff": "workspace:*",

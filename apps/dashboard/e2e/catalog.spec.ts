@@ -29,12 +29,20 @@ test.describe("home: empty states and planned tools", () => {
     await expect(status).toHaveText(`${json.length} tools ready, 0 planned`);
   });
 
+  test("Generators shows its three ready tools, then the planned ones", async ({ page }) => {
+    await page.goto("./");
+    await page.getByRole("group", { name: "Category" }).getByRole("button", { name: CATEGORY_LABELS.generators }).click();
+    await expect(page.locator(".grid h2")).toHaveText(["UUID Generator", "Password Generator", "Hash Generator", "QR Code Generator", "Palette Generator"]);
+    await expect(page.locator(".grid a.card")).toHaveCount(3);
+    await expect(page.locator(".wk-ui-empty")).toHaveCount(0);
+  });
+
   test("a category without ready tools says so and keeps its planned cards", async ({ page }) => {
     await page.goto("./");
-    const planned = upcoming.filter((tool) => tool.category === "generators");
-    await page.getByRole("group", { name: "Category" }).getByRole("button", { name: CATEGORY_LABELS.generators }).click();
+    const planned = upcoming.filter((tool) => tool.category === "media");
+    await page.getByRole("group", { name: "Category" }).getByRole("button", { name: CATEGORY_LABELS.media }).click();
     const empty = page.locator(".wk-ui-empty");
-    await expect(empty).toContainText("No Generators tools yet");
+    await expect(empty).toContainText("No Media tools yet");
     await expect(empty).toContainText(`${planned.length} are planned — see them below.`);
     await expect(soonCards(page)).toHaveCount(planned.length);
     for (const tool of planned) await expect(soonCards(page).filter({ hasText: tool.title })).toHaveCount(1);
