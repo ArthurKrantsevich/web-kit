@@ -1,7 +1,8 @@
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
-
-/** MD5, SHA-1, SHA-2, SHA-3, BLAKE2, BLAKE3, RIPEMD-160 and CRC32 of a text or a file, with a checksum check and HMAC. Replace this placeholder logic. */
-export function hashGenerator(input: string): Result<string> {
-  if (input.trim() === "") return { ok: false, error: "Input is empty" };
-  return { ok: true, value: input.trim() };
-}
+export type * from "./types";
+export { ALGORITHM_NAMES, EXTRA_INFO, MAIN_ALGORITHMS } from "./algorithms";
+export { createMd5 } from "./md5";
+export { createCrc32 } from "./crc";
+export { hmac, keyBytes, webDigest } from "./webcrypto";
+export { encodeDigest } from "./encode";
+export { CHUNK_SIZE, hashAll, type HashOptions } from "./hash";
+export { matchDigest, type DigestMatch } from "./match";

@@ -1,5 +1,5 @@
 import { useId, useMemo, useState, type ReactElement } from "react";
-import { hashGenerator, type Result } from "../core/index";
+import { hashGenerator, type Result } from "../core/placeholder";
 
 export interface UseHashGenerator {
   input: string;
