@@ -2,6 +2,7 @@
 export type Result<T> = { ok: true; value: T } | { ok: false; error: { message: string } };
 
 /** An algorithm computed piece by piece: `update` any number of times, then `digest` once. */
+/** A streaming hash: update() any number of times, then digest(). After digest(), update() throws and digest() repeats. */
 export interface Hasher {
   update(bytes: Uint8Array): void;
   digest(): Uint8Array<ArrayBuffer>;

@@ -1,3 +1,4 @@
+import { sealed } from "./sealed";
 import type { Hasher } from "./types";
 
 /**
@@ -28,7 +29,7 @@ export function mdHasher(
     buffer.set(bytes.subarray(at), 0);
     filled = bytes.length - at;
   }
-  return {
+  return sealed({
     update(bytes) {
       length += bytes.length;
       feed(bytes);
@@ -50,7 +51,7 @@ export function mdHasher(
       feed(pad);
       return output();
     },
-  };
+  });
 }
 
 /** 32-bit words as bytes. */

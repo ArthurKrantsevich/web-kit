@@ -27,6 +27,8 @@ export interface HashOptions {
  */
 export async function hashAll(input: string | Uint8Array<ArrayBuffer> | Blob, options: HashOptions = {}): Promise<Result<HashResults>> {
   const { hmacKey, algorithms = MAIN_ALGORITHMS, chunkSize = CHUNK_SIZE, onProgress, pause, signal } = options;
+  // 0, a fraction or NaN would never reach the end of a Blob.
+  if (!Number.isSafeInteger(chunkSize) || chunkSize < 1) return { ok: false, error: { message: "The chunk size must be a whole number of bytes, at least 1" } };
   let key: Uint8Array<ArrayBuffer> | null = null;
   if (hmacKey) {
     const bytes = keyBytes(hmacKey);

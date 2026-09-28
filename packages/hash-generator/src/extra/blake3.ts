@@ -1,4 +1,5 @@
 import { wordBytes } from "../core/md";
+import { sealed } from "../core/sealed";
 import type { Hasher } from "../core/types";
 import { IV32 } from "./blake2";
 
@@ -115,7 +116,7 @@ export function createBlake3(): Hasher {
     stack.push(merged);
   };
 
-  return {
+  return sealed({
     update(bytes) {
       let at = 0;
       while (at < bytes.length) {
@@ -145,5 +146,5 @@ export function createBlake3(): Hasher {
       for (let i = stack.length - 1; i >= 0; i--) output = parentOutput(stack[i]!, chainingValue(output));
       return wordBytes(compress(output.cv, output.words, output.counter, output.length, output.flags | ROOT).slice(0, 8), true);
     },
-  };
+  });
 }

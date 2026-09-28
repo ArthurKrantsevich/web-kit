@@ -1,3 +1,4 @@
+import { sealed } from "../core/sealed";
 import type { Hasher } from "../core/types";
 
 // SHA-3 (FIPS 202): Keccak-f[1600] on 25 lanes of 64 bits, each kept as low and high 32-bit halves: lane x + 5y is at
@@ -248,7 +249,7 @@ export function sha3Hasher(bits: 224 | 256 | 384 | 512): () => Hasher {
     // The lanes are little endian, as the bytes of an Int32Array are on every platform browsers run on.
     const bytes = new Uint8Array(state.buffer);
     let at = 0;
-    return {
+    return sealed({
       update(data) {
         let i = 0;
         while (i < data.length) {
@@ -271,6 +272,6 @@ export function sha3Hasher(bits: 224 | 256 | 384 | 512): () => Hasher {
         keccak(state);
         return bytes.slice(0, out);
       },
-    };
+    });
   };
 }

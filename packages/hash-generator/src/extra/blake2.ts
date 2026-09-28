@@ -1,4 +1,5 @@
 import { wordBytes } from "../core/md";
+import { sealed } from "../core/sealed";
 import type { Hasher } from "../core/types";
 
 // BLAKE2b-512 and BLAKE2s-256 without a key (RFC 7693). The last block is compressed only in digest(), with its flag.
@@ -30,7 +31,7 @@ function blake2Frame(blockSize: number, compress: (block: Uint8Array, offset: nu
   const buffer = new Uint8Array(blockSize);
   let filled = 0;
   let total = 0;
-  return {
+  return sealed({
     update(bytes) {
       let at = 0;
       while (at < bytes.length) {
@@ -57,7 +58,7 @@ function blake2Frame(blockSize: number, compress: (block: Uint8Array, offset: nu
       compress(buffer, 0, total, true);
       return output();
     },
-  };
+  });
 }
 
 export function createBlake2s(): Hasher {

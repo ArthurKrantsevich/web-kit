@@ -1,3 +1,4 @@
+import { sealed } from "./sealed";
 import type { Hasher } from "./types";
 
 /** A reflected CRC-32 with this polynomial (reversed form), table driven, streaming; the digest is big endian. */
@@ -14,7 +15,7 @@ export function crcHasher(polynomial: number): () => Hasher {
     }
     const lookup = table;
     let crc = -1;
-    return {
+    return sealed({
       update(bytes) {
         for (let i = 0; i < bytes.length; i++) crc = lookup[(crc ^ bytes[i]!) & 0xff]! ^ (crc >>> 8);
       },
@@ -23,7 +24,7 @@ export function crcHasher(polynomial: number): () => Hasher {
         new DataView(out.buffer).setUint32(0, ~crc >>> 0);
         return out;
       },
-    };
+    });
   };
 }
 
