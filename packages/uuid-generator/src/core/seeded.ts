@@ -1,0 +1,40 @@
+import type { RandomSource } from "./types";
+
+// Test helpers: random sources whose output a test knows. Not part of the package's API.
+
+/** A deterministic, well-mixed source (splitmix32) for statistical tests that must not flake. */
+export function seededRandom(seed: number): RandomSource {
+  let state = seed >>> 0;
+  return (bytes) => {
+    for (let i = 0; i < bytes.length; i++) {
+      state = (state + 0x9e3779b9) >>> 0;
+      let z = state;
+      z = Math.imul(z ^ (z >>> 16), 0x85ebca6b) >>> 0;
+      z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35) >>> 0;
+      bytes[i] = (z ^ (z >>> 16)) & 0xff;
+    }
+  };
+}
+
+/** Hands out the given bytes in order (then zeros), so a test can build an ID from known random parts. */
+export function scriptedRandom(values: readonly number[]): RandomSource {
+  let at = 0;
+  return (bytes) => {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = values[at++] ?? 0;
+  };
+}
+
+/** Every byte value in turn, 0 to 255 and again: over whole cycles each value comes up equally often. */
+export function cyclingRandom(): RandomSource {
+  let next = 0;
+  return (bytes) => {
+    for (let i = 0; i < bytes.length; i++) bytes[i] = next++ & 0xff;
+  };
+}
+
+/** Pearson's χ² of observed counts against equal expected counts. */
+export function chiSquare(counts: readonly number[]): number {
+  const total = counts.reduce((sum, count) => sum + count, 0);
+  const expected = total / counts.length;
+  return counts.reduce((sum, count) => sum + (count - expected) ** 2 / expected, 0);
+}

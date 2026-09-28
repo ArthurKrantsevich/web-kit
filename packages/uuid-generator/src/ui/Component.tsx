@@ -1,5 +1,5 @@
 import { useId, useMemo, useState, type ReactElement } from "react";
-import { uuidGenerator, type Result } from "../core/index";
+import { uuidGenerator, type Result } from "../core/placeholder";
 
 export interface UseUuidGenerator {
   input: string;
