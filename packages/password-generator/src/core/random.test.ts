@@ -27,7 +27,8 @@ describe("randomInt", () => {
   });
 });
 
-it("has no bias over 1,000,000 characters from a pool of 36, which does not divide 2³² (χ² < 66.62, p = 0.001)", () => {
+// Seconds on a CI runner that is 2–3 times slower than a laptop, under a full parallel `pnpm verify`: its own timeout.
+it("has no bias over 1,000,000 characters from a pool of 36, which does not divide 2³² (χ² < 66.62, p = 0.001)", { timeout: 20_000 }, () => {
   const random = seededRandom(11);
   const pool = "abcdefghijklmnopqrstuvwxyz0123456789";
   const counts = new Array<number>(pool.length).fill(0);

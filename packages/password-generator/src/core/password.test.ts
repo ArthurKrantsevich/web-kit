@@ -47,7 +47,8 @@ describe("generatePassword", () => {
     }
   });
 
-  it("keeps every allowed password equally likely with Require each (χ² over the 224 passwords of ab01, length 4)", () => {
+  // Seconds on a CI runner that is 2–3 times slower than a laptop, under a full parallel `pnpm verify`: its own timeout.
+  it("keeps every allowed password equally likely with Require each (χ² over the 224 passwords of ab01, length 4)", { timeout: 20_000 }, () => {
     const random = seededRandom(14);
     const counts = new Map<string, number>();
     // 22,400 draws: 100 expected per password, plenty for χ², and fast enough for a slow CI runner.

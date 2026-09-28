@@ -131,7 +131,8 @@ describe("NanoID", () => {
     expect(new Set(counts.values()).size).toBe(1);
   });
 
-  it("passes a χ² test for 36 characters over 360,000 of them (critical value 58.62 for p = 0.01, 35 degrees of freedom)", () => {
+  // Seconds on a CI runner that is 2–3 times slower than a laptop, under a full parallel `pnpm verify`: its own timeout.
+  it("passes a χ² test for 36 characters over 360,000 of them (critical value 58.62 for p = 0.01, 35 degrees of freedom)", { timeout: 20_000 }, () => {
     const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
     const { nanoid } = createIdGenerators({ random: seededRandom(8) });
     const counts = new Array<number>(alphabet.length).fill(0);

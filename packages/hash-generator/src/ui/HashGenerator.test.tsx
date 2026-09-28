@@ -38,7 +38,9 @@ function fakeRunner() {
   return { runner, jobs, finish };
 }
 
-describe("HashGenerator", () => {
+// These tests hash for real on the page (MD5, Web Crypto and the extra entry) in jsdom; on a CI runner 2–3 times slower
+// than a laptop, under a full parallel `pnpm verify`, that can take seconds, so the block gets its own timeout.
+describe("HashGenerator", { timeout: 20_000 }, () => {
   it("hashes the text with the main algorithms and shows them in the chosen encoding", async () => {
     render(<HashGenerator initialSettings={{ text: "abc" }} />);
     await waitFor(() => expect(value("SHA-256")).toBe(SHA256_ABC));
