@@ -125,6 +125,21 @@ describe("Select", () => {
     expect(active().textContent).toBe("4 spacesWider");
   });
 
+  it("stays open when a text field elsewhere scrolls its own text, and closes when a box around it scrolls", () => {
+    render(
+      <div data-testid="box">
+        <Harness />
+        <input aria-label="Other" />
+      </div>,
+    );
+    fireEvent.click(trigger());
+    // A field scrolls its text back to the start when it loses focus: that moves nothing on the page.
+    fireEvent.scroll(screen.getByRole("textbox", { name: "Other" }));
+    expect(screen.queryByRole("listbox")).not.toBeNull();
+    fireEvent.scroll(screen.getByTestId("box"));
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
   it("closes on Tab, on a press outside, on scroll and on resize", () => {
     render(<Harness />);
     fireEvent.click(trigger());

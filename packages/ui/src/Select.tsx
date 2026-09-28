@@ -107,8 +107,11 @@ export function Select<T extends string>({
       if (target && (list.current?.contains(target) || button.current?.contains(target))) return;
       close(false);
     };
+    // Only a scroll that moves the button closes the list: the page's, or a box around the button. A text field that
+    // scrolls its own text (as it does when it loses focus) moves nothing.
     const onScroll = (event: Event): void => {
-      if (event.target instanceof Node && list.current?.contains(event.target)) return;
+      const target = event.target;
+      if (target instanceof Node && target !== document && !target.contains(button.current)) return;
       close(false);
     };
     const onResize = (): void => close(false);

@@ -91,6 +91,15 @@ describe("Menu", () => {
     expect(screen.queryByRole("menu")).toBeNull();
   });
 
+  it("stays open when a text field elsewhere scrolls its own text", () => {
+    renderMenu();
+    const other = document.body.appendChild(document.createElement("input"));
+    fireEvent.click(trigger());
+    fireEvent.scroll(other);
+    expect(screen.queryByRole("menu")).not.toBeNull();
+    other.remove();
+  });
+
   it("closes when the page scrolls", () => {
     renderMenu();
     fireEvent.click(trigger());
