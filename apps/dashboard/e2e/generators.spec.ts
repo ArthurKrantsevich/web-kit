@@ -30,7 +30,8 @@ function strayLabels(page: Page, options: string): Promise<string[]> {
     (options) =>
       [...document.querySelectorAll(`${options} [data-active="true"] .wk-ui-field`)].flatMap((label) => {
         const field = label.nextElementSibling;
-        if (!field) return [];
+        // A label hidden on purpose (display: none) has no line to share.
+        if (!field || label.getBoundingClientRect().width === 0) return [];
         const [a, b] = [label.getBoundingClientRect(), field.getBoundingClientRect()];
         return Math.abs(a.top + a.height / 2 - (b.top + b.height / 2)) > 4 ? [label.textContent ?? ""] : [];
       }),
@@ -274,6 +275,72 @@ test("the status line keeps one height in every state, and Count keeps its label
     }
   }
   expect(problems).toEqual([]);
+});
+
+test.describe("uuid-generator layout", () => {
+  test("the Inspect field keeps its height with nothing, a result, an error and a ULID, from 320 to 1920 px", async ({ page }) => {
+    await open(page, "uuid-generator", 320);
+    const field = page.getByRole("textbox", { name: "Inspect" });
+    const problems: string[] = [];
+    for (const width of [320, 390, 480, 768, 1024, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      const heights = new Set<number>();
+      for (const text of ["", "C232AB00-9414-11EC-B3C8-9F6BDECED846", "919108f7-52d1-9320-9bac-f847db4148a8", "01ARYZ6S41TSV4RRFFQ69G5FAV", ""]) {
+        await field.fill(text);
+        heights.add(Math.round((await field.boundingBox())!.height));
+      }
+      if (heights.size !== 1) problems.push(`${width} px: ${[...heights].join(", ")}`);
+    }
+    expect(problems).toEqual([]);
+  });
+
+  test("the options zone is one row of fields from 600 px of the tool's width and two below, as tall for every kind", async ({ page }) => {
+    test.slow();
+    await open(page, "uuid-generator", 320);
+    const zone = page.locator(".wk-uuid__options");
+    const problems: string[] = [];
+    for (const width of [320, 390, 480, 600, 640, 768, 1024, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      const tool = (await page.locator(".wk-uuid").boundingBox())!.width;
+      const heights = new Set<number>();
+      for (const kind of KIND_LABELS) {
+        await chooseKind(page, kind);
+        if (kind === "UUID v5" || kind === "NanoID") {
+          await page.getByRole("button", { name: kind === "NanoID" ? "Alphabet" : "Namespace" }).click();
+          await page.getByRole("option", { name: "Custom" }).click();
+          const rows = await zone.locator('[data-active="true"]').evaluate((panel) => {
+            const tops = [...panel.querySelectorAll("input, button")].filter((node) => node.getBoundingClientRect().width > 0).map((node) => Math.round(node.getBoundingClientRect().top));
+            return new Set(tops).size;
+          });
+          const expected = tool >= 600 ? 1 : 2;
+          if (rows !== expected) problems.push(`${width} px (tool ${Math.round(tool)}) ${kind}: ${rows} rows, not ${expected}`);
+        }
+        heights.add(Math.round((await zone.boundingBox())!.height));
+      }
+      if (heights.size !== 1) problems.push(`${width} px: zone heights ${[...heights].join(", ")}`);
+    }
+    expect(problems).toEqual([]);
+  });
+
+  test("puts each UUID on its name's line, and the two columns scroll together", async ({ page }) => {
+    await open(page, "uuid-generator", 1280);
+    await chooseKind(page, "UUID v5");
+    const names = page.getByRole("textbox", { name: "Names" });
+    const ids = page.getByRole("textbox", { name: "IDs" });
+    await names.fill(Array.from({ length: 60 }, (_, i) => (i % 7 === 3 ? "" : `host-${i}.example.com`)).join("\n"));
+    const look = (node: HTMLElement) => {
+      const style = getComputedStyle(node);
+      return [Math.round(node.getBoundingClientRect().top), style.fontSize, style.lineHeight, style.paddingTop, style.whiteSpace].join(" ");
+    };
+    expect(await ids.evaluate(look)).toBe(await names.evaluate(look));
+    const lines = (await ids.inputValue()).split("\n");
+    expect([lines.length, lines[3], lines[4]!.length]).toEqual([60, "", 36]);
+    await names.evaluate((node) => {
+      node.scrollTop = 200;
+      node.dispatchEvent(new Event("scroll"));
+    });
+    await expect.poll(() => ids.evaluate((node) => node.scrollTop)).toBe(await names.evaluate((node) => node.scrollTop));
+  });
 });
 
 test.describe("uuid-generator options", () => {

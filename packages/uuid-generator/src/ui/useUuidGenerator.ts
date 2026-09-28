@@ -56,8 +56,13 @@ export interface UseUuidGenerator {
   update: (patch: Partial<UuidSettings>) => void;
   /** The IDs, in their canonical form; empty until the page has hydrated (random values cannot be rendered on a server). */
   ids: string[];
-  /** The IDs as the output shows them: formatted, one per line or as a JSON array. */
+  /** The IDs as Copy and Download give them: formatted, one per line or as a JSON array. */
   text: string;
+  /**
+   * The IDs as the output shows them: `text`, except for v3 and v5, where each UUID is on the line of its name (an
+   * empty line of names stays empty) so the Names and IDs columns pair up; as JSON, too.
+   */
+  shown: string;
   /** Why no IDs could be made (a bad namespace or alphabet), or null. */
   error: string | null;
   /** New IDs with the same settings. */
@@ -68,13 +73,29 @@ export interface UseUuidGenerator {
   inspection: Result<IdInfo> | null;
 }
 
+/** The lines of the Names field. */
+export const nameLines = (names: string): string[] => (names === "" ? [] : names.split(/\r?\n/));
+
+/** Each ID on the line of its name: empty lines stay empty; as JSON, the array's brackets and commas go on those lines. */
+function pairWithNames(lines: readonly string[], ids: readonly string[], json: boolean): string {
+  const at = lines.flatMap((line, index) => (line === "" ? [] : [index]));
+  if (json && ids.length === 0) return "[]";
+  const out = lines.map(() => "");
+  at.forEach((line, k) => {
+    const id = ids[k] ?? "";
+    out[line] = json ? `${k === 0 ? "[" : " "}${JSON.stringify(id)}${k === at.length - 1 ? "]" : ","}` : id;
+  });
+  return out.join("\n");
+}
+
 /** The options generateIds needs for these settings. */
 export function generateOptions(settings: UuidSettings): Parameters<typeof generateIds>[0] {
   return {
     kind: settings.kind,
     count: settings.count,
     namespace: settings.namespace === "custom" ? settings.customNamespace.trim() : settings.namespace,
-    names: settings.names === "" ? [] : settings.names.split(/\r?\n/),
+    // An empty line (a trailing newline, a blank line between names) is not a name: it makes no UUID.
+    names: nameLines(settings.names).filter((name) => name !== ""),
     size: settings.size,
     alphabet: settings.alphabet === "custom" ? settings.customAlphabet : ALPHABETS[settings.alphabet],
   };
@@ -85,7 +106,7 @@ export function useUuidGenerator(options: UseUuidGeneratorOptions = {}): UseUuid
   const [settings, setSettings] = useState<UuidSettings>(() => ({ ...DEFAULT_SETTINGS, ...options.initialSettings }));
   const [round, setRound] = useState(0);
   // The kind the IDs were made as: until new IDs arrive, the old ones keep their own format.
-  const [made, setMade] = useState<{ kind: IdKind; ids: string[]; error: string | null }>({ kind: settings.kind, ids: [], error: null });
+  const [made, setMade] = useState<{ kind: IdKind; ids: string[]; error: string | null; lines: string[] }>({ kind: settings.kind, ids: [], error: null, lines: [] });
   const [inspectText, setInspectText] = useState("");
 
   const { kind, count, namespace, customNamespace, names, size, alphabet, customAlphabet } = settings;
@@ -98,23 +119,27 @@ export function useUuidGenerator(options: UseUuidGeneratorOptions = {}): UseUuid
       // A bug in the core must not take the tool down: it becomes a message, and other settings still work.
       result = { ok: false, error: { message: `Could not make the IDs: ${error instanceof Error ? error.message : String(error)}` } };
     }
-    setMade(result.ok ? { kind, ids: result.value, error: null } : { kind, ids: [], error: result.error.message });
+    const lines = nameLines(names);
+    setMade(result.ok ? { kind, ids: result.value, error: null, lines } : { kind, ids: [], error: result.error.message, lines });
   }, [kind, count, namespace, customNamespace, names, size, alphabet, customAlphabet, round]);
 
   const update = useCallback((patch: Partial<UuidSettings>) => setSettings((current) => ({ ...current, ...patch })), []);
   const regenerate = useCallback(() => setRound((value) => value + 1), []);
 
-  const text = useMemo(() => {
+  const { text, shown } = useMemo(() => {
     const format =
       made.kind === "ulid"
         ? ({ case: settings.ulidLower ? "lower" : "upper" } as const)
         : ({ case: settings.upper ? "upper" : "lower", hyphens: settings.hyphens, wrap: settings.wrap } as const);
     // A NanoID is never formatted: one of 32 hex digits or 26 Base32 characters would pass for a UUID or a ULID.
     const formatted = made.kind === "nanoid" ? made.ids : made.ids.map((id) => formatUuid(id, format));
-    return settings.output === "json" ? JSON.stringify(formatted, null, 2) : formatted.join("\n");
+    const json = settings.output === "json";
+    const all = json ? JSON.stringify(formatted, null, 2) : formatted.join("\n");
+    const named = (made.kind === "v3" || made.kind === "v5") && made.error === null;
+    return { text: all, shown: named ? pairWithNames(made.lines, formatted, json) : all };
   }, [made, settings.upper, settings.hyphens, settings.wrap, settings.ulidLower, settings.output]);
 
   const inspection = useMemo(() => (inspectText.trim() === "" ? null : inspectId(inspectText)), [inspectText]);
 
-  return { settings, update, ids: made.ids, text, error: made.error, regenerate, inspectText, setInspectText, inspection };
+  return { settings, update, ids: made.ids, text, shown, error: made.error, regenerate, inspectText, setInspectText, inspection };
 }

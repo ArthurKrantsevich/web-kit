@@ -14,7 +14,8 @@ afterEach(() => {
 
 const ids = () => (screen.getByRole("textbox", { name: "IDs" }) as HTMLTextAreaElement).value;
 const regenerate = () => screen.getByRole("button", { name: "Regenerate" });
-const status = () => document.querySelector(".wk-ui-status [role='status']")!.textContent;
+// The visible status; its live region (role="status") speaks at a slower pace.
+const status = () => document.querySelector(".wk-uuid__summary")!.textContent;
 async function choose(label: string, option: string): Promise<void> {
   fireEvent.click(screen.getByRole("button", { name: label }));
   fireEvent.click(within(screen.getByRole("listbox", { name: label })).getByRole("option", { name: option }));
@@ -47,7 +48,8 @@ describe("UuidGenerator", () => {
 
   it("writes the IDs in upper case, in braces, and as a JSON array", async () => {
     render(<UuidGenerator initialSettings={{ kind: "v5", names: "www.example.com", upper: true, wrap: "braces", output: "json" }} />);
-    await waitFor(() => expect(ids()).toBe('[\n  "{2ED6657D-E927-568B-95E1-2665A8AEA6A2}"\n]'));
+    // Beside the names, the JSON array keeps each UUID on its name's line.
+    await waitFor(() => expect(ids()).toBe('["{2ED6657D-E927-568B-95E1-2665A8AEA6A2}"]'));
     fireEvent.click(screen.getByRole("button", { name: "Lines" }));
     fireEvent.click(screen.getByRole("button", { name: "Format" }));
     fireEvent.click(screen.getByRole("menuitemradio", { name: "URN urn:uuid:…" }));

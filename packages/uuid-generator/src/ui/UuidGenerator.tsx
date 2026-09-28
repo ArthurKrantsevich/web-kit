@@ -16,12 +16,14 @@ import {
   Select,
   StatusLine,
   ToolMenu,
+  Tooltip,
   useHydrated,
+  useSettled,
   type MenuItem,
   type SelectOption,
   type Shortcut,
 } from "@web-kit/ui";
-import { useId, useMemo, useState, type ReactElement } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from "react";
 import { MAX_COUNT } from "../core/generate";
 import { ALPHABETS } from "../core/nanoid";
 import type { IdInfo, IdKind, NamespaceName } from "../core/types";
@@ -130,7 +132,7 @@ function rows(info: IdInfo): [string, string][] {
 /** Ready-made UUID, ULID and NanoID generator. Import "@web-kit/uuid-generator/styles.css" once for the default look. */
 export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
   const state = useUuidGenerator(props);
-  const { settings, update, ids, text, error } = state;
+  const { settings, update, ids, text, shown, error } = state;
   const { kind } = settings;
   const [notice, setNotice] = useState("");
   const hydrated = useHydrated();
@@ -139,6 +141,9 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
   const named = panel === "name";
   const fixed = named || kind === "nil" || kind === "max";
   const uuid = kind !== "ulid" && kind !== "nanoid";
+  const inspectField = useRef<HTMLInputElement>(null);
+  const namesField = useRef<HTMLTextAreaElement>(null);
+  const idsField = useRef<HTMLTextAreaElement>(null);
 
   const nanoBits = useMemo(() => {
     const alphabet = settings.alphabet === "custom" ? settings.customAlphabet : ALPHABETS[settings.alphabet];
@@ -146,7 +151,16 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
     return size < 2 ? 0 : Math.floor(settings.size * Math.log2(size));
   }, [settings.alphabet, settings.customAlphabet, settings.size]);
 
-  const shortcuts: Shortcut[] = [{ keys: "Mod+Enter", label: "Regenerate", run: state.regenerate }];
+  // A regeneration with the same settings changes no visible count: it is said on its own. The count of them makes
+  // each announcement differ from the one before, so it is heard again.
+  const [regenerated, setRegenerated] = useState(0);
+  useEffect(() => setRegenerated(0), [settings]);
+  const regenerate = () => {
+    if (fixed || error !== null) return;
+    state.regenerate();
+    setRegenerated((count) => count + 1);
+  };
+  const shortcuts: Shortcut[] = [{ keys: "Mod+Enter", label: "Regenerate", run: regenerate }];
 
   /** Puts back a shared or saved state. It comes from outside, so every field is checked. */
   function restore(value: Record<string, unknown>): void {
@@ -210,12 +224,10 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
       <span className="wk-ui-spacer" />
       <ActionButton
         action="custom"
-        icon="generate"
+        icon="refresh"
         tooltip={fixed ? (named ? "Name-based UUIDs are the same every time" : "This UUID never changes") : "Make new IDs (Ctrl+Enter)"}
         aria-disabled={fixed || error !== null || undefined}
-        onClick={() => {
-          if (!fixed && error === null) state.regenerate();
-        }}
+        onClick={regenerate}
       >
         Regenerate
       </ActionButton>
@@ -231,82 +243,66 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
     </EditorToolbar>
   );
 
-  /** What the kind is, and its facts in a second, quieter line. */
-  const about = (shown: IdKind, facts: string = FACTS[shown as keyof typeof FACTS]): ReactElement => (
-    <div className="wk-uuid__about">
-      <p>{ABOUT[shown]}</p>
-      <p className="wk-uuid__facts">{facts}</p>
-    </div>
-  );
-
+  // The zone holds fields only. A kind without fields shows one line of facts; what the kind is is in its tooltip.
+  const plainKind = panel === "plain" ? (kind as Exclude<IdKind, "v3" | "v5" | "nanoid">) : "v4";
   const options = (
     <OptionStack
       className="wk-uuid__options"
       label={`Options for ${KINDS.find((option) => option.value === kind)!.label}`}
       active={panel}
       panels={{
-        plain: about(kind === "nanoid" || PANEL[kind] !== "plain" ? "v4" : kind),
+        plain: (
+          <Tooltip content={ABOUT[plainKind]}>
+            <span className="wk-uuid__facts" tabIndex={0}>
+              {FACTS[plainKind]}
+            </span>
+          </Tooltip>
+        ),
         name: (
           <>
-            {about(kind === "v3" ? "v3" : "v5")}
-            <span className="wk-uuid__namespace">
-              <span className="wk-uuid__pair">
-                <span className="wk-ui-field" aria-hidden="true">
-                  Namespace
-                </span>
-                <Select label="Namespace" value={settings.namespace} options={NAMESPACES} onChange={(namespace) => update({ namespace })} widest />
+            <span className="wk-uuid__pair">
+              <span className="wk-ui-field" aria-hidden="true">
+                Namespace
               </span>
-              <input
-                className="wk-ui-input wk-uuid__custom"
-                aria-label="Namespace UUID"
-                placeholder="Namespace UUID"
-                maxLength={64}
-                spellCheck={false}
-                readOnly={!hydrated}
-                value={settings.customNamespace}
-                data-hidden={settings.namespace !== "custom"}
-                inert={settings.namespace !== "custom"}
-                onChange={(event) => update({ customNamespace: event.target.value })}
-              />
+              <Select label="Namespace" value={settings.namespace} options={NAMESPACES} onChange={(namespace) => update({ namespace })} widest />
             </span>
-            <textarea
-              className="wk-ui-area wk-uuid__names"
-              aria-label="Names"
-              placeholder="Names, one per line"
-              rows={3}
+            <input
+              className="wk-ui-input wk-uuid__custom"
+              aria-label="Namespace UUID"
+              placeholder="Namespace UUID"
+              maxLength={64}
               spellCheck={false}
               readOnly={!hydrated}
-              value={settings.names}
-              onChange={(event) => update({ names: event.target.value })}
+              value={settings.customNamespace}
+              data-hidden={settings.namespace !== "custom"}
+              inert={settings.namespace !== "custom"}
+              onChange={(event) => update({ customNamespace: event.target.value })}
             />
           </>
         ),
         nanoid: (
           <>
-            {about("nanoid", `${nanoBits} random bits in ${settings.size} characters`)}
-            <span className="wk-uuid__namespace">
-              <span className="wk-uuid__pair">
-                <NumberField label="Size" value={settings.size} min={2} max={255} onChange={(size) => update({ size })} />
-              </span>
-              <span className="wk-uuid__pair">
-                <span className="wk-ui-field" aria-hidden="true">
-                  Alphabet
-                </span>
-                <Select label="Alphabet" value={settings.alphabet} options={ALPHABET_OPTIONS} onChange={(alphabet) => update({ alphabet })} widest />
-              </span>
-              <input
-                className="wk-ui-input wk-uuid__custom"
-                aria-label="Custom alphabet"
-                placeholder="Your characters"
-                maxLength={256}
-                spellCheck={false}
-                readOnly={!hydrated}
-                value={settings.customAlphabet}
-                data-hidden={settings.alphabet !== "custom"}
-                inert={settings.alphabet !== "custom"}
-                onChange={(event) => update({ customAlphabet: event.target.value })}
-              />
+            <span className="wk-uuid__pair">
+              <NumberField label="Size" value={settings.size} min={2} max={255} onChange={(size) => update({ size })} />
             </span>
+            <span className="wk-uuid__pair">
+              <span className="wk-ui-field" aria-hidden="true">
+                Alphabet
+              </span>
+              <Select label="Alphabet" value={settings.alphabet} options={ALPHABET_OPTIONS} onChange={(alphabet) => update({ alphabet })} widest />
+            </span>
+            <input
+              className="wk-ui-input wk-uuid__custom"
+              aria-label="Custom alphabet"
+              placeholder="Your characters"
+              maxLength={256}
+              spellCheck={false}
+              readOnly={!hydrated}
+              value={settings.customAlphabet}
+              data-hidden={settings.alphabet !== "custom"}
+              inert={settings.alphabet !== "custom"}
+              onChange={(event) => update({ customAlphabet: event.target.value })}
+            />
           </>
         ),
       }}
@@ -316,9 +312,19 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
   const json = settings.output === "json";
   const file = json ? "uuids.json" : "uuids.txt";
   const inspection = state.inspection;
+  // The facts of a kind whose zone shows fields go to the status line.
+  const facts = panel === "nanoid" ? `${nanoBits} random bits in ${settings.size} characters` : panel === "name" ? FACTS[kind as "v3" | "v5"] : "";
+  const summary = error ?? (ids.length === 0 ? (named ? "Type names, one per line, to make their UUIDs." : "") : `${noun(kind, ids.length)}${facts ? ` · ${facts}` : ""}`);
+  const settledSummary = useSettled(summary);
+  const heard = regenerated > 0 && ids.length > 0 ? `Regenerated ${plural(ids.length, "ID")}${regenerated % 2 === 0 ? "\u00a0" : ""}` : settledSummary;
   const status = (
     <StatusLine state={error ? "error" : "idle"}>
-      <span role="status">{error ?? (ids.length === 0 ? (named ? "Type names, one per line, to make their UUIDs." : "") : noun(kind, ids.length))}</span>
+      <span className="wk-uuid__summary" title={summary}>
+        {summary}
+      </span>
+      <span className="wk-ui-sr-only" role="status">
+        {heard}
+      </span>
       {notice && (
         <span className="wk-uuid__notice" title={notice}>
           {notice}
@@ -327,30 +333,63 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
     </StatusLine>
   );
 
+  // Inspect: the fields are shown at once, outside any live region; a one-line summary is said once the text settles.
+  const inspectSummary = useSettled(inspection === null ? "" : inspection.ok ? inspection.value.description : inspection.error.message);
+
+  const actions = (
+    <>
+      <ActionButton action="download" words={{ what: "the IDs", file }} disabled={text === ""} onClick={() => downloadText(text, file, json ? "application/json" : "text/plain")} />
+      <CopyButton text={text} tooltip="Copy every ID to the clipboard" variant="quiet" icon />
+    </>
+  );
+  // Names and IDs scroll together, so each UUID stays beside its name.
+  const follow = (from: HTMLTextAreaElement, to: HTMLTextAreaElement | null) => {
+    if (to && to.scrollTop !== from.scrollTop) to.scrollTop = from.scrollTop;
+  };
+
   return (
     <EditorShell className={["wk-uuid", props.className].filter(Boolean).join(" ")} toolbar={toolbar} status={status}>
       {options}
       <EditorPanes>
-        <EditorPane
-          kind="output"
-          className="wk-uuid__pane--output"
-          title="IDs"
-          labelFor={`${id}-ids`}
-          meta={ids.length === 0 ? undefined : plural(ids.length, "ID")}
-          actions={
-            <>
-              <ActionButton
-                action="download"
-                words={{ what: "the IDs", file }}
-                disabled={text === ""}
-                onClick={() => downloadText(text, file, json ? "application/json" : "text/plain")}
+        {named ? (
+          <EditorPane kind="output" className="wk-uuid__pane--output" title="Names → IDs" meta={ids.length === 0 ? undefined : plural(ids.length, "ID")} actions={actions}>
+            <div className="wk-uuid__paired">
+              <label className="wk-uuid__column" htmlFor={`${id}-names`}>
+                Names
+              </label>
+              <label className="wk-uuid__column" htmlFor={`${id}-ids`}>
+                IDs
+              </label>
+              <textarea
+                ref={namesField}
+                id={`${id}-names`}
+                className="wk-ui-area wk-uuid__names"
+                placeholder="One name per line"
+                wrap="off"
+                spellCheck={false}
+                readOnly={!hydrated}
+                value={settings.names}
+                onChange={(event) => update({ names: event.target.value })}
+                onScroll={(event) => follow(event.currentTarget, idsField.current)}
               />
-              <CopyButton text={text} tooltip="Copy every ID to the clipboard" variant="quiet" icon />
-            </>
-          }
-        >
-          <textarea id={`${id}-ids`} className="wk-ui-area wk-uuid__ids" readOnly value={text} spellCheck={false} placeholder={named ? "One UUID per name" : ""} />
-        </EditorPane>
+              <textarea
+                ref={idsField}
+                id={`${id}-ids`}
+                className="wk-ui-area wk-uuid__ids"
+                readOnly
+                wrap="off"
+                value={shown}
+                spellCheck={false}
+                placeholder="One UUID per name"
+                onScroll={(event) => follow(event.currentTarget, namesField.current)}
+              />
+            </div>
+          </EditorPane>
+        ) : (
+          <EditorPane kind="output" className="wk-uuid__pane--output" title="IDs" labelFor={`${id}-ids`} meta={ids.length === 0 ? undefined : plural(ids.length, "ID")} actions={actions}>
+            <textarea id={`${id}-ids`} className="wk-ui-area wk-uuid__ids" readOnly wrap="off" value={shown} spellCheck={false} />
+          </EditorPane>
+        )}
         <EditorPane
           kind="input"
           className="wk-uuid__pane--inspect"
@@ -360,6 +399,7 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
         >
           <div className="wk-uuid__inspect">
             <input
+              ref={inspectField}
               id={`${id}-inspect`}
               className="wk-ui-input wk-uuid__id"
               placeholder="A UUID or a ULID"
@@ -370,7 +410,10 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
               value={state.inspectText}
               onChange={(event) => state.setInspectText(event.target.value)}
             />
-            <div className="wk-uuid__result" role="status" aria-live="polite">
+            <span className="wk-ui-sr-only" role="status">
+              {inspectSummary}
+            </span>
+            <div className="wk-uuid__result">
               {inspection === null ? (
                 <EmptyState
                   size="sm"
@@ -378,7 +421,14 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
                   title="Paste a UUID or a ULID to read it."
                   action={
                     ids.length > 0 && kind !== "nanoid" ? (
-                      <Button variant="outline" onClick={() => state.setInspectText(ids[0]!)}>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          state.setInspectText(ids[0]!);
+                          // The button goes away with the empty state: focus goes to the field it filled.
+                          inspectField.current?.focus();
+                        }}
+                      >
                         Inspect the first ID
                       </Button>
                     ) : undefined
