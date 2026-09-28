@@ -83,4 +83,16 @@ describe("inspectId", () => {
     expect(info("8ZZZZZZZZZZZZZZZZZZZZZZZZZ")).toBe("Not a ULID: it is larger than 128 bits (the first character must be 0 to 7)");
     expect(info("V1StGXR8_Z5jdHi6B-myT")).toBe("This looks like a NanoID: its characters are random, with no time or version to read");
   });
+
+  it("quotes a whole character, never half of one, and counts the UUID's own characters", () => {
+    // An emoji is two UTF-16 units but one character: the UUID still has 36 characters, and the emoji is at 22.
+    expect(info("919108f7-52d1-4320-9b😀c-f847db4148a8")).toBe('Not a UUID: "😀" (U+1F600) at position 22 is not a hexadecimal digit (0-9, a-f)');
+    expect(info("01ARYZ6S41TSV4RRFFQ69G5FA😀")).toBe('Not a ULID: "😀" (U+1F600) at position 26 is not in Crockford\'s Base32 (no I, L, O or U)');
+    // A character that cannot be seen is named by its code point.
+    expect(info("919108f7-52d1-4320-9b​c-f847db4148a8")).toBe('Not a UUID: "​" (U+200B) at position 22 is not a hexadecimal digit (0-9, a-f)');
+    // Braces and urn:uuid: are not counted: the UUID inside has 35 characters.
+    const short = "Not a UUID or a ULID: 35 characters. A UUID has 32 hexadecimal digits (36 characters with hyphens), a ULID 26 characters";
+    expect(info("{919108f7-52d1-4320-9bac-f847db4148a}")).toBe(short);
+    expect(info("urn:uuid:919108f7-52d1-4320-9bac-f847db4148a")).toBe(short);
+  });
 });

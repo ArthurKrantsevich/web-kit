@@ -68,12 +68,19 @@ function inspectUuid(digits: string): Result<IdInfo> {
 
 const LOOKALIKES: Record<string, string> = { I: "1", L: "1", O: "0" };
 
+/** A character quoted whole; one that is not printable ASCII also by its code point, e.g. "​" (U+200B). */
+function quote(char: string): string {
+  const code = char.codePointAt(0)!;
+  return code > 0x20 && code < 0x7f ? `"${char}"` : `"${char}" (U+${code.toString(16).toUpperCase().padStart(4, "0")})`;
+}
+
 function inspectUlid(text: string): Result<IdInfo> {
   const upper = text.toUpperCase();
+  const typed = Array.from(text);
   for (const [index, char] of Array.from(upper).entries()) {
     if (CROCKFORD.includes(char)) continue;
     const hint = LOOKALIKES[char] === undefined ? "" : `; did you mean ${LOOKALIKES[char]}?`;
-    return fail(`Not a ULID: "${text[index]}" at position ${index + 1} is not in Crockford's Base32 (no I, L, O or U)${hint}`);
+    return fail(`Not a ULID: ${quote(typed[index]!)} at position ${index + 1} is not in Crockford's Base32 (no I, L, O or U)${hint}`);
   }
   if (upper[0]! > "7") return fail("Not a ULID: it is larger than 128 bits (the first character must be 0 to 7)");
   const value = decodeCrockford(upper);
@@ -99,17 +106,19 @@ export function inspectId(text: string): Result<IdInfo> {
   if (trimmed === "") return fail("Paste an ID to inspect it");
   const digits = uuidDigits(trimmed);
   if (digits !== null) return inspectUuid(digits);
+  // Counted in characters (code points), not UTF-16 units: an emoji is one character, never half of one.
   const chars = Array.from(trimmed);
-  const body = trimmed.replace(/^urn:uuid:/i, "").replace(/^\{(.*)\}$/, "$1");
-  if (body.length === 36 || body.length === 32) {
-    const start = trimmed.indexOf(body);
-    for (const [index, char] of Array.from(body).entries()) {
-      const hyphen = body.length === 36 && [8, 13, 18, 23].includes(index);
+  const body = trimmed.replace(/^urn:uuid:/i, "").replace(/^\{(.*)\}$/su, "$1");
+  const bodyChars = Array.from(body);
+  if (bodyChars.length === 36 || bodyChars.length === 32) {
+    const start = Array.from(trimmed.slice(0, trimmed.indexOf(body))).length;
+    for (const [index, char] of bodyChars.entries()) {
+      const hyphen = bodyChars.length === 36 && [8, 13, 18, 23].includes(index);
       if (hyphen ? char === "-" : /[0-9a-f]/i.test(char)) continue;
       return fail(
         hyphen
           ? `Not a UUID: a hyphen belongs at position ${start + index + 1} (after 8, 4, 4 and 4 hexadecimal digits)`
-          : `Not a UUID: "${char}" at position ${start + index + 1} is not a hexadecimal digit (0-9, a-f)`,
+          : `Not a UUID: ${quote(char)} at position ${start + index + 1} is not a hexadecimal digit (0-9, a-f)`,
       );
     }
   }
@@ -117,7 +126,8 @@ export function inspectId(text: string): Result<IdInfo> {
   if (chars.length === 21 && /^[A-Za-z0-9_-]+$/.test(trimmed)) {
     return fail("This looks like a NanoID: its characters are random, with no time or version to read");
   }
+  // The length of what could be the UUID: braces and urn:uuid: are not part of it.
   return fail(
-    `Not a UUID or a ULID: ${chars.length} characters. A UUID has 32 hexadecimal digits (36 characters with hyphens), a ULID 26 characters`,
+    `Not a UUID or a ULID: ${bodyChars.length} characters. A UUID has 32 hexadecimal digits (36 characters with hyphens), a ULID 26 characters`,
   );
 }
