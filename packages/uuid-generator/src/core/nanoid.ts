@@ -21,6 +21,11 @@ export interface NanoidOptions {
 /** The characters of an alphabet, or why it cannot be used. */
 export function checkAlphabet(alphabet: string): Result<string[]> {
   const chars = Array.from(alphabet);
+  const code = (char: string) => `U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}`;
+  const lone = chars.find((char) => /^[\uD800-\uDFFF]$/.test(char));
+  if (lone !== undefined) return { ok: false, error: { message: `The alphabet has a lone surrogate (${code(lone)}): only whole characters can be used` } };
+  const mark = chars.find((char) => /^\p{M}$/u.test(char));
+  if (mark !== undefined) return { ok: false, error: { message: `The alphabet has a combining mark (${code(mark)}): it would join the character before it` } };
   const repeated = chars.find((char, index) => chars.indexOf(char) !== index);
   if (repeated !== undefined) return { ok: false, error: { message: `The alphabet has "${repeated}" more than once` } };
   if (chars.length < 2 || chars.length > 256) {

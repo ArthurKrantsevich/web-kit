@@ -177,3 +177,17 @@ describe("the time a v7, v1, v6 or ULID is made at", () => {
     expect(() => set.uuidV6(Date.UTC(5236, 0, 1))).not.toThrow();
   });
 });
+
+describe("a NanoID alphabet", () => {
+  it("refuses a lone surrogate and a combining mark, which cannot stand as a character of their own", () => {
+    const { nanoid } = createIdGenerators({ random: seededRandom(11) });
+    const message = (alphabet: string) => {
+      const id = nanoid({ alphabet });
+      return id.ok ? id.value : id.error.message;
+    };
+    expect(message("ab\ud83d")).toBe("The alphabet has a lone surrogate (U+D83D): only whole characters can be used");
+    expect(message("abé")).toBe("The alphabet has a combining mark (U+0301): it would join the character before it");
+    // Whole astral characters are fine: each one is one character of the ID.
+    expect(nanoid({ alphabet: "😀😁", size: 4 }).ok).toBe(true);
+  });
+});
