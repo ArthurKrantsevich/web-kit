@@ -13,6 +13,17 @@ async function open(page: Page, tool: string, width = 1280, height = 900): Promi
   await page.evaluate(() => document.fonts.ready);
 }
 
+/** Drops the File that `make` (a function body run in the page) returns on the hash tool's Text pane. */
+async function dropFile(page: Page, make: string): Promise<void> {
+  const transfer = await page.evaluateHandle((code) => {
+    const data = new DataTransfer();
+    data.items.add(new Function(code)() as File);
+    return data;
+  }, make);
+  const pane = page.locator(".wk-hash__pane--input");
+  for (const type of ["dragenter", "dragover", "drop"]) await pane.dispatchEvent(type, { dataTransfer: transfer });
+}
+
 /** The labels of the shown options panel that are not on the line of the field after them ("<label>"). */
 function strayLabels(page: Page, options: string): Promise<string[]> {
   return page.evaluate(
@@ -300,17 +311,62 @@ test.describe("hash-generator", () => {
     }
   });
 
+  test("every row keeps its height in every encoding, the main ones and the extra ones, from 320 to 1920 px", async ({ page }) => {
+    test.slow();
+    await open(page, "hash-generator", 320);
+    await page.getByRole("button", { name: "More algorithms" }).click();
+    await expect(page.locator(".wk-hash__row")).toHaveCount(17);
+    await expect(page.locator(".wk-hash__value", { hasText: "…" })).toHaveCount(0);
+    const encodings = page.getByRole("group", { name: "Encoding" });
+    const heights = () => page.locator(".wk-hash__row").evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height.toFixed(1)));
+    const moved: string[] = [];
+    for (const width of [320, 360, 390, 414, 480, 640, 768, 1024, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      await encodings.getByRole("button", { name: "hex", exact: true }).click();
+      const hex = await heights();
+      for (const encoding of ["HEX", "Base64", "Base64url"]) {
+        await encodings.getByRole("button", { name: encoding, exact: true }).click();
+        const now = await heights();
+        now.forEach((height, index) => {
+          if (height !== hex[index]) moved.push(`${width} px ${encoding} row ${index + 1}: ${hex[index]} → ${height}`);
+        });
+      }
+    }
+    expect(moved).toEqual([]);
+  });
+
+  test("a long file name never squeezes the Text pane's buttons, from 320 to 1920 px", async ({ page }) => {
+    await open(page, "hash-generator", 320);
+    const head = page.locator(".wk-hash__pane--input .wk-ui-pane__head");
+    const buttons = () =>
+      head.evaluate((row) => {
+        const box = row.getBoundingClientRect();
+        return [...row.querySelectorAll("button")].map((button) => {
+          const own = button.getBoundingClientRect();
+          return `${button.getAttribute("aria-label")} ${own.width.toFixed(1)}${own.right > box.right + 0.5 ? " sticks out" : ""}`;
+        });
+      });
+    const widths = [320, 360, 390, 414, 480, 768, 1280, 1920];
+    const text: string[][] = [];
+    for (const width of widths) {
+      await page.setViewportSize({ width, height: 900 });
+      text.push(await buttons());
+    }
+    await dropFile(page, `return new File(["hello"], "quarterly-report-of-the-whole-department-2026-09-28-final-v3.iso");`);
+    await expect(page.locator(".wk-ui-status")).toContainText("Hashed quarterly-report");
+    const problems: string[] = [];
+    for (const [index, width] of widths.entries()) {
+      await page.setViewportSize({ width, height: 900 });
+      const now = await buttons();
+      if (now.join() !== text[index]!.join()) problems.push(`${width} px: ${text[index]!.join(", ")} → ${now.join(", ")}`);
+      if (!(await head.locator(".wk-ui-pane__meta").isVisible())) problems.push(`${width} px: the size is hidden`);
+    }
+    expect(problems).toEqual([]);
+  });
+
   test("hashes a dropped file, saves hashes.txt in sha256sum form, goes back to the text, and refuses a file over 512 MB", async ({ page }) => {
     await open(page, "hash-generator");
-    const drop = async (make: string) => {
-      const transfer = await page.evaluateHandle((code) => {
-        const data = new DataTransfer();
-        data.items.add(new Function(code)() as File);
-        return data;
-      }, make);
-      const pane = page.locator(".wk-hash__pane--input");
-      for (const type of ["dragenter", "dragover", "drop"]) await pane.dispatchEvent(type, { dataTransfer: transfer });
-    };
+    const drop = (make: string) => dropFile(page, make);
     await drop(`return new File(["hello"], "hello.txt", { type: "text/plain" });`);
     await expect(page.locator(".wk-ui-status")).toContainText("Hashed hello.txt (5 B)");
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download" }).click()]);
