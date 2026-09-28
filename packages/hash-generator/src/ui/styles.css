@@ -65,23 +65,29 @@
   flex-direction: column;
   min-height: 0;
 }
-/* Verify: one line of one height in every state; a long verdict ends with an ellipsis. */
+/* Verify: its label and field on one line, the verdict (and "Check them") on the next, at every width: both lines
+   are always there, so every state has one height, and the verdict has the pane's whole width. */
 .wk-hash__verify {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  min-height: 52px;
+  gap: 6px 10px;
+  min-height: 90px;
   padding: 8px 12px 8px 16px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
 }
 .wk-hash__expected.wk-ui-input {
-  flex: 0 1 18rem;
+  flex: 1 1 0;
   min-width: 8rem;
+  max-width: none;
+}
+.wk-hash__verify > .wk-ui-field {
+  flex: none;
 }
 .wk-hash__verdict {
-  flex: 1 1 0;
+  flex: 1 1 calc(100% - 7rem);
   min-width: 0;
   overflow: hidden;
   color: var(--wk-muted, #5e5d59);
@@ -163,19 +169,15 @@
   }
 }
 @container wk-ui-editor (max-width: 639px) {
-  /* The key and its format fit on the HMAC switch's line. */
+  /* The key and its format fit on the HMAC switch's line; the key keeps its label (a narrow toolbar hides others). */
   .wk-hash__key {
     --wk-ui-input-width: 8rem;
   }
-  /* Verify: the field, then the verdict (and "Check them") on their own line; both lines always there. */
-  .wk-hash__verify {
-    flex-wrap: wrap;
-    gap: 6px 10px;
-    min-height: 90px;
-    padding: 8px;
+  .wk-ui-editor__toolbar .wk-hash__hmac .wk-ui-field {
+    display: inline;
   }
-  .wk-hash__expected.wk-ui-input {
-    flex: 1 1 100%;
+  .wk-hash__verify {
+    padding: 8px;
   }
   .wk-hash__row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -183,5 +185,28 @@
   }
   .wk-hash__algorithm {
     grid-column: 1 / -1;
+  }
+}
+/* Too narrow for the verdict and "Check them" on one line: the verdict may take two lines, always reserved. */
+@container wk-ui-editor (max-width: 479px) {
+  .wk-hash__verify {
+    min-height: 110px;
+  }
+  .wk-hash__verdict {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+  }
+}
+/* A phone of 320 px: three lines beside "Check them". */
+@container wk-ui-editor (max-width: 329px) {
+  .wk-hash__verify {
+    min-height: 130px;
+  }
+  .wk-hash__verdict {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
   }
 }

@@ -16,9 +16,10 @@ import {
   Tooltip,
   useFileDrop,
   useHydrated,
+  useSettled,
   type SegmentedOption,
 } from "@web-kit/ui";
-import { useId, useMemo, useState, type ReactElement } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from "react";
 import { ALGORITHM_NAMES } from "../core/algorithms";
 import { encodeDigest } from "../core/encode";
 import type { DigestEncoding } from "../core/types";
@@ -55,6 +56,15 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
   const hydrated = useHydrated();
   const id = useId();
   const hmac = settings.hmac;
+  // A control that disappears on its own click hands focus on: Check them to Verify, Back to text to the text.
+  const verifyField = useRef<HTMLInputElement>(null);
+  const textField = useRef<HTMLTextAreaElement>(null);
+  const [focusText, setFocusText] = useState(false);
+  useEffect(() => {
+    if (!focusText || file !== null) return;
+    textField.current?.focus();
+    setFocusText(false);
+  }, [focusText, file]);
   const drop = useFileDrop({
     accept: "*/*",
     maxBytes: MAX_FILE_BYTES,
@@ -78,8 +88,9 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
   const matched = match.status === "match" ? match.algorithm : null;
   const bytes = useMemo(() => (file ? file.size : new TextEncoder().encode(settings.text).length), [file, settings.text]);
 
+  // No HMAC switch: the key never travels, and HMAC on without a key would open as an error.
   const shared = useMemo(
-    () => ({ text: settings.text, encoding: settings.encoding, hmac: settings.hmac, keyFormat: settings.keyFormat, expanded: settings.expanded }),
+    () => ({ text: settings.text, encoding: settings.encoding, keyFormat: settings.keyFormat, expanded: settings.expanded }),
     [settings],
   );
 
@@ -88,25 +99,32 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
     const patch: Partial<HashSettings> = {};
     if (typeof value.text === "string") patch.text = value.text;
     if (ENCODINGS.some((option) => option.value === value.encoding)) patch.encoding = value.encoding as DigestEncoding;
-    if (typeof value.hmac === "boolean") patch.hmac = value.hmac;
+    // An older link or saved input may say HMAC was on; without its key it opens off.
+    if (value.hmac === true) patch.hmac = false;
     if (value.keyFormat === "text" || value.keyFormat === "hex") patch.keyFormat = value.keyFormat;
     if (typeof value.expanded === "boolean") patch.expanded = value.expanded;
     state.closeFile();
     update(patch);
   }
 
+  const offered = match.status === "none" && match.uncomputed.length > 0 && !settings.expanded ? match.uncomputed : [];
+  const names = offered.map((one) => ALGORITHM_NAMES[one]);
+  const offeredList =
+    names.length === 0 ? "" : `${names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`} ${names.length === 1 ? "has" : "have"} this length`;
+  // Empty: the field's placeholder asks for a hash, so the verdict stays empty (no second sentence saying the same).
   const verifyText =
     match.status === "empty"
-      ? "Paste a hash to check it"
+      ? ""
       : match.status === "invalid"
         ? match.message
         : match.status === "match"
           ? `Matches ${rows.find((row) => row.id === match.algorithm)?.label ?? ALGORITHM_NAMES[match.algorithm]}`
           : pending !== null
             ? "Checking when hashing ends…"
-            : match.uncomputed.length > 0 && !settings.expanded
-              ? `No algorithm matches yet; ${match.uncomputed.map((one) => ALGORITHM_NAMES[one]).join(", ")} ${match.uncomputed.length === 1 ? "has" : "have"} this length.`
+            : offered.length > 0
+              ? `No match yet; ${offered.length} more ${offered.length === 1 ? "algorithm has" : "algorithms have"} this length`
               : "No algorithm matches";
+  const settledVerdict = useSettled(offeredList === "" ? verifyText : `${verifyText}: ${offeredList}`);
   const verifyState = match.status === "match" ? "valid" : match.status === "none" && pending === null ? "error" : match.status === "invalid" ? "error" : "idle";
 
   function row(item: (typeof rows)[number]): ReactElement {
@@ -137,6 +155,9 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
       </label>
       {/* The key and its format keep their place while HMAC is off, so turning it on moves nothing. */}
       <span className="wk-hash__hmac" data-hidden={!hmac} inert={!hmac} aria-hidden={!hmac || undefined}>
+        <span className="wk-ui-field" aria-hidden="true">
+          Key
+        </span>
         <input
           className="wk-ui-input wk-hash__key"
           aria-label="HMAC key"
@@ -161,10 +182,11 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
       />
       <ActionButton
         action="clear"
-        words={{ target: "the text, the file and the hash to verify" }}
+        words={{ target: "the text, the file, the HMAC key and the hash to verify" }}
         onClick={() => {
           state.closeFile();
           state.setVerify("");
+          state.setKey("");
           update({ text: "" });
         }}
       />
@@ -196,9 +218,18 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
       : file
         ? `Hashed ${file.name} (${formatSize(file.size)})`
         : `Hashed ${bytes.toLocaleString("en-US")} ${bytes === 1 ? "byte" : "bytes"} of text`);
+  // Heard, not seen: a file's progress at its start and every 25 %, anything else once it has settled (after a pause in
+  // typing), so a screen reader is not read every keystroke or every percent.
+  const progress = pending === null ? null : `Hashing ${pending.name}…${pending.share < 0.25 ? "" : ` ${Math.min(75, Math.floor(pending.share * 4) * 25)}%`}`;
+  const heard = useSettled(progress ?? summary, progress === null ? undefined : 0);
   const status = (
     <StatusLine state={state.error ? "error" : "idle"}>
-      <span role="status">{summary}</span>
+      <span className="wk-hash__summary" title={summary}>
+        {summary}
+      </span>
+      <span className="wk-ui-sr-only" role="status">
+        {heard}
+      </span>
       {state.note && <span className="wk-hash__note">{state.note}</span>}
       {notice && <span className="wk-hash__note">{notice}</span>}
     </StatusLine>
@@ -239,6 +270,7 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
         >
           {file === null ? (
             <textarea
+              ref={textField}
               id={`${id}-text`}
               className="wk-ui-area"
               value={settings.text}
@@ -252,7 +284,14 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
               <EmptyState size="sm" icon="open" title={file.name}>
                 <span className="wk-hash__facts">{`${formatSize(file.size)} · ${file.size.toLocaleString("en-US")} bytes · ${file.type || "unknown type"}`}</span>
               </EmptyState>
-              <Button variant="outline" icon="arrow-left" onClick={state.closeFile}>
+              <Button
+                variant="outline"
+                icon="arrow-left"
+                onClick={() => {
+                  state.closeFile();
+                  setFocusText(true);
+                }}
+              >
                 Back to text
               </Button>
             </div>
@@ -271,7 +310,11 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
         >
           <div className="wk-hash__body">
             <div className="wk-hash__verify" data-state={verifyState}>
+              <span className="wk-ui-field" aria-hidden="true">
+                Verify
+              </span>
               <input
+                ref={verifyField}
                 className="wk-ui-input wk-hash__expected"
                 aria-label="Verify"
                 placeholder="Paste a hash to verify"
@@ -281,11 +324,27 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
                 value={state.verify}
                 onChange={(event) => state.setVerify(event.target.value)}
               />
-              <span className="wk-hash__verdict" role="status" aria-live="polite">
-                {verifyText}
+              {/* The verdict fits one line; which algorithms have the length is in its tooltip. */}
+              {offeredList === "" ? (
+                <span className="wk-hash__verdict">{verifyText}</span>
+              ) : (
+                <Tooltip content={offeredList}>
+                  <span className="wk-hash__verdict" tabIndex={0}>
+                    {verifyText}
+                  </span>
+                </Tooltip>
+              )}
+              <span className="wk-ui-sr-only" role="status">
+                {settledVerdict}
               </span>
-              {match.status === "none" && match.uncomputed.length > 0 && !settings.expanded && pending === null && (
-                <Button className="wk-hash__check" onClick={() => update({ expanded: true })}>
+              {offered.length > 0 && pending === null && (
+                <Button
+                  className="wk-hash__check"
+                  onClick={() => {
+                    update({ expanded: true });
+                    verifyField.current?.focus();
+                  }}
+                >
                   Check them
                 </Button>
               )}

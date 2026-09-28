@@ -18,7 +18,8 @@ afterEach(() => {
 
 const SHA256_ABC = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
 const value = (name: string) => screen.getByText(name, { selector: ".wk-hash__algorithm" }).closest("li")!.querySelector(".wk-hash__value")!.textContent;
-const status = () => document.querySelector(".wk-ui-status [role='status']")!.textContent;
+// The visible status; its live region (role="status") speaks at a slower pace (HashGenerator.a11y.test.tsx).
+const status = () => document.querySelector(".wk-hash__summary")!.textContent;
 const verdict = () => document.querySelector(".wk-hash__verdict")!.textContent;
 const text = () => screen.getByRole("textbox", { name: "Text" });
 
@@ -58,7 +59,7 @@ describe("HashGenerator", { timeout: 20_000 }, () => {
     expect(verdict()).toBe("Matches SHA-256");
     expect(screen.getByText("SHA-256", { selector: ".wk-hash__algorithm" }).closest("li")!.hasAttribute("data-match")).toBe(true);
     fireEvent.change(verify, { target: { value: "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532" } });
-    expect(verdict()).toBe("No algorithm matches yet; SHA-512/256, SHA3-256, BLAKE2s-256, BLAKE3-256 have this length.");
+    expect(verdict()).toBe("No match yet; 4 more algorithms have this length");
     fireEvent.click(screen.getByRole("button", { name: "Check them" }));
     await waitFor(() => expect(verdict()).toBe("Matches SHA3-256"));
     expect(within(screen.getByRole("list", { name: "More hashes" })).getAllByRole("listitem")).toHaveLength(11);

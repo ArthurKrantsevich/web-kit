@@ -25,5 +25,8 @@ describe("useSettled", () => {
     expect(result.current).toBe("b");
     rerender({ value: "c", delay: 0 });
     expect(result.current).toBe("c");
+    // Back to a pause: the last value given at once is kept, not the one before it.
+    rerender({ value: "c", delay: 200 });
+    expect(result.current).toBe("c");
   });
 });

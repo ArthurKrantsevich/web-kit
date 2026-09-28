@@ -16,7 +16,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const status = () => document.querySelector(".wk-ui-status [role='status']")!.textContent;
+// The visible status; its live region speaks at a slower pace (HashGenerator.a11y.test.tsx).
+const status = () => document.querySelector(".wk-hash__summary")!.textContent;
 const drop = (file: File) => fireEvent.drop(document.querySelector(".wk-hash__pane--input")!, { dataTransfer: { types: ["Files"], files: [file] } });
 const loadExtra = () => Promise.resolve(EXTRA_ALGORITHMS);
 

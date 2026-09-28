@@ -65,10 +65,12 @@ const WEB = new Set<AlgorithmId>(MAIN_ALGORITHMS.filter((algorithm) => algorithm
 
 /** "12.4 MB", for messages. */
 export function formatSize(bytes: number): string {
+  // A whole number is written without ".0": the limit reads "512 MB" wherever it is named.
+  const unit = (value: number, digits: number, name: string) => `${Number(value.toFixed(digits))} ${name}`;
   if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  if (bytes < 1024 * 1024) return unit(bytes / 1024, 1, "KB");
+  if (bytes < 1024 * 1024 * 1024) return unit(bytes / 1024 / 1024, 1, "MB");
+  return unit(bytes / 1024 / 1024 / 1024, 2, "GB");
 }
 
 /** The hash generator's state without markup. Texts up to 1 MB are hashed on the page, files and larger texts in workers. */
@@ -238,7 +240,11 @@ export function useHashGenerator(options: UseHashGeneratorOptions = {}): UseHash
 
   const algorithms = useMemo(() => [...MAIN_ALGORITHMS, ...(expanded ? EXTRA_INFO : [])], [expanded]);
   const results = computed.version === version ? computed.results : {};
-  const match = useMemo(() => matchDigest(verify, results), [verify, results]);
+  const match = useMemo(() => {
+    const found = matchDigest(verify, results);
+    // With a key only Web Crypto's algorithms have an HMAC: no other one can be offered to compute.
+    return found.status === "none" && settings.hmac ? { ...found, uncomputed: found.uncomputed.filter((id) => WEB.has(id)) } : found;
+  }, [verify, results, settings.hmac]);
 
   return {
     settings,

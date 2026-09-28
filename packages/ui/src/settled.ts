@@ -10,7 +10,10 @@ export const SETTLE_DELAY = 800;
 export function useSettled<T>(value: T, delay: number = SETTLE_DELAY): T {
   const [settled, setSettled] = useState(value);
   useEffect(() => {
-    if (delay <= 0) return;
+    if (delay <= 0) {
+      setSettled(() => value);
+      return;
+    }
     const timer = setTimeout(() => setSettled(() => value), delay);
     return () => clearTimeout(timer);
   }, [value, delay]);

@@ -286,29 +286,33 @@ test.describe("password-generator", () => {
 });
 
 test.describe("hash-generator", () => {
-  test("Verify keeps one height for nothing, a match, no match, a suggestion and an unreadable hash", async ({ page }) => {
-    for (const [width, height] of [
-      [1280, 800],
-      [390, 844],
-    ] as const) {
-      await open(page, "hash-generator", width, height);
-      const verify = page.getByRole("textbox", { name: "Verify" });
-      const verdict = page.locator(".wk-hash__verdict");
-      const block = page.locator(".wk-hash__verify");
-      const seen: string[] = [];
+  test("Verify keeps one height for nothing, a match, no match, a suggestion and an unreadable hash, and never cuts its verdict, from 320 to 1920 px", async ({ page }) => {
+    test.slow();
+    await open(page, "hash-generator", 320);
+    const verify = page.getByRole("textbox", { name: "Verify" });
+    const verdict = page.locator(".wk-hash__verdict");
+    const block = page.locator(".wk-hash__verify");
+    const problems: string[] = [];
+    for (const width of [320, 360, 390, 414, 480, 640, 768, 1024, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      const heights = new Set<number>();
       for (const [text, expected] of [
-        ["", "Paste a hash to check it"],
+        ["", ""],
         ["2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", "Matches SHA-256"],
         ["00", "No algorithm matches"],
-        ["3338be694f50c5f338814986cdf0686453a888b84f424d792af4b9202398f392", "SHA3-256"],
+        ["3338be694f50c5f338814986cdf0686453a888b84f424d792af4b9202398f392", "No match yet; 4 more algorithms have this length"],
         ["not a hash!", "Not a hash in hex or Base64"],
       ]) {
         await verify.fill(text);
-        await expect(verdict).toContainText(expected);
-        seen.push(`${expected}: ${Math.round((await block.boundingBox())!.height)}`);
+        await expect(verdict).toHaveText(expected);
+        heights.add(Math.round((await block.boundingBox())!.height));
+        if (await verdict.evaluate((node) => node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1)) {
+          problems.push(`${width} px: "${expected}" is cut`);
+        }
       }
-      expect(new Set(seen.map((entry) => entry.split(": ")[1])).size, seen.join(", ")).toBe(1);
+      if (heights.size !== 1) problems.push(`${width} px: heights ${[...heights].join(", ")}`);
     }
+    expect(problems).toEqual([]);
   });
 
   test("every row keeps its height in every encoding, the main ones and the extra ones, from 320 to 1920 px", async ({ page }) => {
