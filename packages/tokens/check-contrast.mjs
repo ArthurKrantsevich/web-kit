@@ -1,6 +1,6 @@
 // Fails when a text/background token pair in tokens.css is below WCAG AA (4.5:1) in either theme (also on the tints
-// Text Compare mixes from tokens for added and removed lines), when a UI
-// component boundary (a border) is below 3:1 against the backgrounds it sits on (WCAG 1.4.11), when a scrollbar thumb
+// Text Compare mixes from tokens for added and removed lines, and Hash Generator for a matching row), when a UI
+// component boundary (a border, a strength meter's fill) is below 3:1 against the backgrounds it sits on (WCAG 1.4.11), when a scrollbar thumb
 // does not get stronger on hover, or when the two dark blocks (system dark and data-theme="dark") differ. An rgba()
 // color is measured over the background it is paired with.
 //
@@ -61,8 +61,12 @@ const PAIRS = [
   ["syntax-literal", "surface"], ["syntax-punct", "surface"],
 ];
 
-// [component boundary, background]: 3:1 (WCAG 1.4.11, non-text contrast).
-const NON_TEXT_PAIRS = [["border-strong", "surface"], ["border-strong", "bg"]];
+// [component boundary, background]: 3:1 (WCAG 1.4.11, non-text contrast). The fills of the password strength meter
+// (weak, fair, strong) sit on its surface-2 track.
+const NON_TEXT_PAIRS = [
+  ["border-strong", "surface"], ["border-strong", "bg"],
+  ["danger", "surface-2"], ["syntax-number", "surface-2"], ["syntax-string", "surface-2"],
+];
 
 // [text, color, percent, background]: text on `color` mixed into `background` with color-mix(in srgb): the tints of
 // added (string color) and removed (danger) lines in Text Compare, 12 %, and of their changed words, 30 %. 4.5:1.
