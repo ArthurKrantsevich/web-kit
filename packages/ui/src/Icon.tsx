@@ -11,6 +11,7 @@ export type IconName =
   | "to-input"
   | "swap"
   | "generate"
+  | "refresh"
   | "undo"
   | "chevron-down"
   | "chevron-up"
@@ -33,6 +34,8 @@ const PATHS: Record<IconName, string> = {
   "to-input": "M19 12H5M11 6l-6 6 6 6",
   swap: "M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7",
   generate: "M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M6 18l2.5-2.5M15.5 8.5L18 6",
+  // A circle with an arrow at its end: do again. Unlike "generate" (rays), it does not read as a busy spinner.
+  refresh: "M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5",
   undo: "M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
   "chevron-down": "M6 9l6 6 6-6",
   "chevron-up": "M6 15l6-6 6 6",
