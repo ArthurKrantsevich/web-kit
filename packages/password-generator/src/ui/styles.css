@@ -35,6 +35,11 @@
   min-width: 6rem;
   accent-color: var(--wk-primary, #141413);
 }
+.wk-password__credit {
+  flex: 1 1 100%;
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.75rem;
+}
 .wk-password__note {
   flex: 1 1 16rem;
   margin: 0;

@@ -61,6 +61,17 @@ if (existsSync(out)) {
   }
 }
 
+// The EFF large wordlist (CC BY 3.0 US) must be credited where people see it: the password page's Words options and
+// the About page. (Next's minifier drops every comment, /*! … */ too, so the site's script cannot carry the credit;
+// the package's dist/wordlist.js does, and the package's check verifies it.)
+const CREDIT = "Words from the EFF Large Wordlist";
+for (const page of ["tools/password-generator/index.html", "about/index.html"]) {
+  const file = join(out, page);
+  if (!existsSync(file)) continue;
+  const html = readFileSync(file, "utf8");
+  if (!html.includes(CREDIT) || !html.includes("https://www.eff.org/dice")) failures.push(`${page} does not credit the EFF Large Wordlist with a link`);
+}
+
 if (failures.length) {
   console.error("check-export FAILED:\n- " + failures.join("\n- "));
   process.exit(1);

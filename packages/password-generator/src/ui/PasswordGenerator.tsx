@@ -231,6 +231,10 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
             {separator("wordSeparator", "wordCustom")}
             <Switch label="Capitalize" checked={settings.wordCapitalize} onChange={(wordCapitalize) => update({ wordCapitalize })} />
             <Switch label="Include a number" checked={settings.wordNumber} onChange={(wordNumber) => update({ wordNumber })} />
+            {/* CC BY 3.0 US asks for credit where the words are used. */}
+            <a className="wk-password__credit" href="https://www.eff.org/dice">
+              Words from the EFF Large Wordlist (CC BY 3.0 US)
+            </a>
           </>
         ),
         memorable: (

@@ -112,6 +112,10 @@ export default function AboutPage() {
             Playwright, the schema validator also runs the official JSON Schema Test Suite, and every hash algorithm is
             checked against its official test vectors.
           </li>
+          <li>
+            Passphrases in the Password Generator: <a href="https://www.eff.org/dice">Words from the EFF Large Wordlist</a>{" "}
+            (CC BY 3.0 US), by the Electronic Frontier Foundation.
+          </li>
         </ul>
       </section>
 

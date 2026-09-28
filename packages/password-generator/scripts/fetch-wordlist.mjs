@@ -26,9 +26,10 @@ if (words.length !== 7776 || new Set(words).size !== 7776) throw new Error("expe
 
 writeFileSync(
   new URL("../src/wordlist.ts", import.meta.url),
-  `// The EFF large wordlist: 7,776 words for passphrases, by the Electronic Frontier Foundation (https://www.eff.org/dice).
-// Licensed under CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/); EFF's copyright page also grants CC BY
-// 4.0. Written by scripts/fetch-wordlist.mjs from ${SOURCE}
+  `/*! The EFF Large Wordlist: 7,776 words for passphrases, by the Electronic Frontier Foundation (https://www.eff.org/dice).
+ * Licensed under CC BY 3.0 US (https://creativecommons.org/licenses/by/3.0/us/); EFF's copyright page also grants CC BY
+ * 4.0. A preserved comment: minifiers keep it, so the credit ships with the list. */
+// Written by scripts/fetch-wordlist.mjs from ${SOURCE}
 // (SHA-256 ${SHA256}); do not edit.
 
 const WORDS = "${words.join(" ")}";
