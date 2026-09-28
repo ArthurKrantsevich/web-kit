@@ -24,7 +24,8 @@ afterEach(() => {
 
 const button = (name: string) => screen.getByRole("button", { name }) as HTMLButtonElement;
 
-describe("JsonDiff while the result lags behind the text", () => {
+// Under a full parallel `pnpm verify` this takes about 2 s here, so several on a CI runner 2–3 times slower: own timeout.
+describe("JsonDiff while the result lags behind the text", { timeout: 20_000 }, () => {
   it("disables Copy JSON Patch and Download until the patch matches the text again", () => {
     render(<JsonDiff initialLeft='{"n":1}' initialRight='{"n":2}' />);
     expect(button("Copy JSON Patch").disabled).toBe(false);

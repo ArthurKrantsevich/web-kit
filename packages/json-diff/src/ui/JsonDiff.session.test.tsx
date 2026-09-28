@@ -15,7 +15,8 @@ afterEach(() => {
 
 const area = (name: "Left" | "Right") => screen.getByLabelText(name) as HTMLTextAreaElement;
 
-describe("JsonDiff shortcuts, files and links", () => {
+// Under a full parallel `pnpm verify` this takes about 2 s here, so several on a CI runner 2–3 times slower: own timeout.
+describe("JsonDiff shortcuts, files and links", { timeout: 20_000 }, () => {
   it("Ctrl+Enter swaps Left and Right", () => {
     render(<JsonDiff initialLeft="[1]" initialRight="[2]" />);
     fireEvent.keyDown(area("Left"), { key: "Enter", ctrlKey: true });

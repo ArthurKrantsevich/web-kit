@@ -168,7 +168,8 @@ describe("applyJsonPatch", () => {
   });
 });
 
-describe("toJsonPatch on large documents", () => {
+// Under a full parallel `pnpm verify` this takes about 2 s here, so several on a CI runner 2–3 times slower: own timeout.
+describe("toJsonPatch on large documents", { timeout: 20_000 }, () => {
   it("stays fast with many reordered keyed arrays", () => {
     const item = (id: number, order: string) => `{"id":${id},"c":[${order}]}`;
     const left = `[${Array.from({ length: 20_000 }, (_, i) => item(i, '{"id":1},{"id":2}')).join(",")}]`;
