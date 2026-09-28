@@ -2,11 +2,12 @@
 // Asserts the React entry keeps "use client", the core entry (when the package has one) and any other entry, such as a
 // worker, stay framework-free, a file that starts a worker with `new URL("./x.js", import.meta.url)` finds x.js next to
 // it, a package that depends on @web-kit/ui ships ui's styles at the start of its own dist/styles.css, and a React peer
-// is optional.
+// is optional. No source or built file uses Math.random (see no-math-random.mjs).
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { layered, readSources } from "./build-ui-styles.mjs";
+import { findMathRandom } from "./no-math-random.mjs";
 
 const dist = join(process.cwd(), "dist");
 const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8"));
@@ -66,6 +67,8 @@ else if (pkg.name === "@web-kit/ui") {
   if (!ui.startsWith("@layer wk-ui {")) failures.push("@web-kit/ui/styles.css is not inside @layer wk-ui");
   if (!styles.includes(".wk-ui-select__list")) failures.push("dist/styles.css has no .wk-ui-select__list rule");
 }
+
+for (const place of findMathRandom(process.cwd())) failures.push(`${place} uses Math.random: use crypto.getRandomValues`);
 
 if (failures.length) {
   console.error("check-use-client FAILED:\n- " + failures.join("\n- "));

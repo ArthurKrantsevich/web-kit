@@ -1,8 +1,10 @@
 // Run from a package directory after build.
 // Asserts a logic-only package: every entry in `exports` is built with its types, no entry imports React or says
-// "use client", and a file that starts a worker with `new URL("./x.js", import.meta.url)` finds x.js next to it.
+// "use client", a file that starts a worker with `new URL("./x.js", import.meta.url)` finds x.js next to it, and no
+// source or built file uses Math.random (see no-math-random.mjs).
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { findMathRandom } from "./no-math-random.mjs";
 
 const root = process.cwd();
 const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -25,6 +27,8 @@ for (const [name, target] of entries) {
     }
   }
 }
+
+for (const place of findMathRandom(root)) failures.push(`${place} uses Math.random: use crypto.getRandomValues`);
 
 if (failures.length) {
   console.error("check-core-only FAILED:\n- " + failures.join("\n- "));
