@@ -23,6 +23,7 @@ import { useEffect, useId, useMemo, useRef, useState, type ReactElement } from "
 import { ALGORITHM_NAMES } from "../core/algorithms";
 import { encodeDigest } from "../core/encode";
 import type { DigestEncoding } from "../core/types";
+import { checksumFile } from "./sums";
 import { formatSize, MAX_FILE_BYTES, useHashGenerator, type HashSettings, type UseHashGeneratorOptions } from "./useHashGenerator";
 
 export interface HashGeneratorProps extends UseHashGeneratorOptions {
@@ -43,10 +44,7 @@ const KEY_FORMATS: SegmentedOption<"text" | "hex">[] = [
 
 const SAMPLE = "The quick brown fox jumps over the lazy dog";
 
-/** The file hashes.txt: each algorithm as a comment line, then `<hex>  <name>` as sha256sum and its kin write it. */
-export function checksumFile(rows: { name: string; digest: Uint8Array }[], fileName: string): string {
-  return rows.map(({ name, digest }) => `# ${name}\n${encodeDigest(digest, "hex")}  ${fileName}\n`).join("");
-}
+export { checksumFile } from "./sums";
 
 /** Ready-made hash and HMAC generator for texts and files. Import "@web-kit/hash-generator/styles.css" once. */
 export function HashGenerator(props: HashGeneratorProps): ReactElement {
@@ -84,7 +82,9 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
   }));
   const computed = rows.filter((row) => row.digest !== undefined) as (typeof rows[number] & { digest: Uint8Array })[];
   const fileName = file?.name ?? "-";
-  const sums = computed.length === 0 || pending !== null ? "" : checksumFile(computed.map((row) => ({ name: row.label, digest: row.digest })), fileName);
+  // HMACs are not checksums a tool can check: hashes.txt has the plain digests only (none while HMAC is on).
+  const plain = hmac ? [] : computed;
+  const sums = plain.length === 0 || pending !== null ? "" : checksumFile(plain, fileName);
   const matched = match.status === "match" ? match.algorithm : null;
   const bytes = useMemo(() => (file ? file.size : new TextEncoder().encode(settings.text).length), [file, settings.text]);
 

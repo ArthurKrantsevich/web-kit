@@ -50,7 +50,7 @@ await hashAll(file, { algorithms: ALL_ALGORITHMS, onProgress: (bytes) => {} }); 
       name: "HashGenerator",
       signature: "<HashGenerator initialSettings? className? />",
       description:
-        "Ready-made UI: text or a file up to 512 MB hashed in workers with progress, hex/HEX/Base64/Base64url, More algorithms, Verify, HMAC, Copy each, hashes.txt in sha256sum form. The key and files are never saved or shared.",
+        "Ready-made UI: text or a file up to 512 MB hashed in workers with progress, hex/HEX/Base64/Base64url, More algorithms, Verify, HMAC, Copy each, hashes.txt as BSD tagged lines that cksum -c and sha256sum -c check. The key and files are never saved or shared.",
     },
   ],
 };

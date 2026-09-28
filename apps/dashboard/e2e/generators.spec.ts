@@ -512,7 +512,7 @@ test.describe("hash-generator", () => {
     expect(problems).toEqual([]);
   });
 
-  test("hashes a dropped file, saves hashes.txt in sha256sum form, goes back to the text, and refuses a file over 512 MB", async ({ page }) => {
+  test("hashes a dropped file, saves hashes.txt as BSD tagged lines, goes back to the text, and refuses a file over 512 MB", async ({ page }) => {
     await open(page, "hash-generator");
     const drop = (make: string) => dropFile(page, make);
     await drop(`return new File(["hello"], "hello.txt", { type: "text/plain" });`);
@@ -520,8 +520,8 @@ test.describe("hash-generator", () => {
     const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download" }).click()]);
     expect(download.suggestedFilename()).toBe("hashes.txt");
     const sums = await (await download.createReadStream()).toArray().then((chunks) => Buffer.concat(chunks).toString("utf8"));
-    expect(sums).toContain(`# SHA-256\n${createHash("sha256").update("hello").digest("hex")}  hello.txt\n`);
-    expect(sums).toContain(`# MD5\n${createHash("md5").update("hello").digest("hex")}  hello.txt\n`);
+    expect(sums).toContain(`SHA256 (hello.txt) = ${createHash("sha256").update("hello").digest("hex")}\n`);
+    expect(sums).toContain(`MD5 (hello.txt) = ${createHash("md5").update("hello").digest("hex")}\n`);
     await page.getByRole("button", { name: "Back to text" }).click();
     await expect(page.getByRole("textbox", { name: "Text" })).toHaveValue("hello");
     // 600 MB made of one 4 MB part: the browser does not allocate it.

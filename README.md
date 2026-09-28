@@ -95,7 +95,7 @@ Passwords come only from `crypto.getRandomValues` without modulo bias. They are 
 [`hash-generator`](https://arthurkrantsevich.github.io/web-kit/tools/hash-generator/), in the generators category, hashes a text or a file:
 
 - MD5, SHA-1, SHA-256, SHA-384, SHA-512 and CRC32 at once; More algorithms adds SHA-224, SHA-512/256, SHA3-224/256/384/512, BLAKE2b-512, BLAKE2s-256, BLAKE3-256, RIPEMD-160 and CRC32C (loaded only then);
-- hex, HEX, Base64 or Base64url; Copy each value, or Copy and Download all as `hashes.txt`, one `sha256sum`-style line per algorithm;
+- hex, HEX, Base64 or Base64url; Copy each value, or Copy and Download all as `hashes.txt`, one BSD tagged line per algorithm (`SHA256 (file) = …`) that `cksum -c` and `sha256sum -c` check, HMACs left out;
 - HMAC with SHA-1 or SHA-2 and a key as text or hex; the key is never saved or shared;
 - Verify: paste a checksum (hex, Base64, with a `sha256:` or SRI `sha256-` prefix, or a whole `sha256sum` line) and the matching row lights up; when none matches but More algorithms has one of that length, it offers to check them;
 - files up to 512 MB (and texts over 1 MB) are read in 4 MB parts by a few Web Workers at once, with progress; a new file or Clear cancels the work. Every algorithm passes its official test vectors.

@@ -99,6 +99,16 @@ describe("HashGenerator", { timeout: 20_000 }, () => {
     await waitFor(() => expect(document.querySelector(".wk-ui-status")!.textContent).toContain("File is larger than 512 MB"));
   });
 
+  it("leaves HMACs out of hashes.txt: they are not checksums a tool can check", async () => {
+    render(<HashGenerator initialSettings={{ text: "abc" }} />);
+    await waitFor(() => expect(value("SHA-256")).toBe(SHA256_ABC));
+    expect(screen.getByRole("button", { name: "Download" }).hasAttribute("disabled")).toBe(false);
+    fireEvent.click(screen.getByRole("switch", { name: "HMAC" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "HMAC key" }), { target: { value: "key" } });
+    await waitFor(() => expect(value("HMAC-SHA-256")).toMatch(/^[0-9a-f]{64}$/));
+    expect(screen.getByRole("button", { name: "Download" }).hasAttribute("disabled")).toBe(true);
+  });
+
   it("keeps the text and settings in the saved input, never the HMAC key or the file", async () => {
     render(<HashGenerator initialSettings={{ text: "secret text", hmac: true }} />);
     fireEvent.change(screen.getByRole("textbox", { name: "HMAC key" }), { target: { value: "k3y-that-stays-here" } });

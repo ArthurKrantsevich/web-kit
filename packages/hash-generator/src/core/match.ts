@@ -19,6 +19,9 @@ const ALIASES = new Map<string, AlgorithmId>(
   ORDER.flatMap((id) => {
     const names = [squash(id), squash(ALGORITHM_NAMES[id])];
     if (id.startsWith("blake")) names.push(squash(id.replace(/-\d+$/, "")));
+    // The tags hashes.txt writes where no cksum name exists: FreeBSD's SHA512t256 and RMD160.
+    if (id === "sha512-256") names.push("sha512t256");
+    if (id === "ripemd160") names.push("rmd160");
     return names.map((name) => [name, id] as [string, AlgorithmId]);
   }),
 );
