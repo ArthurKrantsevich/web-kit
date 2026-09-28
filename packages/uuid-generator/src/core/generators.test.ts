@@ -149,3 +149,31 @@ it("gives the same IDs for the same random source and clock: nothing else is ran
   const [a, b] = [make(), make()];
   expect([a.uuidV4(), a.uuidV7(), a.uuidV1(), a.ulid(), a.nanoid()]).toEqual([b.uuidV4(), b.uuidV7(), b.uuidV1(), b.ulid(), b.nanoid()]);
 });
+
+describe("the time a v7, v1, v6 or ULID is made at", () => {
+  it("is floored to whole milliseconds, so fractions of one millisecond keep the order", () => {
+    const { uuidV7, ulid } = createIdGenerators({ random: seededRandom(8), now: () => RFC_MS });
+    const v7 = Array.from({ length: 100 }, (_, i) => uuidV7(RFC_MS + i / 100));
+    expect(v7.every((id) => id.startsWith("017f22e2-79b0-"))).toBe(true);
+    expect([...v7].sort()).toEqual(v7);
+    expect(new Set(v7).size).toBe(100);
+    const ulids = Array.from({ length: 100 }, (_, i) => ulid(RFC_MS + i / 100));
+    expect(ulids.every((id) => id.startsWith(encodeCrockford(BigInt(RFC_MS), 10)))).toBe(true);
+    expect([...ulids].sort()).toEqual(ulids);
+    const [a, b] = [createIdGenerators({ random: seededRandom(9) }), createIdGenerators({ random: seededRandom(9) })];
+    expect(a.uuidV1(RFC_MS + 0.7)).toBe(b.uuidV1(RFC_MS));
+  });
+
+  it("must be from 0 to 2⁴⁸ − 1 ms for all of them, and fit v1's and v6's 60-bit field", () => {
+    const set = createIdGenerators({ random: seededRandom(10) });
+    for (const make of [set.uuidV7, set.uuidV1, set.uuidV6, set.ulid]) {
+      for (const bad of [-1, 2 ** 48, Number.NaN, Number.POSITIVE_INFINITY]) expect(() => make(bad)).toThrow(RangeError);
+      expect(() => make(0)).not.toThrow();
+    }
+    expect(set.uuidV7(2 ** 48 - 1).slice(0, 14)).toBe("ffffffff-ffff-");
+    expect(set.ulid(2 ** 48 - 1).slice(0, 10)).toBe("7ZZZZZZZZZ");
+    // 2⁶⁰ 100-ns steps from 1582 end in the year 5236.
+    expect(() => set.uuidV1(Date.UTC(5237, 0, 1))).toThrow(RangeError);
+    expect(() => set.uuidV6(Date.UTC(5236, 0, 1))).not.toThrow();
+  });
+});

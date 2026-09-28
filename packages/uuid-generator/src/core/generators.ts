@@ -8,13 +8,28 @@ import type { RandomSource, Result } from "./types";
 /** 100-ns intervals from the start of the Gregorian calendar (1582-10-15) to the Unix epoch (RFC 9562 §5.1). */
 export const GREGORIAN_OFFSET = 122_192_928_000_000_000n;
 
+/** The largest time a 48-bit millisecond field holds: v7 and ULID. */
+export const MAX_MS = 2 ** 48 - 1;
+/** The last millisecond whose 100-ns count from 1582 fits v1's and v6's 60-bit field (in the year 5236). */
+export const MAX_GREGORIAN_MS = Number(((1n << 60n) - 1n - GREGORIAN_OFFSET) / 10_000n);
+
+/** A time in whole milliseconds, floored; a RangeError when it is not a number from 0 to `max`. */
+function wholeMs(now: number, max: number): number {
+  const ms = Math.floor(now);
+  if (!(ms >= 0 && ms <= max)) throw new RangeError(`The time must be from 0 to ${max} ms after 1970-01-01; it is ${now}`);
+  return ms;
+}
+
 export interface IdSource {
   random: RandomSource;
   /** Unix time in milliseconds. */
   now: () => number;
 }
 
-/** Generators with their own state: v7, ULID, v1 and v6 values of one set strictly increase. */
+/**
+ * Generators with their own state: v7, ULID, v1 and v6 values of one set strictly increase. A `now` they are given is
+ * floored to whole milliseconds; outside 0 to 2⁴⁸ − 1 (v1 and v6: past the year 5236) it is a RangeError.
+ */
 export interface IdGenerators {
   uuidV4(): string;
   /** 48-bit Unix milliseconds, a 12-bit counter with a random start each millisecond, 62 random bits. */
@@ -36,7 +51,8 @@ export function createIdGenerators(source: Partial<IdSource> = {}): IdGenerators
   // v7: RFC 9562 §6.2, method 1 (a 12-bit counter in rand_a).
   let v7Ms = -1;
   let v7Counter = 0;
-  function uuidV7(now = clock()): string {
+  function uuidV7(time = clock()): string {
+    const now = wholeMs(time, MAX_MS);
     const fresh = randomBytes(random, 10);
     if (now > v7Ms) {
       v7Ms = now;
@@ -70,7 +86,7 @@ export function createIdGenerators(source: Partial<IdSource> = {}): IdGenerators
       // RFC 9562 §6.10: a random node has the multicast bit (the lowest bit of its first byte) set.
       node[0]! |= 0x01;
     }
-    const tick = BigInt(Math.floor(now)) * 10_000n + GREGORIAN_OFFSET;
+    const tick = BigInt(wholeMs(now, MAX_GREGORIAN_MS)) * 10_000n + GREGORIAN_OFFSET;
     v1Tick = tick > v1Tick ? tick : v1Tick + 1n;
     return { tick: v1Tick, sequence: clockSequence, node };
   }
@@ -104,7 +120,8 @@ export function createIdGenerators(source: Partial<IdSource> = {}): IdGenerators
   let ulidMs = -1;
   let ulidRandom = 0n;
   const MAX_RANDOM = (1n << 80n) - 1n;
-  function ulid(now = clock()): string {
+  function ulid(time = clock()): string {
+    const now = wholeMs(time, MAX_MS);
     if (now > ulidMs || ulidRandom === MAX_RANDOM) {
       // A new millisecond, or the random part cannot count up any more: then the next millisecond (the ULID library
       // throws instead; moving on keeps the order, as v7 does).
