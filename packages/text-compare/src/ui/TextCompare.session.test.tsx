@@ -18,7 +18,9 @@ const area = (side: "Left" | "Right") => screen.getByRole("textbox", { name: new
 const SLOW = { timeout: 5000 };
 const pressed = (name: string) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
 
-describe("TextCompare links, saved input, URLs and drops", () => {
+// SLOW lets a waitFor take up to 5 s, which is the default test timeout; on a CI runner 2–3 times slower these tests
+// take seconds, so the block gets its own timeout, above SLOW.
+describe("TextCompare links, saved input, URLs and drops", { timeout: 20_000 }, () => {
   it("opens a share link with both sides, their names, the view and the options", async () => {
     const state = {
       left: "a\nb\n",

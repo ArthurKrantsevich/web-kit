@@ -107,7 +107,8 @@ describe("useTextCompare", () => {
   });
 });
 
-describe("useTextCompare with large texts", () => {
+// Large texts take about a second here in jsdom and several on a CI runner 2–3 times slower: the block gets its own timeout.
+describe("useTextCompare with large texts", { timeout: 20_000 }, () => {
   it("compares them in the worker and says so while it works", async () => {
     const { result } = renderHook(() => useTextCompare({ initialLeft: BIG_LEFT, initialRight: BIG_RIGHT }));
     const size = formatBytes(utf8Length(BIG_LEFT) + utf8Length(BIG_RIGHT));

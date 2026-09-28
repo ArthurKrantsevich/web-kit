@@ -59,7 +59,9 @@ function chooseCheckbox(name: string) {
   fireEvent.click(screen.getByRole("menuitemcheckbox", { name }));
 }
 
-describe("ToolMenu", () => {
+// Some of these wait for the debounced save and render the menu and its dialogs in jsdom: over a second here, several
+// on a CI runner 2–3 times slower under a full parallel `pnpm verify`, so the block gets its own timeout.
+describe("ToolMenu", { timeout: 20_000 }, () => {
   it("offers loading from a URL, a share link, saving, clearing and the shortcuts", async () => {
     render(<Harness />);
     fireEvent.click(menuButton());
