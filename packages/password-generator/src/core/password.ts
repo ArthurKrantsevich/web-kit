@@ -1,22 +1,60 @@
 import { log2Big } from "./bits";
 import { characterPool, type CharacterPool } from "./charset";
-import { cryptoRandom, pick } from "./random";
+import { cryptoRandom, pick, randomBelow } from "./random";
 import type { PasswordOptions, RandomSource, Result } from "./types";
 
+let lastWays: { key: string; ways: bigint[][] } | null = null;
+
 /**
- * A password of random characters from the chosen sets. With `requireEach` (the default) a password that misses a set
- * is thrown away and a new one drawn, so every allowed password stays equally likely; a missing character is never
- * put in at a random place (that would favour some passwords).
+ * ways[r][covered]: how many ways r more characters complete a password whose places so far cover the sets `covered`
+ * (a bit mask). The last table is kept: a list of passwords asks for the same one each time.
+ */
+function completions(sizes: number[], length: number): bigint[][] {
+  const key = `${sizes.join()}/${length}`;
+  if (lastWays?.key === key) return lastWays.ways;
+  const all = (1 << sizes.length) - 1;
+  const ways: bigint[][] = [Array.from({ length: all + 1 }, (_, covered) => (covered === all ? 1n : 0n))];
+  for (let r = 1; r <= length; r++) {
+    ways.push(Array.from({ length: all + 1 }, (_, covered) => sizes.reduce((sum, size, i) => sum + BigInt(size) * ways[r - 1]![covered | (1 << i)]!, 0n)));
+  }
+  lastWays = { key, ways };
+  return ways;
+}
+
+/**
+ * A password of random characters from the chosen sets. With `requireEach` (the default) every password that has one
+ * character of each set is equally likely, and no other is made: each place's set is drawn with the exact number of
+ * ways the rest can still be completed, so the time does not depend on how few passwords qualify. A missing
+ * character is never put in at a random place (that would favour some passwords).
  */
 export function generatePassword(options: PasswordOptions, random: RandomSource = cryptoRandom): Result<string> {
   const pool = characterPool(options);
   if (!pool.ok) return pool;
   const { sets, pool: chars } = pool.value;
-  const requireEach = options.requireEach ?? true;
-  for (;;) {
-    const password = Array.from({ length: options.length }, () => pick(chars, random));
-    if (!requireEach || sets.every((set) => password.some((char) => set.includes(char)))) return { ok: true, value: password.join("") };
+  if (!(options.requireEach ?? true)) return { ok: true, value: Array.from({ length: options.length }, () => pick(chars, random)).join("") };
+  const all = (1 << sets.length) - 1;
+  const ways = completions(sets.map((set) => set.length), options.length);
+  let covered = 0;
+  let password = "";
+  for (let r = options.length; r > 0; r--) {
+    // Once every set is in, each remaining place is any character of the pool, all equally likely.
+    if (covered === all) {
+      password += pick(chars, random);
+      continue;
+    }
+    let x = randomBelow(ways[r]![covered]!, random);
+    for (const [i, set] of sets.entries()) {
+      const share = BigInt(set.length) * ways[r - 1]![covered | (1 << i)]!;
+      if (x < share) {
+        // x is uniform below set.length × ways: its remainder picks the character, uniformly.
+        password += set[Number(x % BigInt(set.length))];
+        covered |= 1 << i;
+        break;
+      }
+      x -= share;
+    }
   }
+  return { ok: true, value: password };
 }
 
 /**

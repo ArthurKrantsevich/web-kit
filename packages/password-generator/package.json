@@ -25,7 +25,7 @@
     "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit"
   },
   "size-limit": [
-    { "name": "core", "path": "dist/core.js", "limit": "2.5 kB" },
+    { "name": "core", "path": "dist/core.js", "limit": "2.75 kB" },
     { "name": "wordlist", "path": "dist/wordlist.js", "limit": "22 kB" }
   ],
   "peerDependencies": { "react": ">=18" },

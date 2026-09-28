@@ -21,6 +21,18 @@ export function randomInt(n: number, random: RandomSource = cryptoRandom): numbe
   }
 }
 
+/** A whole number from 0 to n − 1 for a BigInt n ≥ 1, every one equally likely (whole 32-bit words, masked, retried). */
+export function randomBelow(n: bigint, random: RandomSource = cryptoRandom): bigint {
+  const bits = n.toString(2).length;
+  const words = new Uint32Array(Math.ceil(bits / 32));
+  const mask = (1n << BigInt(bits)) - 1n;
+  for (;;) {
+    random(words);
+    const value = words.reduce((sum, word) => (sum << 32n) | BigInt(word), 0n) & mask;
+    if (value < n) return value;
+  }
+}
+
 /** A random element of a non-empty list. */
 export function pick<T>(items: readonly T[], random: RandomSource): T {
   return items[randomInt(items.length, random)]!;

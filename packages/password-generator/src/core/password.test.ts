@@ -60,6 +60,33 @@ describe("generatePassword", () => {
     // 223 degrees of freedom: 297.9 is the critical value for p = 0.001.
     expect(chiSquare([...counts.values()])).toBeLessThan(297.9);
   });
+
+  it("with Require each takes a bounded number of random values even when almost no password qualifies", () => {
+    // a, A, 0 and the 32 symbols, length 4: only 0.05 % of the 35⁴ strings have one of each set.
+    let drawn = 0;
+    const seeded = seededRandom(15);
+    const counting: typeof seeded = (values) => {
+      drawn += values.length;
+      seeded(values);
+    };
+    const options = { length: 4, exclude: `${LOWER.slice(1)}${UPPER.slice(1)}${DIGITS.slice(1)}` };
+    for (let i = 0; i < 50; i++) expect(value(generatePassword(options, counting))).toMatch(/^(?=.*a)(?=.*A)(?=.*0).{4}$/);
+    // Drawing strings and throwing most away would take about 2,000 strings of 4 characters per password.
+    expect(drawn).toBeLessThan(50 * 4 * 20);
+  });
+
+  it("with Require each keeps the few allowed passwords equally likely (χ² over the 48 passwords of a, A, 0, ! and #)", () => {
+    const random = seededRandom(16);
+    const counts = new Map<string, number>();
+    const options = { length: 4, exclude: `${LOWER.slice(1)}${UPPER.slice(1)}${DIGITS.slice(1)}${SYMBOLS.replace(/[!#]/g, "")}` };
+    for (let i = 0; i < 4_800; i++) {
+      const password = value(generatePassword(options, random));
+      counts.set(password, (counts.get(password) ?? 0) + 1);
+    }
+    expect(counts.size).toBe(48);
+    // 47 degrees of freedom: 82.72 is the critical value for p = 0.001.
+    expect(chiSquare([...counts.values()])).toBeLessThan(82.72);
+  });
 });
 
 describe("entropy of character passwords", () => {
