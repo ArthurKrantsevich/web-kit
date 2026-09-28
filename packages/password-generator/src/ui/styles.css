@@ -23,6 +23,13 @@
 .wk-password__exclude {
   --wk-ui-input-width: 12rem;
 }
+/* A label and its field stay on one line: a narrow panel wraps between options, never inside one. */
+.wk-password__pair {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
 .wk-password__slider {
   flex: 0 1 10rem;
   min-width: 6rem;

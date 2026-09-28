@@ -112,10 +112,12 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
 
   const separator = (choice: "wordSeparator" | "memorableSeparator", custom: "wordCustom" | "memorableCustom"): ReactNode => (
     <>
-      <span className="wk-ui-field" aria-hidden="true">
-        Separator
+      <span className="wk-password__pair">
+        <span className="wk-ui-field" aria-hidden="true">
+          Separator
+        </span>
+        <Select label="Separator" value={settings[choice]} options={SEPARATORS} onChange={(next) => update({ [choice]: next })} widest />
       </span>
-      <Select label="Separator" value={settings[choice]} options={SEPARATORS} onChange={(next) => update({ [choice]: next })} widest />
       <input
         className="wk-ui-input wk-password__custom"
         aria-label="Custom separator"
@@ -168,7 +170,9 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
       panels={{
         characters: (
           <>
-            <NumberField label="Length" value={settings.length} min={MIN_LENGTH} max={MAX_LENGTH} onChange={(length) => update({ length })} />
+            <span className="wk-password__pair">
+              <NumberField label="Length" value={settings.length} min={MIN_LENGTH} max={MAX_LENGTH} onChange={(length) => update({ length })} />
+            </span>
             <input
               className="wk-password__slider"
               type="range"
@@ -190,24 +194,28 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
               onChange={(excludeAmbiguous) => update({ excludeAmbiguous })}
             />
             <Switch label="Require each" title="At least one character of every chosen set" checked={settings.requireEach} onChange={(requireEach) => update({ requireEach })} />
-            <span className="wk-ui-field" aria-hidden="true">
-              Exclude
+            <span className="wk-password__pair">
+              <span className="wk-ui-field" aria-hidden="true">
+                Exclude
+              </span>
+              <input
+                className="wk-ui-input wk-password__exclude"
+                aria-label="Exclude"
+                placeholder="Characters"
+                maxLength={64}
+                spellCheck={false}
+                readOnly={!hydrated}
+                value={settings.exclude}
+                onChange={(event) => update({ exclude: event.target.value })}
+              />
             </span>
-            <input
-              className="wk-ui-input wk-password__exclude"
-              aria-label="Exclude"
-              placeholder="Characters"
-              maxLength={64}
-              spellCheck={false}
-              readOnly={!hydrated}
-              value={settings.exclude}
-              onChange={(event) => update({ exclude: event.target.value })}
-            />
           </>
         ),
         words: (
           <>
-            <NumberField label="Words" value={settings.words} min={MIN_WORDS} max={MAX_WORDS} onChange={(words) => update({ words })} />
+            <span className="wk-password__pair">
+              <NumberField label="Words" value={settings.words} min={MIN_WORDS} max={MAX_WORDS} onChange={(words) => update({ words })} />
+            </span>
             {separator("wordSeparator", "wordCustom")}
             <Switch label="Capitalize" checked={settings.wordCapitalize} onChange={(wordCapitalize) => update({ wordCapitalize })} />
             <Switch label="Include a number" checked={settings.wordNumber} onChange={(wordNumber) => update({ wordNumber })} />
@@ -215,15 +223,19 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
         ),
         memorable: (
           <>
-            <NumberField label="Groups" value={settings.groups} min={MIN_GROUPS} max={MAX_GROUPS} onChange={(groups) => update({ groups })} />
-            <NumberField
-              label="Syllables"
-              aria-label="Syllables per group"
-              value={settings.syllables}
-              min={MIN_SYLLABLES}
-              max={MAX_SYLLABLES}
-              onChange={(syllables) => update({ syllables })}
-            />
+            <span className="wk-password__pair">
+              <NumberField label="Groups" value={settings.groups} min={MIN_GROUPS} max={MAX_GROUPS} onChange={(groups) => update({ groups })} />
+            </span>
+            <span className="wk-password__pair">
+              <NumberField
+                label="Syllables"
+                aria-label="Syllables per group"
+                value={settings.syllables}
+                min={MIN_SYLLABLES}
+                max={MAX_SYLLABLES}
+                onChange={(syllables) => update({ syllables })}
+              />
+            </span>
             {separator("memorableSeparator", "memorableCustom")}
             <Switch label="Capitalize" checked={settings.memorableCapitalize} onChange={(memorableCapitalize) => update({ memorableCapitalize })} />
             <Switch label="Include a number" checked={settings.memorableNumber} onChange={(memorableNumber) => update({ memorableNumber })} />
@@ -231,7 +243,9 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
         ),
         pin: (
           <>
-            <NumberField label="Length" aria-label="PIN length" value={settings.pinLength} min={MIN_PIN} max={MAX_PIN} onChange={(pinLength) => update({ pinLength })} />
+            <span className="wk-password__pair">
+              <NumberField label="Length" aria-label="PIN length" value={settings.pinLength} min={MIN_PIN} max={MAX_PIN} onChange={(pinLength) => update({ pinLength })} />
+            </span>
             <p className="wk-password__note">Repeated digits, runs such as 1234, repeated pairs such as 1212 and, for four digits, years are left out.</p>
           </>
         ),

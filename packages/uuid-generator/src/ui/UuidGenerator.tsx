@@ -250,10 +250,12 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
           <>
             {about(kind === "v3" ? "v3" : "v5")}
             <span className="wk-uuid__namespace">
-              <span className="wk-ui-field" aria-hidden="true">
-                Namespace
+              <span className="wk-uuid__pair">
+                <span className="wk-ui-field" aria-hidden="true">
+                  Namespace
+                </span>
+                <Select label="Namespace" value={settings.namespace} options={NAMESPACES} onChange={(namespace) => update({ namespace })} widest />
               </span>
-              <Select label="Namespace" value={settings.namespace} options={NAMESPACES} onChange={(namespace) => update({ namespace })} widest />
               <input
                 className="wk-ui-input wk-uuid__custom"
                 aria-label="Namespace UUID"
@@ -283,11 +285,15 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
           <>
             {about("nanoid", `${nanoBits} random bits in ${settings.size} characters`)}
             <span className="wk-uuid__namespace">
-              <NumberField label="Size" value={settings.size} min={2} max={255} onChange={(size) => update({ size })} />
-              <span className="wk-ui-field" aria-hidden="true">
-                Alphabet
+              <span className="wk-uuid__pair">
+                <NumberField label="Size" value={settings.size} min={2} max={255} onChange={(size) => update({ size })} />
               </span>
-              <Select label="Alphabet" value={settings.alphabet} options={ALPHABET_OPTIONS} onChange={(alphabet) => update({ alphabet })} widest />
+              <span className="wk-uuid__pair">
+                <span className="wk-ui-field" aria-hidden="true">
+                  Alphabet
+                </span>
+                <Select label="Alphabet" value={settings.alphabet} options={ALPHABET_OPTIONS} onChange={(alphabet) => update({ alphabet })} widest />
+              </span>
               <input
                 className="wk-ui-input wk-uuid__custom"
                 aria-label="Custom alphabet"

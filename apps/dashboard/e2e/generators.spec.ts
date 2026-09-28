@@ -13,6 +13,20 @@ async function open(page: Page, tool: string, width = 1280, height = 900): Promi
   await page.evaluate(() => document.fonts.ready);
 }
 
+/** The labels of the shown options panel that are not on the line of the field after them ("<label>"). */
+function strayLabels(page: Page, options: string): Promise<string[]> {
+  return page.evaluate(
+    (options) =>
+      [...document.querySelectorAll(`${options} [data-active="true"] .wk-ui-field`)].flatMap((label) => {
+        const field = label.nextElementSibling;
+        if (!field) return [];
+        const [a, b] = [label.getBoundingClientRect(), field.getBoundingClientRect()];
+        return Math.abs(a.top + a.height / 2 - (b.top + b.height / 2)) > 4 ? [label.textContent ?? ""] : [];
+      }),
+    options,
+  );
+}
+
 /** Place and size of the panels and of every visible button of the toolbar and the pane headers, in page coordinates. */
 function boxes(page: Page, extra: Record<string, string> = {}): Promise<Boxes> {
   return page.evaluate((more) => {
@@ -189,6 +203,22 @@ test.describe("uuid-generator", () => {
   });
 });
 
+test.describe("uuid-generator options", () => {
+  test("keep each option's label on the line of its field for every kind, from 320 to 1920 px", async ({ page }) => {
+    await open(page, "uuid-generator", 320);
+    const strays = [];
+    for (const width of [320, 390, 480, 768, 1024, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const kind of ["UUID v5", "UUID v3", "NanoID", "UUID v4"]) {
+        await page.getByRole("button", { name: "Kind" }).click();
+        await page.getByRole("option", { name: kind, exact: true }).click();
+        for (const label of await strayLabels(page, ".wk-uuid__options")) strays.push(`${width} px ${kind}: ${label}`);
+      }
+    }
+    expect(strays).toEqual([]);
+  });
+});
+
 test.describe("password-generator", () => {
   test("keeps passwords out of the address, storage, share links and the console", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -213,6 +243,19 @@ test.describe("password-generator", () => {
         false,
       ]);
     }
+  });
+
+  test("keeps each option's label on the line of its field in every mode, from 320 to 1920 px", async ({ page }) => {
+    await open(page, "password-generator", 320);
+    const strays = [];
+    for (const width of [320, 390, 480, 768, 1024, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const mode of ["Characters", "Words", "Memorable", "PIN"]) {
+        await page.getByRole("group", { name: "Mode" }).getByRole("button", { name: mode }).click();
+        for (const label of await strayLabels(page, ".wk-password__options")) strays.push(`${width} px ${mode}: ${label}`);
+      }
+    }
+    expect(strays).toEqual([]);
   });
 
   test("loads the word list only when Words is chosen", async ({ page }) => {

@@ -34,6 +34,13 @@
   color: var(--wk-muted, #5e5d59);
   font-size: 0.75rem;
 }
+/* A label and its field stay on one line: a narrow zone wraps between options, never inside one. */
+.wk-uuid__pair {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+}
 .wk-uuid__namespace {
   display: flex;
   flex: none;
