@@ -23,6 +23,13 @@
 .wk-hash__key {
   --wk-ui-input-width: 12rem;
 }
+/* Sample, Clear and More actions wrap as one group, never apart. */
+.wk-hash__actions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: inherit;
+}
 /* Digests and keys show their characters as they are: no font ligature may join two of them. */
 .wk-hash__value,
 .wk-hash__ghost,
@@ -31,9 +38,10 @@
   font-variant-ligatures: none;
   font-feature-settings: "liga" 0, "calt" 0;
 }
-/* A file's name gives way first: the size and the buttons keep their width, the name ends with an ellipsis. */
+/* A file's name gives way first: the size and the buttons keep their width, the name ends with an ellipsis. The title
+   does not grow, so the size follows it as in every pane. */
 .wk-hash__pane--input .wk-ui-pane__title {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
 }
 /* The buttons sit in display: contents tooltip anchors, so they are the header's flex items themselves. */

@@ -172,42 +172,44 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
         <Segmented label="Key format" size="sm" value={settings.keyFormat} options={KEY_FORMATS} onChange={(keyFormat) => update({ keyFormat })} />
       </span>
       <span className="wk-ui-spacer" />
-      <ActionButton
-        action="sample"
-        words={{ target: "the text" }}
-        onClick={() => {
-          state.closeFile();
-          update({ text: SAMPLE });
-        }}
-      />
-      <ActionButton
-        action="clear"
-        words={{ target: "the text, the file, the HMAC key and the hash to verify" }}
-        onClick={() => {
-          state.closeFile();
-          state.setVerify("");
-          state.setKey("");
-          update({ text: "" });
-        }}
-      />
-      <ToolMenu
-        toolKey="hash-generator"
-        state={shared}
-        onRestore={restore}
-        urlTargets={[
-          {
-            label: "Load text from URL…",
-            onText: (text) => {
-              state.closeFile();
-              update({ text });
+      <span className="wk-hash__actions">
+        <ActionButton
+          action="sample"
+          words={{ target: "the text" }}
+          onClick={() => {
+            state.closeFile();
+            update({ text: SAMPLE });
+          }}
+        />
+        <ActionButton
+          action="clear"
+          words={{ target: "the text, the file, the HMAC key and the hash to verify" }}
+          onClick={() => {
+            state.closeFile();
+            state.setVerify("");
+            state.setKey("");
+            update({ text: "" });
+          }}
+        />
+        <ToolMenu
+          toolKey="hash-generator"
+          state={shared}
+          onRestore={restore}
+          urlTargets={[
+            {
+              label: "Load text from URL…",
+              onText: (text) => {
+                state.closeFile();
+                update({ text });
+              },
             },
-          },
-        ]}
-        shortcuts={[]}
-        onNotice={setNotice}
-        dropHint="Drop the file on Text to hash it"
-        maxBytes={10 * 1024 * 1024}
-      />
+          ]}
+          shortcuts={[]}
+          onNotice={setNotice}
+          dropHint="Drop the file on Text to hash it"
+          maxBytes={10 * 1024 * 1024}
+        />
+      </span>
     </EditorToolbar>
   );
 

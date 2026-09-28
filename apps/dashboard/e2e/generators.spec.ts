@@ -459,6 +459,21 @@ test.describe("hash-generator", () => {
     expect(problems).toEqual([]);
   });
 
+  test("keeps Sample, Clear and More actions on one line, HMAC on or off, from 320 to 1920 px", async ({ page }) => {
+    await open(page, "hash-generator", 320);
+    const problems: string[] = [];
+    for (const width of [320, 360, 390, 414, 480, 640, 768, 1024, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const hmac of ["off", "on"]) {
+        if (hmac === "on") await page.getByRole("switch", { name: "HMAC" }).click();
+        const tops = await Promise.all(["Sample", "Clear", "More actions"].map(async (name) => Math.round((await page.getByRole("button", { name, exact: true }).boundingBox())!.y)));
+        if (new Set(tops).size !== 1) problems.push(`${width} px, HMAC ${hmac}: ${tops.join(", ")}`);
+        if (hmac === "on") await page.getByRole("switch", { name: "HMAC" }).click();
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
   test("every row keeps its height in every encoding, the main ones and the extra ones, from 320 to 1920 px", async ({ page }) => {
     test.slow();
     await open(page, "hash-generator", 320);
@@ -496,13 +511,22 @@ test.describe("hash-generator", () => {
       });
     const widths = [320, 360, 390, 414, 480, 768, 1280, 1920];
     const text: string[][] = [];
+    const problems: string[] = [];
+    // The size follows its title, as in every pane; only a long file name gives way.
+    const gap = () =>
+      head.evaluate((row) => {
+        // Where the title's text ends, not its box: a box that grows would hide the gap.
+        const text = document.createRange();
+        text.selectNodeContents(row.querySelector(".wk-ui-pane__title")!);
+        return row.querySelector(".wk-ui-pane__meta")!.getBoundingClientRect().left - text.getBoundingClientRect().right;
+      });
     for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
       text.push(await buttons());
+      if ((await gap()) > 16) problems.push(`${width} px: the size is ${Math.round(await gap())} px after "Text"`);
     }
     await dropFile(page, `return new File(["hello"], "quarterly-report-of-the-whole-department-2026-09-28-final-v3.iso");`);
     await expect(page.locator(".wk-ui-status")).toContainText("Hashed quarterly-report");
-    const problems: string[] = [];
     for (const [index, width] of widths.entries()) {
       await page.setViewportSize({ width, height: 900 });
       const now = await buttons();
