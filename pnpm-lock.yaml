@@ -380,6 +380,9 @@ importers:
 
   packages/uuid-generator:
     dependencies:
+      '@web-kit/ui':
+        specifier: workspace:*
+        version: link:../ui
       react:
         specifier: '>=18'
         version: 19.3.0
