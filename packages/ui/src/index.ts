@@ -27,6 +27,8 @@ export {
   type ActionSpec,
 } from "./actions";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
+export { OptionStack, type OptionStackProps } from "./OptionStack";
+export { NumberField, type NumberFieldProps } from "./NumberField";
 export { downloadText, readTextFile, type Result } from "./files";
 export { Dialog, type DialogProps } from "./Dialog";
 export {

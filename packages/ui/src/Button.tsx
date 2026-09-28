@@ -67,6 +67,10 @@ export interface CopyButtonProps {
    * component width a pane header then shows only the icon.
    */
   icon?: boolean;
+  /** Accessible name when it says more than the label, e.g. "Copy SHA-256"; it stays the same after copying. */
+  "aria-label"?: string;
+  /** With `icon`: only the icon is visible (a check after copying); the label stays the accessible name. */
+  iconOnly?: boolean;
 }
 
 type CopyState = "idle" | "copied" | "failed";
@@ -78,7 +82,16 @@ export const COPY_FEEDBACK_MS = 1500;
  * Copies `text`. The label changes to "Copied" or "Copy failed" for 1.5 s without changing the button's width: all
  * three labels share one grid cell and only one is visible. The change is announced through a polite live region.
  */
-export function CopyButton({ text, label = "Copy", tooltip, variant = "primary", disabled, icon = false }: CopyButtonProps): ReactElement {
+export function CopyButton({
+  text,
+  label = "Copy",
+  tooltip,
+  variant = "primary",
+  disabled,
+  icon = false,
+  "aria-label": name,
+  iconOnly = false,
+}: CopyButtonProps): ReactElement {
   const [state, setState] = useState<CopyState>("idle");
 
   useEffect(() => {
@@ -117,13 +130,20 @@ export function CopyButton({ text, label = "Copy", tooltip, variant = "primary",
       <Tooltip content={tooltip}>
         <button
           type="button"
-          className={cx("wk-ui-button", `wk-ui-button--${variant}`, icon && "wk-ui-button--has-icon", "wk-ui-copy")}
+          className={cx(
+            "wk-ui-button",
+            `wk-ui-button--${variant}`,
+            icon && "wk-ui-button--has-icon",
+            icon && iconOnly && "wk-ui-button--icon-only",
+            "wk-ui-copy",
+          )}
+          aria-label={name}
           disabled={disabled ?? text === ""}
           data-action="copy"
           onClick={() => void copy()}
         >
           {icon && <Icon name={state === "copied" ? "check" : "copy"} />}
-          <span className={cx("wk-ui-copy__labels", icon && "wk-ui-button__label")}>
+          <span className={cx("wk-ui-copy__labels", icon && (iconOnly ? "wk-ui-sr-only" : "wk-ui-button__label"))}>
             {labels.map(([key, content]) => (
               <span key={key} className="wk-ui-copy__label" data-shown={state === key} aria-hidden={state !== key}>
                 {content}

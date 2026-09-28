@@ -40,7 +40,7 @@
     {
       "name": "ui",
       "path": "dist/index.js",
-      "limit": "11 kB"
+      "limit": "11.5 kB"
     }
   ],
   "peerDependencies": {

@@ -193,3 +193,39 @@ describe("Select", () => {
     }
   });
 });
+
+describe("Select with groups", () => {
+  type Kind = "v4" | "v7" | "ulid";
+  const GROUPED: SelectOption<Kind>[] = [
+    { value: "v4", label: "UUID v4", group: "UUID" },
+    { value: "v7", label: "UUID v7", group: "UUID" },
+    { value: "ulid", label: "ULID", group: "Other" },
+  ];
+
+  it("shows each group's heading and names the group after it, while the keys move through every option", () => {
+    const onChange = vi.fn();
+    render(<Select label="Kind" value="v4" options={GROUPED} onChange={onChange} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Kind" }), { key: "ArrowDown" });
+    const groups = screen.getAllByRole("group");
+    expect(groups.map((group) => [group.getAttribute("aria-labelledby") && document.getElementById(group.getAttribute("aria-labelledby")!)!.textContent, group.querySelectorAll('[role="option"]').length])).toEqual([
+      ["UUID", 2],
+      ["Other", 1],
+    ]);
+    const list = screen.getByRole("listbox");
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "Enter" });
+    expect(onChange).toHaveBeenCalledWith("ulid");
+  });
+});
+
+it("with `widest`, keeps every label in the button unseen beside the chosen one, which alone describes it", () => {
+  render(<Select label="Indent" value="4" options={OPTIONS} onChange={() => {}} widest />);
+  const ghosts = [...trigger().querySelectorAll(".wk-ui-select__ghost")];
+  expect(ghosts.map((ghost) => [ghost.textContent, ghost.getAttribute("aria-hidden")])).toEqual([
+    ["2 spaces", "true"],
+    ["4 spaces", "true"],
+    ["Tab", "true"],
+  ]);
+  expect(document.getElementById(trigger().getAttribute("aria-describedby")!)?.textContent).toBe("4 spaces");
+});

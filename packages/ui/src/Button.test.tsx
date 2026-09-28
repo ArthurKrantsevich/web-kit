@@ -116,3 +116,16 @@ describe("CopyButton", () => {
     expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe("CopyButton with its own name", () => {
+  it("keeps the name after copying and can show only its icon", async () => {
+    mockClipboard(() => Promise.resolve());
+    render(<CopyButton text="abc" tooltip="Copy the SHA-256" aria-label="Copy SHA-256" variant="quiet" icon iconOnly />);
+    const button = screen.getByRole("button", { name: "Copy SHA-256" });
+    expect(button.classList.contains("wk-ui-button--icon-only")).toBe(true);
+    expect(button.querySelector(".wk-ui-copy__labels")?.classList.contains("wk-ui-sr-only")).toBe(true);
+    await act(async () => fireEvent.click(button));
+    expect(screen.getByRole("button", { name: "Copy SHA-256" })).toBe(button);
+    expect(live().textContent).toBe("Copied");
+  });
+});

@@ -19,6 +19,7 @@ describe("acceptsFile", () => {
     expect(acceptsFile({ name: "notes", type: "text/markdown" }, "text/*")).toBe(true);
     expect(acceptsFile({ name: "photo.png", type: "image/png" }, ACCEPT)).toBe(false);
     expect(acceptsFile({ name: "json", type: "" }, ACCEPT)).toBe(false);
+    expect(acceptsFile({ name: "disk.iso", type: "" }, "*/*")).toBe(true);
   });
 
   it("describes the extensions for a message", () => {
@@ -99,6 +100,29 @@ describe("useFileDrop", () => {
       fireEvent.drop(pane(), files(new File(["[1]"], "report.json")));
     });
     expect(onText).toHaveBeenCalledWith("[1]", { name: "report.json" });
+  });
+
+  it("passes the file itself with onFile, not read, and still refuses one over the limit", async () => {
+    const onFile = vi.fn();
+    const onText = vi.fn();
+    const onError = vi.fn();
+    function Raw() {
+      const drop = useFileDrop({ accept: "*/*,.bin", maxBytes: 4, onFile, onText, onError });
+      return (
+        <EditorPane title="Left" drop={drop}>
+          <textarea aria-label="Left" readOnly />
+        </EditorPane>
+      );
+    }
+    render(<Raw />);
+    const small = new File(["abc"], "a.bin");
+    await act(async () => {
+      fireEvent.drop(pane(), files(small));
+    });
+    await act(async () => {
+      fireEvent.drop(pane(), files(new File(["abcdef"], "b.bin")));
+    });
+    expect([onFile.mock.calls, onText.mock.calls, onError.mock.calls]).toEqual([[[small]], [], [["File is larger than 4 B"]]]);
   });
 
   it("refuses a file of another type and a file over the limit", async () => {

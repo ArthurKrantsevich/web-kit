@@ -7,6 +7,11 @@ export interface SelectOption<T extends string> {
   label: string;
   /** A second, muted line under the label. */
   description?: string;
+  /**
+   * Heading of the group the option belongs to. Options of one group follow each other; the list shows the heading
+   * above them and names the group after it (`role="group"`). Keys still move through every option in order.
+   */
+  group?: string;
 }
 
 export interface SelectProps<T extends string> {
@@ -16,7 +21,20 @@ export interface SelectProps<T extends string> {
   options: SelectOption<T>[];
   onChange: (value: T) => void;
   disabled?: boolean;
+  /** The button keeps the width of its widest option, so choosing another option moves nothing next to it. */
+  widest?: boolean;
   className?: string;
+}
+
+/** Runs of options with the same group, with the index of each run's first option. */
+function groupsOf<T extends string>(options: SelectOption<T>[]): { group: string | undefined; start: number; items: SelectOption<T>[] }[] {
+  const runs: { group: string | undefined; start: number; items: SelectOption<T>[] }[] = [];
+  options.forEach((option, index) => {
+    const last = runs.at(-1);
+    if (last && last.group === option.group) last.items.push(option);
+    else runs.push({ group: option.group, start: index, items: [option] });
+  });
+  return runs;
 }
 
 /**
@@ -31,6 +49,7 @@ export function Select<T extends string>({
   options,
   onChange,
   disabled = false,
+  widest = false,
   className,
 }: SelectProps<T>): ReactElement {
   const id = useId();
@@ -166,9 +185,23 @@ export function Select<T extends string>({
         }}
         onKeyDown={onButtonKeyDown}
       >
-        <span id={`${id}-value`} className="wk-ui-select__value">
-          {selected?.label ?? ""}
-        </span>
+        {widest ? (
+          // Every label in one grid cell: the widest sets the width; only the chosen one is seen and read.
+          <span className="wk-ui-select__sizer">
+            <span id={`${id}-value`} className="wk-ui-select__value">
+              {selected?.label ?? ""}
+            </span>
+            {options.map((option) => (
+              <span key={option.value} className="wk-ui-select__ghost" aria-hidden="true">
+                {option.label}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span id={`${id}-value`} className="wk-ui-select__value">
+            {selected?.label ?? ""}
+          </span>
+        )}
         <Icon name="chevron-down" size={14} />
       </button>
       {open && (
@@ -189,34 +222,48 @@ export function Select<T extends string>({
             close(false);
           }}
         >
-          {options.map((option, index) => (
-            <div
-              key={option.value}
-              id={`${id}-option-${index}`}
-              data-index={index}
-              role="option"
-              aria-selected={index === selectedIndex}
-              aria-labelledby={`${id}-option-${index}-label`}
-              aria-describedby={option.description === undefined ? undefined : `${id}-option-${index}-description`}
-              className={cx("wk-ui-option", index === active && "wk-ui-option--active")}
-              onPointerMove={() => {
-                if (active !== index) setActive(index);
-              }}
-              onClick={() => pick(index)}
-            >
-              <span className="wk-ui-option__text">
-                <span id={`${id}-option-${index}-label`} className="wk-ui-option__label">
-                  {option.label}
-                </span>
-                {option.description !== undefined && (
-                  <span id={`${id}-option-${index}-description`} className="wk-ui-option__description">
-                    {option.description}
+          {groupsOf(options).map(({ group, start, items }) => {
+            const rows = items.map((option, offset) => {
+              const index = start + offset;
+              return (
+                <div
+                  key={option.value}
+                  id={`${id}-option-${index}`}
+                  data-index={index}
+                  role="option"
+                  aria-selected={index === selectedIndex}
+                  aria-labelledby={`${id}-option-${index}-label`}
+                  aria-describedby={option.description === undefined ? undefined : `${id}-option-${index}-description`}
+                  className={cx("wk-ui-option", index === active && "wk-ui-option--active")}
+                  onPointerMove={() => {
+                    if (active !== index) setActive(index);
+                  }}
+                  onClick={() => pick(index)}
+                >
+                  <span className="wk-ui-option__text">
+                    <span id={`${id}-option-${index}-label`} className="wk-ui-option__label">
+                      {option.label}
+                    </span>
+                    {option.description !== undefined && (
+                      <span id={`${id}-option-${index}-description`} className="wk-ui-option__description">
+                        {option.description}
+                      </span>
+                    )}
                   </span>
-                )}
-              </span>
-              {index === selectedIndex && <Icon name="check" size={16} />}
-            </div>
-          ))}
+                  {index === selectedIndex && <Icon name="check" size={16} />}
+                </div>
+              );
+            });
+            if (group === undefined) return rows;
+            return (
+              <div key={`group-${start}`} role="group" aria-labelledby={`${id}-group-${start}`}>
+                <div id={`${id}-group-${start}`} className="wk-ui-select__group" role="presentation">
+                  {group}
+                </div>
+                {rows}
+              </div>
+            );
+          })}
         </div>
       )}
     </>

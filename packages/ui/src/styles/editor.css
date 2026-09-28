@@ -293,3 +293,37 @@
     white-space: nowrap;
   }
 }
+
+/* OptionStack: every panel in one grid cell, so the box is as tall as the tallest one at every width. */
+.wk-ui-stack {
+  display: grid;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+}
+.wk-ui-stack__panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: flex-start;
+  gap: 8px 10px;
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.wk-ui-stack__panel[data-active="false"] {
+  visibility: hidden;
+}
+/* A number of a few digits: the shortest option field. */
+.wk-ui-number {
+  --wk-ui-input-width: 8rem;
+}
+.wk-ui-stack .wk-ui-input {
+  flex: none;
+  width: var(--wk-ui-input-width, 10rem);
+  min-width: 8rem;
+  max-width: 12rem;
+}
+@container wk-ui-editor (max-width: 639px) {
+  .wk-ui-stack {
+    padding: 8px;
+  }
+}

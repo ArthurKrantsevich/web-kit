@@ -10,8 +10,10 @@ export interface MenuItem {
   description?: string;
   onSelect: () => void;
   disabled?: boolean;
-  /** Makes the item a checkbox (`menuitemcheckbox`) in this state. */
+  /** Makes the item a checkbox (`menuitemcheckbox`) in this state, or a radio button with `radio`. */
   checked?: boolean;
+  /** With `checked`: one of a set of choices (`menuitemradio`), such as a format. */
+  radio?: boolean;
   /** A key shown at the right, e.g. "?". */
   shortcut?: string;
   /** Choosing it leaves the menu open, as for one of several options to tick. */
@@ -219,7 +221,7 @@ export function Menu({
             <div
               key={item.label}
               id={`${id}-item-${index}`}
-              role={item.checked === undefined ? "menuitem" : "menuitemcheckbox"}
+              role={item.checked === undefined ? "menuitem" : item.radio ? "menuitemradio" : "menuitemcheckbox"}
               aria-checked={item.checked}
               aria-disabled={item.disabled || undefined}
               aria-labelledby={`${id}-item-${index}-label`}

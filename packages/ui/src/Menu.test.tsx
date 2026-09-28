@@ -132,3 +132,23 @@ describe("Menu", () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("Menu radio items", () => {
+  it("are menuitemradio with aria-checked", () => {
+    render(
+      <Menu
+        label="Format"
+        tooltip="How the IDs are written"
+        items={[
+          { label: "No wrap", checked: true, radio: true, onSelect: () => {} },
+          { label: "Braces", checked: false, radio: true, onSelect: () => {} },
+        ]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Format" }));
+    expect(screen.getAllByRole("menuitemradio").map((item) => [item.textContent, item.getAttribute("aria-checked")])).toEqual([
+      ["No wrap", "true"],
+      ["Braces", "false"],
+    ]);
+  });
+});

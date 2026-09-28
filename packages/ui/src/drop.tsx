@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent, type ReactElement } from "react";
-import { readTextFile } from "./files";
+import { formatLimit, readTextFile } from "./files";
 
 export interface FileReadOptions {
   /** Files larger than this are not read. */
@@ -10,7 +10,12 @@ export interface FileReadOptions {
    */
   onReadStart?: () => void;
   /** The file's text, without a BOM, and the file's name (a tool can show it, or use it in a download's name). */
-  onText: (text: string, file: { name: string }) => void;
+  onText?: (text: string, file: { name: string }) => void;
+  /**
+   * The file itself, not read, for a tool that reads it its own way (bytes, in parts, in a worker). The size limit
+   * still applies; `onText` is then not called.
+   */
+  onFile?: (file: File) => void;
   /** A message such as "File is larger than 10 MB". */
   onError: (message: string) => void;
 }
@@ -45,7 +50,10 @@ export interface FileDrop {
   maxBytes: number;
 }
 
-/** True when the file's name or type matches one entry of an `accept` list (".json", "text/plain", "text/*"). */
+/**
+ * True when the file's name or type matches one entry of an `accept` list (".json", "text/plain", "text/*"). The
+ * entry for every type (a star, a slash and a star) takes any file, even one without a type.
+ */
 export function acceptsFile(file: { name: string; type: string }, accept: string): boolean {
   const name = file.name.toLowerCase();
   const type = file.type.toLowerCase();
@@ -53,7 +61,9 @@ export function acceptsFile(file: { name: string; type: string }, accept: string
     .split(",")
     .map((entry) => entry.trim().toLowerCase())
     .some((entry) =>
-      entry.startsWith(".")
+      entry === "*/*"
+        ? true
+        : entry.startsWith(".")
         ? name.endsWith(entry)
         : entry.endsWith("/*")
           ? type.startsWith(entry.slice(0, -1))
@@ -86,10 +96,16 @@ export function useFileDrop(options: UseFileDropOptions): FileDrop {
   function read(file: File): void {
     const id = ++reads.current;
     latest.current.onReadStart?.();
+    const { onFile, maxBytes } = latest.current;
+    if (onFile) {
+      if (file.size > maxBytes) latest.current.onError(`File is larger than ${formatLimit(maxBytes)}`);
+      else onFile(file);
+      return;
+    }
     void readTextFile(file, latest.current.maxBytes).then((result) => {
       // Only the file chosen last counts: an earlier, slower read that finishes after it is dropped.
       if (id !== reads.current) return;
-      if (result.ok) latest.current.onText(result.value, { name: file.name });
+      if (result.ok) latest.current.onText?.(result.value, { name: file.name });
       else latest.current.onError(result.error.message);
     });
   }
