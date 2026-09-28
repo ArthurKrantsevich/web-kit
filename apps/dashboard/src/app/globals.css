@@ -737,6 +737,16 @@ a.card:hover {
 .panel > .wk-schema {
   --wk-schema-height: max(320px, calc(100svh - 480px));
 }
+/* The generators fill the rest of the screen under their toolbar and options, status line included. */
+.panel > .wk-uuid {
+  --wk-uuid-height: max(320px, calc(100svh - 420px));
+}
+.panel > .wk-password {
+  --wk-password-height: max(300px, calc(100svh - 440px));
+}
+.panel > .wk-hash {
+  --wk-hash-height: max(420px, calc(100svh - 310px));
+}
 /* Text Compare shows its result under the inputs, as tall as they are: the two share what the screen has left. */
 .panel > .wk-compare {
   --wk-compare-height: max(260px, calc((100svh - 380px) / 2));

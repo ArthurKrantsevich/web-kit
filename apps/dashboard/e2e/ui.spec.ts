@@ -1,6 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
+import { hydrated } from "./hydrated";
 
-const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare"];
+const TOOLS = [
+  "json-formatter",
+  "json-convert",
+  "json-diff",
+  "json-schema-validator",
+  "text-compare",
+  "uuid-generator",
+  "password-generator",
+  "hash-generator",
+];
 
 type Boxes = Record<string, [number, number, number, number]>;
 
@@ -37,7 +47,7 @@ for (const tool of TOOLS) {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(`tools/${tool}/`);
     // Paste appears after hydration, once the page knows the clipboard can be read.
-    await expect(page.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+    await hydrated(page, tool);
     const before = await buttonBoxes(page);
 
     const copy = page.locator(".wk-ui-copy").first();
@@ -45,7 +55,8 @@ for (const tool of TOOLS) {
     await expect(copy).toHaveAccessibleName("Copied");
     expectSameBoxes(before, await buttonBoxes(page), "after Copy");
 
-    const segments = page.locator(".wk-ui-segment");
+    // Segments kept in place but unseen (Hash Generator's key format while HMAC is off) cannot be clicked.
+    const segments = page.locator(".wk-ui-segment:visible");
     const count = await segments.count();
     for (let index = 0; index < count; index++) {
       const segment = segments.nth(index);
@@ -78,7 +89,8 @@ for (const [width, height] of [
       await before.evaluate(() => document.fonts.ready);
       const server = await buttonBoxes(before);
       const kept = before.locator('[data-action="paste"]');
-      expect(await kept.count()).toBeGreaterThan(0);
+      // The password generator has no Paste: its passwords appear only after hydration.
+      expect(await kept.count()).toBeGreaterThan(tool === "password-generator" ? -1 : 0);
       for (const paste of await kept.all()) await expect(paste).toHaveCSS("visibility", "hidden");
       expect(Object.keys(server).filter((name) => name.startsWith("Paste")).length).toBe(await kept.count());
       await still.close();
@@ -86,7 +98,7 @@ for (const [width, height] of [
       const live = await browser.newContext({ baseURL, viewport: { width, height } });
       const after = await live.newPage();
       await after.goto(`tools/${tool}/`);
-      await expect(after.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+      await hydrated(after, tool);
       await after.evaluate(() => document.fonts.ready);
       expectSameBoxes(server, await buttonBoxes(after), "after hydration");
       await live.close();

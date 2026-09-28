@@ -51,7 +51,7 @@ export default function AboutPage() {
         <h1>Small tools you can trust with your data.</h1>
         <p className="about__lead">
           web-kit is a collection of small utilities for everyday work with data: formatting, converting, comparing and
-          checking JSON, with more on the way. It is made for developers and anyone who pastes data into a web page and
+          checking JSON and text, and generating IDs, passwords and hashes, with more on the way. It is made for developers and anyone who pastes data into a web page and
           wants it to stay private. The tools here are React and TypeScript packages; flutter-kit brings the same tools
           to Flutter. The two share the design, not the code.
         </p>
@@ -109,7 +109,8 @@ export default function AboutPage() {
           <li>This site is a static export of Next.js on GitHub Pages: plain HTML, CSS and JavaScript, no server code.</li>
           <li>
             The packages are unit-tested with Vitest and Testing Library, this site is tested in a browser with
-            Playwright, and the schema validator also runs the official JSON Schema Test Suite.
+            Playwright, the schema validator also runs the official JSON Schema Test Suite, and every hash algorithm is
+            checked against its official test vectors.
           </li>
         </ul>
       </section>

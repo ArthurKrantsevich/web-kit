@@ -8,6 +8,9 @@ for (const path of [
   "tools/json-diff/",
   "tools/json-schema-validator/",
   "tools/text-compare/",
+  "tools/uuid-generator/",
+  "tools/password-generator/",
+  "tools/hash-generator/",
 ]) {
   test(`no horizontal scroll at 390 px: ${path}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -120,6 +123,9 @@ test("the editors follow the small viewport height, so they do not resize while 
     ["json-convert", ".panel > .wk-convert", "--wk-editor-height"],
     ["json-schema-validator", ".panel > .wk-schema", "--wk-schema-height"],
     ["text-compare", ".panel > .wk-compare", "--wk-compare-height"],
+    ["uuid-generator", ".panel > .wk-uuid", "--wk-uuid-height"],
+    ["password-generator", ".panel > .wk-password", "--wk-password-height"],
+    ["hash-generator", ".panel > .wk-hash", "--wk-hash-height"],
   ] as const) {
     await page.goto(`tools/${tool}/`);
     const value = await page.locator(selector).evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);

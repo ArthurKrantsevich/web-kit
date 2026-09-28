@@ -1,15 +1,27 @@
 import { expect, test, type Page } from "@playwright/test";
+import { hydrated } from "./hydrated";
 
 // A pane's header is one line at every width: its action labels give way to icons (the tooltip and the accessible
 // name stay) when the pane, not the whole editor, is too narrow for them. Two panes side by side have headers of the
 // same height, and a header does not grow when the size label does (B, then KB, then MB).
-const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare"] as const;
+const TOOLS = [
+  "json-formatter",
+  "json-convert",
+  "json-diff",
+  "json-schema-validator",
+  "text-compare",
+  "uuid-generator",
+  "password-generator",
+  "hash-generator",
+] as const;
+/** The tools whose input is a text field that can take a megabyte. */
+const TEXT_TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare", "hash-generator"] as const;
 /** The longest size label the tools show: formatBytes() of 1,048,575 bytes. */
 const LONGEST_SIZE = "1023.9 KB";
 
 async function prepare(page: Page, tool: (typeof TOOLS)[number]) {
   await page.goto(`tools/${tool}/`);
-  await expect(page.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+  await hydrated(page, tool);
   if (tool === "json-convert") {
     // The longest output format name.
     await page.getByRole("button", { name: "Convert to" }).click();
@@ -32,7 +44,7 @@ const headerHeights = (page: Page) =>
 // The megabyte tests run one at a time: each tool works hard on 1 MB, and other tests time their own work.
 test.describe("with a megabyte of input", () => {
   test.describe.configure({ mode: "serial" });
-  for (const tool of TOOLS) {
+  for (const tool of TEXT_TOOLS) {
     test(`${tool}: a pane header does not change height when the input grows from bytes to megabytes`, async ({ page }) => {
       await megabytes(page, tool);
     });
@@ -54,7 +66,7 @@ for (const tool of TOOLS) {
 
 }
 
-async function megabytes(page: Page, tool: (typeof TOOLS)[number]) {
+async function megabytes(page: Page, tool: (typeof TEXT_TOOLS)[number]) {
   await page.setViewportSize({ width: 1280, height: 900 });
   await prepare(page, tool);
   const input = page.locator('[data-pane~="input"] textarea').first();

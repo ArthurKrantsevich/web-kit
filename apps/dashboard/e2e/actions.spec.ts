@@ -1,7 +1,21 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ACTIONS, type ActionId, type ActionPlace } from "@web-kit/ui";
+import { hydrated } from "./hydrated";
 
-const TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare"];
+/**
+ * The tools, with how their input panes start (a generator's Inspect takes a pasted ID, not a file) and how their
+ * toolbars end (a generator makes its output, so it has no Sample).
+ */
+const TOOLS: Record<string, { inputStart: ActionId[] | null; toolbarEnd: ActionId[] }> = {
+  "json-formatter": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
+  "json-convert": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
+  "json-diff": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
+  "json-schema-validator": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
+  "text-compare": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
+  "uuid-generator": { inputStart: ["paste"], toolbarEnd: ["custom", "more"] },
+  "password-generator": { inputStart: null, toolbarEnd: ["custom", "clear", "more"] },
+  "hash-generator": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
+};
 
 interface Found {
   row: number;
@@ -61,11 +75,11 @@ for (const [width, height] of [
   [1280, 800],
   [390, 844],
 ] as const) {
-  for (const tool of TOOLS) {
+  for (const [tool, { inputStart, toolbarEnd }] of Object.entries(TOOLS)) {
     test(`${tool} at ${width} px: every shared action looks, sits and is ordered as the ACTIONS table says`, async ({ page }) => {
       await page.setViewportSize({ width, height });
       await page.goto(`tools/${tool}/`);
-      await expect(page.getByRole("button", { name: /^Paste/ }).first()).toBeVisible();
+      await hydrated(page, tool);
       const { found, unlisted } = await rows(page);
       expect(unlisted, "quiet buttons that are not in the table").toEqual([]);
       // The editor is narrower than 640 px only on the phone: there every label hides and the icon stays.
@@ -90,15 +104,12 @@ for (const [width, height] of [
       }
       // Every input pane starts with Open file, then Paste; the toolbar ends with Sample, Clear and More actions.
       const inputs = new Set(found.filter((button) => button.places.includes("input")).map((button) => button.row));
-      expect(inputs.size).toBeGreaterThan(0);
+      if (inputStart === null) expect(inputs.size).toBe(0);
+      else expect(inputs.size).toBeGreaterThan(0);
       for (const row of inputs) {
-        expect(found.filter((button) => button.row === row).slice(0, 2).map((button) => button.action)).toEqual(["open", "paste"]);
+        expect(found.filter((button) => button.row === row).slice(0, inputStart!.length).map((button) => button.action)).toEqual(inputStart);
       }
-      expect(found.filter((button) => button.places.includes("toolbar")).slice(-3).map((button) => button.action)).toEqual([
-        "sample",
-        "clear",
-        "more",
-      ]);
+      expect(found.filter((button) => button.places.includes("toolbar")).slice(-toolbarEnd.length).map((button) => button.action)).toEqual(toolbarEnd);
       expect(found.filter((button) => button.action === "download")).toHaveLength(1);
       expect(found.filter((button) => button.action === "copy")).toHaveLength(1);
     });
