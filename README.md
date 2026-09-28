@@ -73,7 +73,7 @@ Shared packages: `@web-kit/json-core` (a lossless JSON parser and AST, fixes, pa
 
 [`uuid-generator`](https://arthurkrantsevich.github.io/web-kit/tools/uuid-generator/), in the generators category, makes IDs and reads them:
 
-- UUID v4 (random), v7 (Unix milliseconds, a 12-bit counter and random bits: strictly increasing on one page, even within one millisecond), v1 and v6 (Gregorian time with a random node that has the multicast bit set, never your MAC address), v3 and v5 (MD5 or SHA-1 of the DNS, URL, OID or X.500 namespace, or your own, and a name: one UUID per line of names), Nil and Max; ULID (monotonic within a millisecond) and NanoID (your size and alphabet, without bias);
+- UUID v4 (random), v7 (Unix milliseconds, a 12-bit counter and random bits: strictly increasing on one page, even within one millisecond), v1 and v6 (Gregorian time with a random node that has the multicast bit set, never your MAC address), v3 and v5 (MD5 or SHA-1 of the DNS, URL, OID or X.500 namespace, or your own, and a name: each UUID beside its name, empty lines skipped), Nil and Max; ULID (monotonic within a millisecond) and NanoID (your size and alphabet, without bias);
 - 1 to 1,000 at a time, in lower or upper case, with or without hyphens, in braces or as a URN, one per line or as a JSON array; Copy, and Download as `uuids.txt` or `uuids.json`; Ctrl+Enter makes new ones;
 - Inspect takes any spelling of a UUID or a ULID and shows its version, variant, time (to 100 ns for v1 and v6), clock sequence and node, or the ULID's time and the same 128 bits as a UUID; it says why an ID cannot be read (its length, a wrong character, an unknown version);
 - randomness only from `crypto.getRandomValues`; the RFC 9562 test vectors pass. A share link and the saved input keep the settings, never the IDs.
@@ -97,7 +97,7 @@ Passwords come only from `crypto.getRandomValues` without modulo bias. They are 
 - MD5, SHA-1, SHA-256, SHA-384, SHA-512 and CRC32 at once; More algorithms adds SHA-224, SHA-512/256, SHA3-224/256/384/512, BLAKE2b-512, BLAKE2s-256, BLAKE3-256, RIPEMD-160 and CRC32C (loaded only then);
 - hex, HEX, Base64 or Base64url; Copy each value, or Copy and Download all as `hashes.txt`, one BSD tagged line per algorithm (`SHA256 (file) = …`) that `cksum -c` and `sha256sum -c` check, HMACs left out;
 - HMAC with SHA-1 or SHA-2 and a key as text or hex; the key is never saved or shared;
-- Verify: paste a checksum (hex, Base64, with a `sha256:` or SRI `sha256-` prefix, or a whole `sha256sum` line) and the matching row lights up; when none matches but More algorithms has one of that length, it offers to check them;
+- Verify: paste a checksum (hex, Base64, with a `sha256:` or SRI `sha256-` prefix, or a whole `sha256sum` or BSD line, as in `hashes.txt`) and the matching row lights up; when none matches but More algorithms has one of that length, it offers to check them;
 - files up to 512 MB (and texts over 1 MB) are read in 4 MB parts by a few Web Workers at once, with progress; a new file or Clear cancels the work. Every algorithm passes its official test vectors.
 
 ## Convenience in every tool
