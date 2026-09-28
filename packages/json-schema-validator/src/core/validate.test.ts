@@ -175,8 +175,7 @@ describe("validateSchema", () => {
     ]);
   });
 
-  // About 2 s here and several on a CI runner 2–3 times slower, under a full parallel `pnpm verify`: its own timeout.
-  it("checks a large ordinary document without calling it too expensive", { timeout: 20_000 }, () => {
+  it("checks a large ordinary document without calling it too expensive", () => {
     const data = `[${Array.from({ length: 1_000_000 }, (_, i) => i).join(",")}]`;
     const started = Date.now();
     const result = validateSchema(data, '{"type":"array","items":{"type":"number"}}');
