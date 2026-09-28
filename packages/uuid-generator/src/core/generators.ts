@@ -9,9 +9,9 @@ import type { RandomSource, Result } from "./types";
 export const GREGORIAN_OFFSET = 122_192_928_000_000_000n;
 
 /** The largest time a 48-bit millisecond field holds: v7 and ULID. */
-export const MAX_MS = 2 ** 48 - 1;
+export const MAX_MS: number = 2 ** 48 - 1;
 /** The last millisecond whose 100-ns count from 1582 fits v1's and v6's 60-bit field (in the year 5236). */
-export const MAX_GREGORIAN_MS = Number(((1n << 60n) - 1n - GREGORIAN_OFFSET) / 10_000n);
+export const MAX_GREGORIAN_MS: number = Number(((1n << 60n) - 1n - GREGORIAN_OFFSET) / 10_000n);
 
 /** A time in whole milliseconds, floored; a RangeError when it is not a number from 0 to `max`. */
 function wholeMs(now: number, max: number): number {
