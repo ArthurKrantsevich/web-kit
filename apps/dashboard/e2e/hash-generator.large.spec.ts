@@ -51,10 +51,11 @@ test("a 200 MB file is hashed with every algorithm in workers, with progress, an
   const pane = page.locator(".wk-hash__pane--input");
   for (const type of ["dragenter", "dragover", "drop"]) await pane.dispatchEvent(type, { dataTransfer: transfer });
 
-  const status = page.locator(".wk-ui-status [role='status']");
+  // The visible status: its live region says only every 25 % and waits for a pause.
+  const status = page.locator(".wk-hash__summary");
   await expect(status).toHaveText(/^Hashing big\.bin… ([1-9]|[1-9]\d)%$/, { timeout: 60_000 });
   const started = Date.now();
-  await expect(status).toHaveText("Hashed big.bin (200.0 MB)", { timeout: 240_000 });
+  await expect(status).toHaveText("Hashed big.bin (200 MB)", { timeout: 240_000 });
   const seconds = Math.round((Date.now() - started) / 100) / 10;
   const until = await page.evaluate(() => performance.now());
 
