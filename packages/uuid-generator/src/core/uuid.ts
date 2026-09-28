@@ -35,8 +35,9 @@ export function makeV4(random: RandomSource): string {
 
 /** The UUID of a namespace name or a UUID given as text, or an error that says what is wrong with it. */
 export function namespaceBytes(namespace: NamespaceName | string): Result<Uint8Array> {
-  const known = NAMESPACES[namespace as NamespaceName];
-  const digits = uuidDigits(known ?? namespace);
+  // Own keys only: "constructor" or "__proto__" must be read as text, not as what every object inherits.
+  const known = Object.hasOwn(NAMESPACES, namespace) ? NAMESPACES[namespace as NamespaceName] : namespace;
+  const digits = uuidDigits(known);
   if (digits === null) return { ok: false, error: { message: `The namespace "${namespace}" is not a UUID` } };
   return { ok: true, value: hexBytes(digits) };
 }

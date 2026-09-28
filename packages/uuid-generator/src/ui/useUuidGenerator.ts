@@ -91,7 +91,13 @@ export function useUuidGenerator(options: UseUuidGeneratorOptions = {}): UseUuid
   const { kind, count, namespace, customNamespace, names, size, alphabet, customAlphabet } = settings;
   // IDs are made after hydration, in the browser: a server render cannot know them.
   useEffect(() => {
-    const result = generateIds(generateOptions({ ...DEFAULT_SETTINGS, kind, count, namespace, customNamespace, names, size, alphabet, customAlphabet }));
+    let result: ReturnType<typeof generateIds>;
+    try {
+      result = generateIds(generateOptions({ ...DEFAULT_SETTINGS, kind, count, namespace, customNamespace, names, size, alphabet, customAlphabet }));
+    } catch (error) {
+      // A bug in the core must not take the tool down: it becomes a message, and other settings still work.
+      result = { ok: false, error: { message: `Could not make the IDs: ${error instanceof Error ? error.message : String(error)}` } };
+    }
     setMade(result.ok ? { kind, ids: result.value, error: null } : { kind, ids: [], error: result.error.message });
   }, [kind, count, namespace, customNamespace, names, size, alphabet, customAlphabet, round]);
 

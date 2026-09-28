@@ -45,6 +45,13 @@ describe("uuid v3 and v5", () => {
     });
     expect(uuidV5("example.com", "a")).toEqual({ ok: false, error: { message: 'The namespace "example.com" is not a UUID' } });
   });
+
+  it("refuses a namespace named like a property every object has, instead of throwing", () => {
+    for (const name of ["constructor", "__proto__", "toString", "hasOwnProperty", "valueOf"]) {
+      expect(uuidV3(name, "a")).toEqual({ ok: false, error: { message: `The namespace "${name}" is not a UUID` } });
+      expect(uuidV5(name, "a")).toEqual({ ok: false, error: { message: `The namespace "${name}" is not a UUID` } });
+    }
+  });
 });
 
 describe("uuidDigits", () => {
