@@ -20,7 +20,7 @@
   },
   "sideEffects": ["**/*.css", "./dist/worker.js"],
   "scripts": {
-    "build": "tsdown && cp src/ui/styles.css dist/styles.css",
+    "build": "tsdown && node ../../tooling/scripts/build-styles.mjs",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
     "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit"
@@ -32,5 +32,8 @@
   ],
   "peerDependencies": { "react": ">=18" },
   "peerDependenciesMeta": { "react": { "optional": true } },
+  "dependencies": {
+    "@web-kit/ui": "workspace:*"
+  },
   "devDependencies": { "@types/node": "^26.6.2" }
 }

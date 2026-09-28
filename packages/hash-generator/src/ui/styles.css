@@ -1,19 +1,175 @@
-.wk-tool {
+/* Default look for HashGenerator. The toolbar, panes, buttons and status line come from @web-kit/ui, whose styles are
+   built into the start of this file. Colors come from @web-kit/tokens when present. */
+.wk-hash {
+  --wk-editor-height: var(--wk-hash-height, max(420px, 70vh));
+}
+/* Stacked panes: the hashes get more of the height than the text. */
+@container wk-ui-editor (max-width: 1023px) {
+  .wk-hash .wk-ui-editor__panes {
+    grid-template-rows: minmax(0, 2fr) minmax(0, 3fr);
+  }
+}
+/* The key and its format keep their place, unseen, while HMAC is off. */
+.wk-hash__hmac {
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+.wk-hash__hmac[data-hidden="true"] {
+  visibility: hidden;
+}
+.wk-hash__key {
+  --wk-ui-input-width: 12rem;
+}
+/* Digests and keys show their characters as they are: no font ligature may join two of them. */
+.wk-hash__value,
+.wk-hash__ghost,
+.wk-hash__key,
+.wk-hash__expected {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
+}
+.wk-hash__name {
+  display: block;
+  max-width: 16rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wk-hash__file {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  overflow: auto;
+}
+.wk-hash__facts {
+  overflow-wrap: anywhere;
+}
+.wk-hash__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* Verify: one line of one height in every state; a long verdict ends with an ellipsis. */
+.wk-hash__verify {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 8px 12px 8px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+}
+.wk-hash__expected.wk-ui-input {
+  flex: 0 1 18rem;
+  min-width: 8rem;
+}
+.wk-hash__verdict {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--wk-muted, #5e5d59);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.wk-hash__verify[data-state="valid"] .wk-hash__verdict {
+  color: var(--wk-syntax-string, #2f6b3a);
+  font-weight: 600;
+}
+.wk-hash__verify[data-state="error"] .wk-hash__verdict {
+  color: var(--wk-danger, #b3261e);
+}
+.wk-hash__check {
+  flex: none;
+}
+.wk-hash__table {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.wk-hash__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wk-hash__row {
   display: grid;
-  gap: 0.5rem;
-  color: var(--wk-fg, #111318);
+  grid-template-columns: 8.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 8px 4px 16px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+}
+.wk-hash__row[data-match] {
+  background: color-mix(in srgb, var(--wk-syntax-string, #2f6b3a) 12%, var(--wk-surface, #ffffff));
+}
+.wk-hash__algorithm {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.wk-hash__cell {
+  display: grid;
+  min-width: 0;
+}
+.wk-hash__value,
+.wk-hash__ghost {
+  grid-area: 1 / 1;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.wk-hash__ghost {
+  visibility: hidden;
+}
+.wk-hash__value[data-empty] {
+  color: var(--wk-muted, #5e5d59);
   font-family: var(--wk-font-sans, system-ui, sans-serif);
 }
-.wk-tool textarea {
-  min-height: 8rem;
-  padding: 0.75rem;
-  border: 1px solid var(--wk-border, #dfe1e6);
-  border-radius: var(--wk-radius, 10px);
-  background: var(--wk-surface, #ffffff);
-  color: inherit;
-  font-family: var(--wk-font-mono, ui-monospace, monospace);
+.wk-hash__more-row {
+  padding: 6px 8px 6px 10px;
+  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
 }
-.wk-tool [role="alert"] {
-  margin: 0;
-  color: var(--wk-danger, #c62828);
+.wk-hash__note {
+  color: var(--wk-fg, #141413);
+}
+/* Very narrow: the four encodings take two rows of two, so none is cut. */
+@container wk-ui-editor (max-width: 399px) {
+  .wk-hash .wk-ui-editor__toolbar > .wk-ui-segmented {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex: 1 1 100%;
+  }
+}
+@container wk-ui-editor (max-width: 639px) {
+  /* The key and its format fit on the HMAC switch's line. */
+  .wk-hash__key {
+    --wk-ui-input-width: 8rem;
+  }
+  /* Verify: the field, then the verdict (and "Check them") on their own line; both lines always there. */
+  .wk-hash__verify {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    min-height: 90px;
+    padding: 8px;
+  }
+  .wk-hash__expected.wk-ui-input {
+    flex: 1 1 100%;
+  }
+  .wk-hash__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 8px;
+  }
+  .wk-hash__algorithm {
+    grid-column: 1 / -1;
+  }
 }
