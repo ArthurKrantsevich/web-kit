@@ -214,6 +214,68 @@ test.describe("uuid-generator", () => {
   });
 });
 
+test("the status line keeps one height in every state, and Count keeps its label beside its field, from 320 to 1920 px", async ({ page }) => {
+  test.slow();
+  const states: Record<string, [string, (page: Page) => Promise<void>][]> = {
+    "uuid-generator": [
+      ["v4", (p) => chooseKind(p, "UUID v4")],
+      ["v1", (p) => chooseKind(p, "UUID v1")],
+      ["a bad namespace", async (p) => {
+        await chooseKind(p, "UUID v5");
+        await p.getByRole("button", { name: "Namespace" }).click();
+        await p.getByRole("option", { name: "Custom" }).click();
+        await p.getByRole("textbox", { name: "Namespace UUID" }).fill("certainly not a namespace uuid");
+      }],
+      ["NanoID with a bad alphabet", async (p) => {
+        await chooseKind(p, "NanoID");
+        await p.getByRole("button", { name: "Alphabet" }).click();
+        await p.getByRole("option", { name: "Custom" }).click();
+        await p.getByRole("textbox", { name: "Custom alphabet" }).fill("abca");
+      }],
+      ["v4 again", (p) => chooseKind(p, "UUID v4")],
+    ],
+    "password-generator": [
+      ...["Words", "Memorable", "PIN", "Characters"].map((mode) => [mode, (p: Page) => p.getByRole("group", { name: "Mode" }).getByRole("button", { name: mode }).click()] as [string, (p: Page) => Promise<void>]),
+      ["no sets", async (p) => {
+        for (const set of ["Lowercase", "Uppercase", "Digits", "Symbols"]) await p.getByRole("switch", { name: set }).click();
+      }],
+      ["cleared", async (p) => {
+        for (const set of ["Lowercase", "Uppercase", "Digits", "Symbols"]) await p.getByRole("switch", { name: set }).click();
+        await p.getByRole("button", { name: "Clear" }).click();
+      }],
+    ],
+    "hash-generator": [
+      ["HMAC with a bad hex key", async (p) => {
+        await p.getByRole("switch", { name: "HMAC" }).click();
+        await p.getByRole("group", { name: "Key format" }).getByRole("button", { name: "Hex" }).click();
+        await p.getByRole("textbox", { name: "HMAC key" }).fill("not hex at all, not even close");
+      }],
+      ["HMAC off", (p) => p.getByRole("switch", { name: "HMAC" }).click()],
+      ["a file", (p) => dropFile(p, `return new File(["hello"], "a-rather-long-file-name-for-a-small-screen-2026.txt");`)],
+    ],
+  };
+  const problems: string[] = [];
+  for (const [tool, steps] of Object.entries(states)) {
+    for (const width of [320, 390, 480, 640, 1024, 1920]) {
+      await open(page, tool, width);
+      const status = page.locator(".wk-ui-status");
+      const heights = new Set([Math.round((await status.boundingBox())!.height)]);
+      for (const [name, step] of steps) {
+        await step(page);
+        await page.waitForTimeout(50);
+        heights.add(Math.round((await status.boundingBox())!.height));
+        const count = page.locator(".wk-ui-editor__toolbar .wk-ui-field", { hasText: "Count" });
+        if (tool !== "hash-generator" && (await page.getByRole("spinbutton", { name: "Count" }).isVisible())) {
+          const [label, field] = [await count.boundingBox(), await page.getByRole("spinbutton", { name: "Count" }).boundingBox()];
+          if (!label || label.width === 0 || Math.abs(label.y + label.height / 2 - (field!.y + field!.height / 2)) > 4) problems.push(`${tool} ${width} px ${name}: Count has no label beside it`);
+        }
+      }
+      if (heights.size !== 1) problems.push(`${tool} ${width} px: status heights ${[...heights].join(", ")}`);
+    }
+  }
+  expect(problems).toEqual([]);
+});
+
 test.describe("uuid-generator options", () => {
   test("keep each option's label on the line of its field for every kind, from 320 to 1920 px", async ({ page }) => {
     await open(page, "uuid-generator", 320);
@@ -273,6 +335,21 @@ test.describe("password-generator", () => {
       }
     }
     expect(strays).toEqual([]);
+  });
+
+  test("never cuts the strength line, in any mode, from 320 to 1920 px", async ({ page }) => {
+    await open(page, "password-generator", 320);
+    const problems: string[] = [];
+    for (const width of [320, 360, 390, 414, 480, 768, 1280, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const mode of ["Characters", "Words", "Memorable", "PIN"]) {
+        await page.getByRole("group", { name: "Mode" }).getByRole("button", { name: mode }).click();
+        await expect(page.locator(".wk-password__item").first()).toBeVisible();
+        const cut = await page.locator(".wk-password__bits").evaluate((node) => node.scrollWidth > node.clientWidth + 1 || node.scrollHeight > node.clientHeight + 1);
+        if (cut) problems.push(`${width} px ${mode}: ${await page.locator(".wk-password__bits").textContent()}`);
+      }
+    }
+    expect(problems).toEqual([]);
   });
 
   test("loads the word list only when Words is chosen", async ({ page }) => {

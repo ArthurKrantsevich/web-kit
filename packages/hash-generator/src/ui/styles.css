@@ -210,3 +210,14 @@
     line-clamp: 3;
   }
 }
+/* The status line is one line at every width, in every state: each part ends with an ellipsis, and its title says it
+   all. */
+.wk-hash .wk-ui-status {
+  flex-wrap: nowrap;
+}
+.wk-hash .wk-ui-status > :not(.wk-ui-sr-only) {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

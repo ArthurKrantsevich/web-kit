@@ -319,7 +319,11 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
   const status = (
     <StatusLine state={error ? "error" : "idle"}>
       <span role="status">{error ?? (ids.length === 0 ? (named ? "Type names, one per line, to make their UUIDs." : "") : noun(kind, ids.length))}</span>
-      {notice && <span className="wk-uuid__notice">{notice}</span>}
+      {notice && (
+        <span className="wk-uuid__notice" title={notice}>
+          {notice}
+        </span>
+      )}
     </StatusLine>
   );
 

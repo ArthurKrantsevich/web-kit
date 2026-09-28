@@ -13,12 +13,14 @@ import {
   Select,
   StatusLine,
   ToolMenu,
+  Tooltip,
   useHydrated,
+  useSettled,
   type SegmentedOption,
   type SelectOption,
   type Shortcut,
 } from "@web-kit/ui";
-import { useMemo, useState, type ReactElement, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactElement, type ReactNode } from "react";
 import { MAX_LENGTH, MIN_LENGTH } from "../core/charset";
 import { MAX_GROUPS, MAX_SYLLABLES, MIN_GROUPS, MIN_SYLLABLES } from "../core/memorable";
 import { MAX_SEPARATOR, MAX_WORDS, MIN_WORDS } from "../core/passphrase";
@@ -80,7 +82,16 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
   const hydrated = useHydrated();
   const [singular, plural] = NOUN[mode];
 
-  const shortcuts: Shortcut[] = [{ keys: "Mod+Enter", label: "Regenerate", run: state.regenerate }];
+  // A regeneration with the same settings changes no visible count: it is said on its own. The count of them makes
+  // each announcement differ from the one before, so it is heard again.
+  const [regenerated, setRegenerated] = useState(0);
+  useEffect(() => setRegenerated(0), [settings]);
+  const regenerate = () => {
+    if (error !== null) return;
+    state.regenerate();
+    setRegenerated((count) => count + 1);
+  };
+  const shortcuts: Shortcut[] = [{ keys: "Mod+Enter", label: "Regenerate", run: regenerate }];
   const shared = useMemo(() => ({ ...settings }), [settings]);
 
   /** Puts back a shared or saved state. It comes from outside, so every field is checked. */
@@ -136,20 +147,21 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
   const toolbar = (
     <EditorToolbar>
       <Segmented label="Mode" value={mode} options={MODES} onChange={(next) => update({ mode: next })} />
-      <NumberField label="Count" value={settings.count} min={1} max={MAX_COUNT} onChange={(count) => update({ count })} />
+      <span className="wk-password__pair">
+        <NumberField label="Count" value={settings.count} min={1} max={MAX_COUNT} onChange={(count) => update({ count })} />
+      </span>
       <span className="wk-ui-spacer" />
       <ActionButton
         action="custom"
-        icon="generate"
+        icon="refresh"
         tooltip={error ?? "Make new passwords (Ctrl+Enter)"}
         aria-disabled={error !== null || undefined}
-        onClick={() => {
-          if (error === null) state.regenerate();
-        }}
+        onClick={regenerate}
       >
         Regenerate
       </ActionButton>
-      <ActionButton action="clear" words={{ target: "the list of passwords" }} disabled={passwords.length === 0} onClick={state.clear} />
+      {/* Always on, as every tool's Clear: it never vanishes from under the focus. */}
+      <ActionButton action="clear" words={{ target: "the list of passwords" }} onClick={state.clear} />
       <ToolMenu
         toolKey="password-generator"
         state={shared}
@@ -257,10 +269,21 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
   const level = estimate?.strength ?? null;
   const summary = error ?? (passwords.length === 0 ? (state.loading ? "Loading the word list…" : state.cleared ? "Cleared." : "") : `${passwords.length} ${passwords.length === 1 ? singular : plural} · ${describeSettings(settings)}`);
 
+  const settledSummary = useSettled(summary);
+  const heard = regenerated > 0 && passwords.length > 0 ? `Regenerated ${passwords.length} ${passwords.length === 1 ? singular : plural}${regenerated % 2 === 0 ? "\u00a0" : ""}` : settledSummary;
   const status = (
     <StatusLine state={error ? "error" : "idle"}>
-      <span role="status">{summary}</span>
-      {notice && <span className="wk-password__notice">{notice}</span>}
+      <span className="wk-password__summary" title={summary}>
+        {summary}
+      </span>
+      <span className="wk-ui-sr-only" role="status">
+        {heard}
+      </span>
+      {notice && (
+        <span className="wk-password__notice" title={notice}>
+          {notice}
+        </span>
+      )}
     </StatusLine>
   );
 
@@ -289,11 +312,18 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
               <span className="wk-password__meter" aria-hidden="true">
                 <span style={{ width: `${Math.min(100, ((estimate?.bits ?? 0) / 128) * 100)}%` }} />
               </span>
-              <span className="wk-password__bits">
-                {estimate === null
-                  ? "No entropy to measure"
-                  : `${estimate.bits.toFixed(1)} bits · ${STRENGTH_LABEL[estimate.strength]} · ${estimate.crackTime === "instantly" ? "cracked instantly" : `${estimate.crackTime} to crack`} at 10¹⁰ guesses per second`}
-              </span>
+              {/* Short enough for a phone's line; the whole sentence is in the tooltip. */}
+              {estimate === null ? (
+                <span className="wk-password__bits">No entropy to measure</span>
+              ) : (
+                <Tooltip
+                  content={`${estimate.bits.toFixed(1)} bits: ${STRENGTH_LABEL[estimate.strength].toLowerCase()}. ${estimate.crackTime === "instantly" ? "Cracked instantly" : `Cracking takes ${estimate.crackTime}`} at 10¹⁰ guesses per second (a fast hash, offline).`}
+                >
+                  <span className="wk-password__bits" tabIndex={0}>
+                    {`${estimate.bits.toFixed(1)} bits · ${STRENGTH_LABEL[estimate.strength]} · ${estimate.crackTime === "instantly" ? "cracked instantly" : `${estimate.crackTime} to crack`}`}
+                  </span>
+                </Tooltip>
+              )}
             </div>
             {passwords.length > 0 ? (
               <ol className="wk-password__list" aria-label={plural}>
@@ -318,7 +348,7 @@ export function PasswordGenerator(props: PasswordGeneratorProps): ReactElement {
                 icon={error ? "close" : state.cleared ? "clear" : "generate"}
                 title={error ?? (state.cleared ? "Cleared." : state.loading ? "Loading the word list…" : hydrated ? "" : "Passwords are made in your browser.")}
               >
-                {state.cleared ? "Regenerate to make new ones. Nothing was kept." : undefined}
+                {state.cleared ? "Regenerate to make new ones. Anything you copied stays on your clipboard until you copy something else." : undefined}
               </EmptyState>
             )}
           </div>

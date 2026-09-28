@@ -13,7 +13,8 @@ afterEach(() => {
 
 const list = () => screen.queryByRole("list");
 const passwords = () => within(list()!).getAllByRole("listitem").map((item) => item.querySelector("code")!.textContent!);
-const status = () => document.querySelector(".wk-ui-status [role='status']")!.textContent;
+// The visible status; its live region speaks at a slower pace (PasswordGenerator.actions.test.tsx).
+const status = () => document.querySelector(".wk-password__summary")!.textContent;
 const WORDS = async () => ["apple", "brick", "cloud", "delta"];
 
 describe("PasswordGenerator", () => {
@@ -22,7 +23,7 @@ describe("PasswordGenerator", () => {
     await waitFor(() => expect(list()).not.toBeNull());
     expect(passwords().map((password) => password.length)).toEqual([20, 20, 20, 20, 20]);
     expect(status()).toBe("5 passwords · 20 characters from 94");
-    expect(document.querySelector(".wk-password__bits")!.textContent).toMatch(/^130\.\d bits · Very strong · centuries to crack at 10¹⁰ guesses per second$/);
+    expect(document.querySelector(".wk-password__bits")!.textContent).toMatch(/^130\.\d bits · Very strong · centuries to crack$/);
     expect(screen.getByRole("button", { name: "Copy password 1" })).toBeTruthy();
     const before = passwords();
     fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));

@@ -243,6 +243,10 @@
   .wk-ui-editor__toolbar .wk-ui-field {
     display: none;
   }
+  /* A number field keeps its label: a choice shows its own value ("UUID v7"), a bare number ("10") says nothing. */
+  .wk-ui-editor__toolbar .wk-ui-field:has(+ .wk-ui-number) {
+    display: inline;
+  }
   .wk-ui-editor__toolbar .wk-ui-select {
     gap: 6px;
     padding: 0 8px 0 10px;

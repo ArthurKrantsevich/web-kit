@@ -230,8 +230,16 @@ export function HashGenerator(props: HashGeneratorProps): ReactElement {
       <span className="wk-ui-sr-only" role="status">
         {heard}
       </span>
-      {state.note && <span className="wk-hash__note">{state.note}</span>}
-      {notice && <span className="wk-hash__note">{notice}</span>}
+      {state.note && (
+        <span className="wk-hash__note" title={state.note}>
+          {state.note}
+        </span>
+      )}
+      {notice && (
+        <span className="wk-hash__note" title={notice}>
+          {notice}
+        </span>
+      )}
     </StatusLine>
   );
 
