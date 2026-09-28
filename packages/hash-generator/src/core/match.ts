@@ -12,6 +12,7 @@ export type DigestMatch =
 
 const ORDER: AlgorithmId[] = [...MAIN_ALGORITHMS, ...EXTRA_INFO].map((algorithm) => algorithm.id);
 const LENGTHS: Record<string, number> = Object.fromEntries([...MAIN_ALGORITHMS, ...EXTRA_INFO].map((algorithm) => [algorithm.id, algorithm.bytes]));
+const DIGEST_LENGTHS = new Set(Object.values(LENGTHS));
 
 /** Names a prefix may use: "sha256", "SHA-256", "sha3-256", "blake3", "blake2b", "ripemd160", "crc32c"… */
 const ALIASES = new Map<string, AlgorithmId>(
@@ -43,11 +44,16 @@ export function matchDigest(expected: string, results: HashResults): DigestMatch
   if (text === "") return { status: "empty" };
   let only: AlgorithmId | null = null;
   const bsd = /^([\w/-]+)\s*\(.*\)\s*=\s*(\S+)$/.exec(text);
+  // A sha256sum line's hex has a digest's length, and the line is not all hex: "ba7816bf  8f01cfea  …" is one hash in
+  // groups, even though its first group has a CRC32's length.
+  const compact = text.replace(/\s+/g, "");
+  const grouped = /^[0-9a-fA-F]+$/.test(compact) && DIGEST_LENGTHS.has(compact.length / 2);
   const sum = /^\\?([0-9a-fA-F]+) [ *]\S/.exec(text);
+  if (sum && (grouped || !DIGEST_LENGTHS.has(sum[1]!.length / 2))) sum.length = 0;
   if (bsd) {
     only = ALIASES.get(squash(bsd[1]!)) ?? null;
     text = bsd[2]!;
-  } else if (sum) {
+  } else if (sum?.length) {
     text = sum[1]!;
   } else {
     const named = prefix(text);
@@ -57,13 +63,17 @@ export function matchDigest(expected: string, results: HashResults): DigestMatch
     }
   }
   const value = text.replace(/\s+/g, "");
-  // Text that is valid hex is read as hex: a real Base64 digest is practically never made of hex digits only.
-  const bytes = decodeHex(value) ?? decodeBase64(value);
-  if (bytes === null) return { status: "invalid", message: "Not a hash in hex or Base64" };
+  // Text that is valid hex is read as hex first; when that matches nothing it is also tried as Base64, since a short
+  // Base64 digest (a CRC32's six characters) can be made of hex digits only.
+  const readings = [decodeHex(value), decodeBase64(value)].filter((bytes) => bytes !== null);
+  const bytes = readings[0];
+  if (bytes === undefined) return { status: "invalid", message: "Not a hash in hex or Base64" };
   const allowed = ORDER.filter((id) => only === null || id === only);
-  for (const id of allowed) {
-    const digest = results[id];
-    if (digest && digest.length === bytes.length && digest.every((byte, i) => byte === bytes[i])) return { status: "match", algorithm: id };
+  for (const reading of readings) {
+    for (const id of allowed) {
+      const digest = results[id];
+      if (digest && digest.length === reading.length && digest.every((byte, i) => byte === reading[i])) return { status: "match", algorithm: id };
+    }
   }
   return { status: "none", uncomputed: allowed.filter((id) => results[id] === undefined && LENGTHS[id] === bytes.length) };
 }

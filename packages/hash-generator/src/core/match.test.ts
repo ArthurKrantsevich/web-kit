@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import { encodeDigest } from "./encode";
 import { hashAll } from "./hash";
 import { matchDigest } from "./match";
 import type { HashResults } from "./types";
@@ -43,6 +44,27 @@ describe("matchDigest", () => {
       status: "match",
       algorithm: "sha512-256",
     });
+  });
+
+  it("reads a Base64 digest made only of hex digits as Base64 when its hex reading matches nothing", async () => {
+    // Search for a text whose CRC32 in Base64url happens to use hex digits only (about one text in 600 does).
+    for (let i = 0; ; i++) {
+      const found = await hashAll(`t${i}`);
+      if (!found.ok) throw new Error(found.error.message);
+      const url = encodeDigest(found.value.crc32!, "base64url");
+      if (!/^[0-9a-fA-F]+$/.test(url)) continue;
+      expect([url, matchDigest(url, found.value)]).toEqual([url, { status: "match", algorithm: "crc32" }]);
+      break;
+    }
+  });
+
+  it("takes a sha256sum line only when its hex has a digest's length, so hex in groups is still one hash", async () => {
+    const results = await main();
+    for (const spaced of [SHA256.replace(/(.{8})/g, "$1  ").trim(), SHA256.replace(/(.{4})/g, "$1  ").trim()]) {
+      expect([spaced, matchDigest(spaced, results)]).toEqual([spaced, { status: "match", algorithm: "sha256" }]);
+    }
+    // Eight hex digits are a CRC32 in sha256sum form: the rest of the line is the file name.
+    expect(matchDigest("352441c2  report.iso", results)).toEqual({ status: "match", algorithm: "crc32" });
   });
 
   it("says when the text is empty or not a hash at all", async () => {
