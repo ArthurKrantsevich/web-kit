@@ -109,8 +109,8 @@ export function useUuidGenerator(options: UseUuidGeneratorOptions = {}): UseUuid
       made.kind === "ulid"
         ? ({ case: settings.ulidLower ? "lower" : "upper" } as const)
         : ({ case: settings.upper ? "upper" : "lower", hyphens: settings.hyphens, wrap: settings.wrap } as const);
-    // formatUuid leaves a NanoID as it is.
-    const formatted = made.ids.map((id) => formatUuid(id, format));
+    // A NanoID is never formatted: one of 32 hex digits or 26 Base32 characters would pass for a UUID or a ULID.
+    const formatted = made.kind === "nanoid" ? made.ids : made.ids.map((id) => formatUuid(id, format));
     return settings.output === "json" ? JSON.stringify(formatted, null, 2) : formatted.join("\n");
   }, [made, settings.upper, settings.hyphens, settings.wrap, settings.ulidLower, settings.output]);
 
