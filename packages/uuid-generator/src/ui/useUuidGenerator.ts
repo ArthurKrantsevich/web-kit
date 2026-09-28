@@ -63,6 +63,8 @@ export interface UseUuidGenerator {
    * empty line of names stays empty) so the Names and IDs columns pair up; as JSON, too.
    */
   shown: string;
+  /** v3 and v5: each name with its formatted UUID, empty lines left out; empty for the other kinds. */
+  pairs: { name: string; id: string }[];
   /** Why no IDs could be made (a bad namespace or alphabet), or null. */
   error: string | null;
   /** New IDs with the same settings. */
@@ -126,7 +128,7 @@ export function useUuidGenerator(options: UseUuidGeneratorOptions = {}): UseUuid
   const update = useCallback((patch: Partial<UuidSettings>) => setSettings((current) => ({ ...current, ...patch })), []);
   const regenerate = useCallback(() => setRound((value) => value + 1), []);
 
-  const { text, shown } = useMemo(() => {
+  const { text, shown, pairs } = useMemo(() => {
     const format =
       made.kind === "ulid"
         ? ({ case: settings.ulidLower ? "lower" : "upper" } as const)
@@ -136,10 +138,15 @@ export function useUuidGenerator(options: UseUuidGeneratorOptions = {}): UseUuid
     const json = settings.output === "json";
     const all = json ? JSON.stringify(formatted, null, 2) : formatted.join("\n");
     const named = (made.kind === "v3" || made.kind === "v5") && made.error === null;
-    return { text: all, shown: named ? pairWithNames(made.lines, formatted, json) : all };
+    const names = made.lines.filter((line) => line !== "");
+    return {
+      text: all,
+      shown: named ? pairWithNames(made.lines, formatted, json) : all,
+      pairs: named ? names.map((name, index) => ({ name, id: formatted[index] ?? "" })) : [],
+    };
   }, [made, settings.upper, settings.hyphens, settings.wrap, settings.ulidLower, settings.output]);
 
   const inspection = useMemo(() => (inspectText.trim() === "" ? null : inspectId(inspectText)), [inspectText]);
 
-  return { settings, update, ids: made.ids, text, shown, error: made.error, regenerate, inspectText, setInspectText, inspection };
+  return { settings, update, ids: made.ids, text, shown, pairs, error: made.error, regenerate, inspectText, setInspectText, inspection };
 }

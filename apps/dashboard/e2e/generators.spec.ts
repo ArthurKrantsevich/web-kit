@@ -343,6 +343,43 @@ test.describe("uuid-generator layout", () => {
   });
 });
 
+test("below 600 px Names → IDs stacks each name above its whole UUID, with no sideways scroll, and typing moves nothing", async ({ page }) => {
+  const problems: string[] = [];
+  for (const width of [320, 390]) {
+    await open(page, "uuid-generator", width, 844);
+    await chooseKind(page, "UUID v5");
+    await page.getByRole("button", { name: "Format" }).click();
+    await page.getByRole("menuitemradio", { name: "URN urn:uuid:…" }).click();
+    await page.keyboard.press("Escape");
+    const names = page.getByRole("textbox", { name: "Names" });
+    const pane = page.locator(".wk-uuid__pane--output");
+    const before = await pane.boundingBox();
+    const field = await names.boundingBox();
+    await names.fill("www.example.com\nexample.org\n\na-rather-long-host-name.subdomain.example.com\n");
+    await expect(page.locator(".wk-uuid__pairs li")).toHaveCount(3);
+    const after = await pane.boundingBox();
+    if (JSON.stringify(before) !== JSON.stringify(after) || JSON.stringify(field) !== JSON.stringify(await names.boundingBox())) problems.push(`${width} px: typing moved the pane or the field`);
+    problems.push(
+      ...(await pane.evaluate((node, width) => {
+        const out: string[] = [];
+        const box = node.getBoundingClientRect();
+        for (const scroller of [node, ...node.querySelectorAll("*")]) {
+          const style = getComputedStyle(scroller);
+          if (style.display === "none" || scroller.tagName === "TEXTAREA") continue;
+          if (scroller.scrollWidth > scroller.clientWidth + 1 && style.overflowX !== "hidden") out.push(`${width} px: ${scroller.className} scrolls sideways`);
+        }
+        for (const id of node.querySelectorAll(".wk-uuid__pairs code")) {
+          const own = id.getBoundingClientRect();
+          if (own.left < box.left - 0.5 || own.right > box.right + 0.5 || id.scrollWidth > id.clientWidth + 1) out.push(`${width} px: ${id.textContent} is cut`);
+          if (!/^urn:uuid:[0-9a-f-]{36}$/.test(id.textContent ?? "")) out.push(`${width} px: not a whole UUID: ${id.textContent}`);
+        }
+        return out;
+      }, width)),
+    );
+  }
+  expect(problems).toEqual([]);
+});
+
 test.describe("uuid-generator options", () => {
   test("keep each option's label on the line of its field for every kind, from 320 to 1920 px", async ({ page }) => {
     await open(page, "uuid-generator", 320);

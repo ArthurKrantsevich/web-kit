@@ -383,6 +383,15 @@ export function UuidGenerator(props: UuidGeneratorProps): ReactElement {
                 placeholder="One UUID per name"
                 onScroll={(event) => follow(event.currentTarget, namesField.current)}
               />
+              {/* Below 600 px the columns give way to this list: each name, then its whole UUID under it. */}
+              <ol className="wk-uuid__pairs" aria-label="Names and IDs">
+                {state.pairs.map((pair, index) => (
+                  <li key={index}>
+                    <span className="wk-uuid__pair-name">{pair.name}</span>
+                    <code>{pair.id}</code>
+                  </li>
+                ))}
+              </ol>
             </div>
           </EditorPane>
         ) : (

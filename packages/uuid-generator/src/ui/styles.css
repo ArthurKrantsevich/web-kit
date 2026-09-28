@@ -67,6 +67,48 @@
 .wk-uuid__names.wk-ui-area {
   border-right: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
 }
+.wk-uuid__pairs {
+  display: none;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 16px 10px;
+  overflow: hidden auto;
+  border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+  list-style: none;
+}
+.wk-uuid__pairs li {
+  padding: 4px 0;
+  font-size: 0.8125rem;
+}
+.wk-uuid__pair-name {
+  display: block;
+  color: var(--wk-muted, #5e5d59);
+  overflow-wrap: anywhere;
+}
+.wk-uuid__pairs code {
+  display: block;
+  font-family: var(--wk-font-mono, ui-monospace, monospace);
+  font-variant-ligatures: none;
+  overflow-wrap: anywhere;
+}
+/* Below 600 px: the names on top, then each name with its whole UUID under it; the two parts keep fixed shares of the
+   pane, so typing moves nothing, and the list scrolls only up and down. */
+@container wk-ui-editor (max-width: 599px) {
+  .wk-uuid__paired {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 2fr) minmax(0, 3fr);
+  }
+  .wk-uuid__paired > .wk-uuid__column:nth-of-type(2),
+  .wk-uuid__paired > .wk-uuid__ids {
+    display: none;
+  }
+  .wk-uuid__names.wk-ui-area {
+    border-right: 0;
+  }
+  .wk-uuid__pairs {
+    display: block;
+  }
+}
 .wk-uuid__ids {
   white-space: pre;
 }
