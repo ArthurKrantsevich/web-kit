@@ -214,6 +214,12 @@ test.describe("uuid-generator options", () => {
         await page.getByRole("option", { name: kind, exact: true }).click();
         for (const label of await strayLabels(page, ".wk-uuid__options")) strays.push(`${width} px ${kind}: ${label}`);
       }
+      if (width >= 1024) {
+        // Wide enough for NanoID's Size and Alphabet side by side, so the zone stays two rows tall.
+        await chooseKind(page, "NanoID");
+        const tops = await page.locator('.wk-uuid__options [data-active="true"] .wk-ui-field').evaluateAll((labels) => labels.map((label) => Math.round(label.getBoundingClientRect().top)));
+        if (new Set(tops).size !== 1) strays.push(`${width} px NanoID: Size and Alphabet on different lines`);
+      }
     }
     expect(strays).toEqual([]);
   });

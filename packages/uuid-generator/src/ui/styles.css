@@ -47,7 +47,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 10px;
-  max-width: 24rem;
+  /* Wide enough for NanoID's Size and Alphabet side by side. */
+  max-width: 27rem;
 }
 .wk-uuid__custom {
   --wk-ui-input-width: 12rem;
