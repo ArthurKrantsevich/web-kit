@@ -1,5 +1,5 @@
 import { useId, useMemo, useState, type ReactElement } from "react";
-import { passwordGenerator, type Result } from "../core/index";
+import { passwordGenerator, type Result } from "../core/placeholder";
 
 export interface UsePasswordGenerator {
   input: string;

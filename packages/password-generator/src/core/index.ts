@@ -1,7 +1,4 @@
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
-
-/** Passwords, passphrases, PINs and pronounceable passwords from a secure random source, with their exact entropy. Replace this placeholder logic. */
-export function passwordGenerator(input: string): Result<string> {
-  if (input.trim() === "") return { ok: false, error: "Input is empty" };
-  return { ok: true, value: input.trim() };
-}
+export type * from "./types";
+export { randomInt } from "./random";
+export { AMBIGUOUS, characterPool, DIGITS, LOWER, MAX_LENGTH, MIN_LENGTH, SYMBOLS, UPPER, type CharacterPool } from "./charset";
+export { generatePassword } from "./password";
