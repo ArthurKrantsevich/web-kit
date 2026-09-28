@@ -121,90 +121,120 @@ export function useHashGenerator(options: UseHashGeneratorOptions = {}): UseHash
 
   useEffect(() => () => runner.current?.dispose(), []);
 
+  // The job hashing the current version, if one runs: opening More algorithms never restarts it; the algorithms it
+  // lacks follow as a job of their own once it ends. Only a new version (text, file, HMAC, key) cancels it.
+  const active = useRef<{ version: number; stop: () => void } | null>(null);
+  const current = useRef(version);
+  current.current = version;
+  useEffect(
+    () => () => {
+      active.current?.stop();
+      active.current = null;
+    },
+    [version],
+  );
+
   useEffect(() => {
-    let live = true;
     const hmacKey: HmacKey | undefined = settings.hmac ? { text: key, format: settings.keyFormat } : undefined;
-    const base = latest.current.version === version ? latest.current.results : {};
-    const wanted = [...MAIN_ALGORITHMS, ...(expanded ? EXTRA_INFO : [])].map((algorithm) => algorithm.id);
-    // With a key, only Web Crypto's algorithms have an HMAC.
-    const missing = wanted.filter((id) => base[id] === undefined && (!hmacKey || WEB.has(id)));
-    setError(null);
     if (hmacKey) {
       const bytes = keyBytes(hmacKey);
       if (!bytes.ok) {
-        setComputed({ version, results: {} });
+        // Once per version: `computed` is a dependency, and a new object each time would never settle.
+        if (latest.current.version !== version) setComputed({ version, results: {} });
         setPending(null);
         setError(bytes.error.message);
         return;
       }
     }
     if (file && file.size > MAX_FILE_BYTES) {
-      setComputed({ version, results: {} });
+      if (latest.current.version !== version) setComputed({ version, results: {} });
       setPending(null);
       setError(`${file.name} is ${formatSize(file.size)}; files up to ${formatSize(MAX_FILE_BYTES)} can be hashed`);
       return;
     }
+    setError(null);
+    // A job of this version still runs: what it lacks is asked for when it ends (its results change `computed`).
+    if (active.current?.version === version) return;
+    const base = latest.current.version === version ? latest.current.results : {};
+    const wanted = [...MAIN_ALGORITHMS, ...(expanded ? EXTRA_INFO : [])].map((algorithm) => algorithm.id);
+    // With a key, only Web Crypto's algorithms have an HMAC; the extra ones wait for their module.
+    const available = new Set([...MAIN_ALGORITHMS, ...(extra ?? [])].map((algorithm) => algorithm.id));
+    const missing = wanted.filter((id) => base[id] === undefined && (!hmacKey || WEB.has(id)));
     if (missing.length === 0) {
       setPending(null);
       if (latest.current.version !== version) setComputed({ version, results: base });
       return;
     }
-    const done = (results: HashResults) => {
-      if (!live) return;
-      setComputed({ version, results: { ...base, ...results } });
-      setPending(null);
-    };
     const encoded = file === null ? new TextEncoder().encode(settings.text) : null;
-    if (file !== null || encoded!.length > WORKER_THRESHOLD) {
+    const onPage = file === null && encoded!.length <= WORKER_THRESHOLD;
+    // On the page, the extra algorithms wait for their module: nothing to do until it has loaded.
+    const algorithms = [...MAIN_ALGORITHMS, ...(extra ?? [])].filter((algorithm) => missing.includes(algorithm.id) && available.has(algorithm.id));
+    if (onPage && algorithms.length === 0) {
+      setPending(null);
+      return;
+    }
+    const mine = () => current.current === version;
+    const job = { version, stop: () => {} };
+    active.current = job;
+    const end = () => {
+      if (active.current === job) active.current = null;
+    };
+    const done = (results: HashResults) => {
+      if (!mine()) return;
+      end();
+      setPending(null);
+      setComputed((now) => ({ version, results: { ...(now.version === version ? now.results : {}), ...results } }));
+    };
+    const failed = (message: string) => {
+      if (!mine()) return;
+      end();
+      setPending(null);
+      setError(message);
+    };
+    if (!onPage) {
       const blob = file ?? new Blob([encoded!]);
       const name = file?.name ?? "the text";
+      // Workers get every missing algorithm (they load the extra ones themselves).
+      const ids = missing;
       setPending({ name, share: 0 });
       setNote(null);
       runner.current ??= createRunner();
-      const job = { blob, algorithms: missing, hmacKey: hmacKey ?? null };
-      runner.current.run(job, (share) => live && setPending({ name, share })).then(done, (failure: unknown) => {
-        if (!live || (failure instanceof HashWorkerError && failure.reason === "cancelled")) return;
-        if (failure instanceof HashWorkerError && failure.reason === "unavailable") {
-          // No worker: the page reads the file in 1 MB parts and lets a frame pass after each.
-          setNote(WORKER_FALLBACK_NOTE);
-          const all = [...MAIN_ALGORITHMS, ...(extra ?? [])].filter((algorithm) => missing.includes(algorithm.id));
-          void hashAll(blob, {
-            algorithms: all,
-            hmacKey,
-            chunkSize: 1024 * 1024,
-            onProgress: (bytes) => live && setPending({ name, share: bytes / Math.max(1, blob.size) }),
-            pause: () => new Promise((resolve) => setTimeout(resolve, 0)),
-          }).then((result) => {
-            if (!live) return;
-            if (result.ok) done(result.value);
-            else {
-              setPending(null);
-              setError(result.error.message);
-            }
-          });
-          return;
-        }
-        setPending(null);
-        setError(failure instanceof Error ? failure.message : "Could not hash the file");
-      });
-      return () => {
-        live = false;
+      const controller = new AbortController();
+      job.stop = () => {
+        controller.abort();
         runner.current?.cancel();
       };
+      runner.current.run({ blob, algorithms: ids, hmacKey: hmacKey ?? null }, (share) => mine() && setPending({ name, share })).then(done, (failure: unknown) => {
+        if (!mine() || (failure instanceof HashWorkerError && failure.reason === "cancelled")) return;
+        if (failure instanceof HashWorkerError && failure.reason === "unavailable") {
+          // No worker: the page reads the file in 1 MB parts and lets a frame pass after each; a new version aborts it.
+          setNote(WORKER_FALLBACK_NOTE);
+          const list = [...MAIN_ALGORITHMS, ...(extra ?? [])].filter((algorithm) => ids.includes(algorithm.id));
+          // Only extra algorithms whose module has not loaded yet: wait for it (`extra` then starts a new job).
+          if (list.length === 0) {
+            end();
+            setPending(null);
+            return;
+          }
+          void hashAll(blob, {
+            algorithms: list,
+            hmacKey,
+            chunkSize: 1024 * 1024,
+            signal: controller.signal,
+            onProgress: (bytes) => mine() && setPending({ name, share: bytes / Math.max(1, blob.size) }),
+            pause: () => new Promise((resolve) => setTimeout(resolve, 0)),
+          }).then((result) => (result.ok ? done(result.value) : controller.signal.aborted ? undefined : failed(result.error.message)));
+          return;
+        }
+        failed(failure instanceof Error ? failure.message : "Could not hash the file");
+      });
+      return;
     }
     // A text up to 1 MB: on the page. The extra algorithms join once their module has loaded.
-    const algorithms = [...MAIN_ALGORITHMS, ...(extra ?? [])].filter((algorithm) => missing.includes(algorithm.id));
     setPending(null);
-    void hashAll(encoded!, { algorithms, hmacKey }).then((result) => {
-      if (!live) return;
-      if (result.ok) done(result.value);
-      else setError(result.error.message);
-    });
-    return () => {
-      live = false;
-    };
-    // `version` stands for the text, the file, the HMAC switch and the key.
-  }, [version, expanded, extra]);
+    void hashAll(encoded!, { algorithms, hmacKey }).then((result) => (result.ok ? done(result.value) : failed(result.error.message)));
+    // `version` stands for the text, the file, the HMAC switch and the key; `computed` brings the follow-up job.
+  }, [version, expanded, extra, computed]);
 
   const algorithms = useMemo(() => [...MAIN_ALGORITHMS, ...(expanded ? EXTRA_INFO : [])], [expanded]);
   const results = computed.version === version ? computed.results : {};
