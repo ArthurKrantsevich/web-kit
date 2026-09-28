@@ -80,6 +80,26 @@ describe("CRC32C", () => {
   it("gives the check value of CRC-32C (Castagnoli): 123456789 → e3069283", () => {
     expect(run(createCrc32c, text("123456789"))).toBe("e3069283");
   });
+
+  // Node has no CRC-32C: a plain bit-by-bit one here (no table, one bit at a time) is the independent reference.
+  it("matches a bit-by-bit CRC-32C on inputs of every length from 0 to 300 and on 100 kB, split anywhere", () => {
+    const reference = (data: Uint8Array): string => {
+      let crc = 0xffffffff;
+      for (const byte of data) {
+        crc ^= byte;
+        for (let bit = 0; bit < 8; bit++) crc = crc & 1 ? (crc >>> 1) ^ 0x82f63b78 : crc >>> 1;
+      }
+      return ((crc ^ 0xffffffff) >>> 0).toString(16).padStart(8, "0");
+    };
+    expect(reference(text("123456789"))).toBe("e3069283");
+    for (let length = 0; length <= 300; length++) {
+      const data = bytes(length, length);
+      const cut = (length * 7) % (length + 1);
+      expect([length, run(createCrc32c, data.subarray(0, cut), data.subarray(cut))]).toEqual([length, reference(data)]);
+    }
+    const large = bytes(100_003);
+    expect(run(createCrc32c, large.subarray(0, 4099), large.subarray(4099))).toBe(reference(large));
+  });
 });
 
 // node:crypto (OpenSSL) and node:zlib are an independent implementation of every one of these.
