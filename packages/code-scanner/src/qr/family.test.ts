@@ -34,8 +34,8 @@ describe("finder patterns", () => {
     const triples = finderTriples(patterns, { angleTolerance: 0.15, ratioLimit: 1.6, plane: bin.plane });
     expect(triples).toHaveLength(1);
     const t = triples[0]!;
-    expect(timingAgreement(bin.plane, t.tl, t.tr, t.bl, 29)).toBeGreaterThan(0.9);
-    expect(timingAgreement(bin.plane, t.tl, t.bl, t.tr, 29)).toBeGreaterThan(0.9);
+    expect(timingAgreement(bin.plane, t, 29)).toBeGreaterThan(0.9);
+    expect(timingAgreement(bin.plane, t, 25)).toBeLessThan(0.75);
     // tl is the corner with the right angle: tr is reached clockwise from bl
     expect((t.tr.x - t.tl.x) * (t.bl.y - t.tl.y) - (t.tr.y - t.tl.y) * (t.bl.x - t.tl.x)).toBeGreaterThan(0);
     expect(dimensionCandidates(t)[0]).toBe(29);
@@ -94,7 +94,7 @@ describe("qrFamily on rendered QR codes", () => {
   });
 
   it("decodes under perspective up to 60 degrees with tryHarder, and reports the symbol's corners and orientation", () => {
-    // tilt 0.4 is about 53°, 0.5 about 60°; 60° is reached at some rotations (decision 27)
+    // tilt 0.4 is about 53°, 0.5 about 60° (every rotation of 60° is pinned in the next test)
     const cases: [number, number[]][] = [[0.1, [0, 33, 240, 280]], [0.25, [0, 33, 240, 280]], [0.4, [0, 33, 240, 280]], [0.5, [0, 33]]];
     for (const [tilt, rotations] of cases) for (const rotate of rotations) {
       const text = `tilt${tilt}`, r = rasterize(qr(text, 3), { module: 6, rotate, tilt });
@@ -106,6 +106,17 @@ describe("qrFamily on rendered QR codes", () => {
     const r = rasterize(qr("orient", 2), { module: 6, rotate: 30 });
     const result = scan(asImage(r), options())[0]!;
     expect(Math.abs(result.orientation - 30)).toBeLessThanOrEqual(2);
+  });
+
+  it("decodes 60 degrees of perspective at every rotation with tryHarder: the triple's timing check and grid follow the perspective", () => {
+    // tilt 0.5 foreshortens the far edge to half; its finder has 3.6 px modules against 6.5 near
+    for (const rotate of [0, 30, 60, 90, 120, 150, 180, 200, 210, 240, 270, 280, 300, 330]) {
+      const text = `tilt60r${rotate}`, r = rasterize(qr(text, 3), { module: 6, rotate, tilt: 0.5 });
+      const results = scan(asImage(r), options({ tryHarder: true }));
+      expect([rotate, first(results)]).toEqual([rotate, text]);
+      const points = results[0]!.points;
+      for (let i = 0; i < 4; i++) expect([rotate, i, Math.hypot(points[i]![0] - r.corners[i]![0], points[i]![1] - r.corners[i]![1]) < 10]).toEqual([rotate, i, true]);
+    }
   });
 
   it("decodes blurred and noisy symbols, dense versions, a lighting gradient, inverted and mirrored codes", () => {

@@ -1,5 +1,5 @@
 import type { Plane } from "../core/binarize";
-import { applyH, homographyFromPairs, piecewiseMap, ransacHomography, type Pair } from "../core/geometry";
+import { applyH, homographyFromPairs, piecewiseMap, ransacHomography, solveLinear, type Homography, type Pair } from "../core/geometry";
 import type { Point } from "../core/types";
 import { findAlignmentPattern, type FinderPattern } from "./finder";
 import { qrAlignmentPositions } from "./tables";
@@ -16,23 +16,43 @@ export interface Triple {
 const dist = (a: { x: number; y: number }, b: { x: number; y: number }): number => Math.hypot(a.x - b.x, a.y - b.y);
 
 /**
- * How well the timing pattern along the edge from finder `a` to finder `b` agrees with `dim`: modules 8…dim−9 of row
- * (or column) 6 alternate, dark at even indices. Along a straight edge under perspective the module centres follow a
- * 1-D projective map s(t) = p·t / (1 + q·t); the finders' module sizes give its end slopes, (1 + q·n)² = m_a / m_b,
- * and s(n) = the centres' distance fixes p. The timing row's centre (6.5) is 3 of the n = dim − 7 modules from this
- * edge's centre line towards the third finder (`inward`), shrinking with the local pitch. Returns the agreeing share.
+ * The module→image homography of a QR of `dim` modules through a triple's finder centres, with the perspective taken
+ * from their module sizes: a homography's linear scale at a point is ∝ 1/w^1.5 (w its projective denominator, since
+ * det J = det H / w³), so w_tr / w_tl = (m_tl / m_tr)^(2/3), likewise for bl, and w is linear in (u, v). With w fixed
+ * at the three centres, the six remaining coefficients follow from the centres linearly. Null for degenerate centres.
  */
-export function timingAgreement(plane: Plane, a: FinderPattern, b: FinderPattern, inward: FinderPattern, dim: number): number {
-  const len = dist(a, b), dx = (b.x - a.x) / len, dy = (b.y - a.y) / len;
-  const n = dim - 7, q = (Math.sqrt(a.module / b.module) - 1) / n, p = (len * (1 + q * n)) / n;
-  const ox = ((inward.x - a.x) * 3) / n, oy = ((inward.y - a.y) * 3) / n;
+export function tripleHomography(triple: Triple, dim: number): Homography | null {
+  const { tl, tr, bl } = triple, n = dim - 7, c = 3.5;
+  const g = ((tl.module / tr.module) ** (2 / 3) - 1) / n, h = ((tl.module / bl.module) ** (2 / 3) - 1) / n;
+  const w = (u: number, v: number): number => 1 + g * (u - c) + h * (v - c);
+  const pts: [number, number, FinderPattern][] = [[c, c, tl], [dim - c, c, tr], [c, dim - c, bl]];
+  const A = pts.map(([u, v]) => [u, v, 1]);
+  const row1 = solveLinear(A, pts.map(([u, v, p]) => p.x * w(u, v))), row2 = solveLinear(A, pts.map(([u, v, p]) => p.y * w(u, v)));
+  return row1 && row2 ? [...row1, ...row2, g, h, 1 - c * g - c * h] : null;
+}
+
+/** The local module size (√|det J|) of a homography at (u, v). */
+export function moduleAt(H: Homography, u: number, v: number): number {
+  const [x0, y0] = applyH(H, u, v), [x1, y1] = applyH(H, u + 1, v), [x2, y2] = applyH(H, u, v + 1);
+  return Math.sqrt(Math.abs((x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0)));
+}
+
+/**
+ * How well the timing patterns agree with `dim`: modules 8…dim−9 of row 6 and of column 6 alternate, dark at even
+ * indices, read through the triple's homography (so the far end of a tilted symbol is read where it is, not where an
+ * affine offset from the finder line would put it). Returns the agreeing share over both edges; 0 off the plane.
+ */
+export function timingAgreement(plane: Plane, triple: Triple, dim: number): number {
+  const H = tripleHomography(triple, dim);
+  if (!H) return 0;
   let agree = 0, count = 0;
   for (let k = 8; k <= dim - 9; k++) {
-    const t = k - 3, g = 1 / ((1 + q * t) * (1 + q * t)), s = (p * t) / (1 + q * t);
-    const xi = Math.round(a.x + dx * s + ox * g), yi = Math.round(a.y + dy * s + oy * g);
-    if (xi < 0 || yi < 0 || xi >= plane.width || yi >= plane.height) return 0;
-    if (plane.get(xi, yi) === (k % 2 === 0)) agree++;
-    count++;
+    for (const [x, y] of [applyH(H, k + 0.5, 6.5), applyH(H, 6.5, k + 0.5)]) {
+      const xi = Math.round(x), yi = Math.round(y);
+      if (xi < 0 || yi < 0 || xi >= plane.width || yi >= plane.height) return 0;
+      if (plane.get(xi, yi) === (k % 2 === 0)) agree++;
+      count++;
+    }
   }
   return count === 0 ? 0 : agree / count;
 }
@@ -77,7 +97,7 @@ export function finderTriples(patterns: readonly FinderPattern[], { angleToleran
     const triple: Triple = { tl: o, tr: a, bl: b, module, legModules };
     if (plane) {
       let best = 0;
-      for (const dim of dimensionCandidates(triple)) best = Math.max(best, (timingAgreement(plane, o, a, b, dim) + timingAgreement(plane, o, b, a, dim)) / 2);
+      for (const dim of dimensionCandidates(triple)) best = Math.max(best, timingAgreement(plane, triple, dim));
       if (best < minTiming) continue;
     }
     out.push(triple);
@@ -112,24 +132,24 @@ export interface QrMapping {
 
 /**
  * The module→image mapping of a QR of `dim` modules from a triple: a homography through the three finder centres and
- * the bottom-right alignment pattern (searched from an affine estimate with the module size expected there), then
- * every other alignment pattern within ±1.5 modules of its prediction, a RANSAC homography through all of them, and
- * a piecewise grid between the alignment nodes (decisions 7, 8).
+ * the bottom-right alignment pattern (searched from the triple's perspective estimate with the module size expected
+ * there), then every other alignment pattern within ±1.5 modules of its prediction, a RANSAC homography through all
+ * of them, and a piecewise grid between the alignment nodes (decisions 7, 8).
  */
 export function buildQrMapping(plane: Plane, triple: Triple, dim: number): QrMapping | null {
-  const { tl, tr, bl, module } = triple, version = (dim - 17) / 4;
+  const { tl, tr, bl, module } = triple, version = (dim - 17) / 4, H0 = tripleHomography(triple, dim);
+  if (!H0) return null;
   const unit = (x: number, y: number): Point => { const l = Math.hypot(x, y); return [x / l, y / l]; };
   const axes: [Point, Point] = [unit(tr.x - tl.x, tr.y - tl.y), unit(bl.x - tl.x, bl.y - tl.y)];
   const pairs: Pair[] = [{ u: 3.5, v: 3.5, x: tl.x, y: tl.y }, { u: dim - 3.5, v: 3.5, x: tr.x, y: tr.y }, { u: 3.5, v: dim - 3.5, x: bl.x, y: bl.y }];
-  const affine = (u: number, v: number): Point => { const a = (u - 3.5) / (dim - 7), b = (v - 3.5) / (dim - 7); return [tl.x + (tr.x - tl.x) * a + (bl.x - tl.x) * b, tl.y + (tr.y - tl.y) * a + (bl.y - tl.y) * b]; };
   let bottomRight: Point | null = null;
   if (version >= 2) {
-    const [ex, ey] = affine(dim - 6.5, dim - 6.5);
-    const far = Math.max(0.4 * module, Math.min(2.5 * module, tr.module + bl.module - tl.module));
+    const [ex, ey] = applyH(H0, dim - 6.5, dim - 6.5);
+    const far = Math.max(0.4 * module, Math.min(2.5 * module, moduleAt(H0, dim - 6.5, dim - 6.5)));
     search: for (const r of [2, 4, 8, 16]) for (const mm of [far, far * 0.85, far * 1.15]) { bottomRight = findAlignmentPattern(plane, ex, ey, r * module, mm, axes); if (bottomRight) break search; }
   }
   if (bottomRight) pairs.push({ u: dim - 6.5, v: dim - 6.5, x: bottomRight[0], y: bottomRight[1] });
-  else { const [bx, by] = affine(dim - 3.5, dim - 3.5); pairs.push({ u: dim - 3.5, v: dim - 3.5, x: bx, y: by }); }
+  else { const [bx, by] = applyH(H0, dim - 3.5, dim - 3.5); pairs.push({ u: dim - 3.5, v: dim - 3.5, x: bx, y: by }); }
   const H = homographyFromPairs(pairs);
   if (H === null) return null;
   if (version < 2) return { map: (u, v) => applyH(H, u, v), alignments: 0 };
