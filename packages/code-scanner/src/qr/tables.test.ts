@@ -1,8 +1,30 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
-import { zxing } from "../../test/zxing";
-import { blockStructure, deinterleave, interleave, layoutOf, microFormatPositions, placementOrder, qrFormatPositions, qrLayout, qrVersionPositions, rmqrFormatPositions, rmqrLayout, type Kind } from "./layout";
-import { MICRO_SYMBOLS, microFormatBits, QR_BLOCKS, QR_EC_PER_BLOCK, qrAlignmentPositions, qrFormatBits, qrTotalCodewords, qrVersionBits, RMQR_ALIGN_COLUMNS, RMQR_BLOCKS, RMQR_DATA, RMQR_HEIGHTS, RMQR_TOTAL, RMQR_WIDTHS, rmqrFormatBits, type Level } from "./tables";
+import { rgbaFromMatrix, zxing } from "../../test/zxing";
+import { bchDecode } from "../core/bch";
+import { gf256Qr } from "../core/gf";
+import { rsDecode } from "../core/rs";
+import type { Point } from "../core/types";
+import { type BitMatrix, blockStructure, deinterleave, interleave, layoutOf, microFormatPositions, placementOrder, qrFormatPositions, qrLayout, qrVersionPositions, rmqrFormatPositions, rmqrLayout, type Kind } from "./layout";
+import { MICRO_MASKS, MICRO_SYMBOLS, microFormatBits, QR_BLOCKS, QR_EC_PER_BLOCK, qrAlignmentPositions, qrFormatBits, qrTotalCodewords, qrVersionBits, RMQR_ALIGN_COLUMNS, RMQR_BLOCKS, RMQR_DATA, RMQR_HEIGHTS, RMQR_MASK, RMQR_TOTAL, RMQR_WIDTHS, rmqrFormatBits, type Level, type MaskFn } from "./tables";
+
+/** The bits at `points` as a number, the first point the most significant bit unless `lsbFirst`. */
+const readBits = (m: BitMatrix, points: Point[], lsbFirst = false): number => {
+  let v = 0;
+  const order = lsbFirst ? [...points].reverse() : points;
+  for (const [x, y] of order) v = (v << 1) | (m.get(x, y) ? 1 : 0);
+  return v;
+};
+/** The symbol's codewords: bits along the placement order, unmasked, eight to a codeword. */
+const codewordsOf = (m: BitMatrix, kind: Kind, version: number, mask: MaskFn, total: number): number[] => {
+  const out: number[] = [];
+  let acc = 0, n = 0;
+  for (const [x, y] of placementOrder(layoutOf(kind, version))) {
+    acc = (acc << 1) | ((m.get(x, y) ? 1 : 0) ^ (mask(x, y) ? 1 : 0));
+    if (++n === 8) { out.push(acc); acc = 0; n = 0; if (out.length === total) break; }
+  }
+  return out;
+};
 
 /** ISO/IEC 18004 Annex E, versions 2…40, as ZXing writes it out. */
 const ALIGNMENT_TABLE = [
@@ -49,8 +71,6 @@ describe("QR tables", () => {
   it("encodes format and version information with the ISO examples and masks", () => {
     expect(qrFormatBits("M", 5)).toBe(0x40ce);
     expect(qrVersionBits(7)).toBe(0b000111110010010100);
-    expect(microFormatBits(0, 2) >> 0).toBe((microFormatBits(0, 2) ^ 0x4445 ^ 0x4445) >>> 0);
-    expect(rmqrFormatBits("M", 1, "left") ^ rmqrFormatBits("M", 1, "right")).toBe(0x1fab2 ^ 0x20a7b);
     expect(qrFormatPositions(21)[0]).toHaveLength(15);
     expect(qrFormatPositions(21)[1][0]).toEqual([8, 20]);
     expect(qrVersionPositions(45)[0][0]).toEqual([36, 5]);
@@ -98,8 +118,42 @@ describe("zxing-wasm in Node", () => {
     expect([matrix.width, matrix.height]).toEqual([21, 21]);
     // row 0 of the Annex I figure: finder, 0 0 1 0 1 1 0, finder
     expect([...Array(21)].map((_, x) => (matrix.get(x, 0) ? "1" : "0")).join("")).toBe("111111100101101111111");
-    const { rgbaFromMatrix } = await import("../../test/zxing");
     const read = await zx.read(rgbaFromMatrix(matrix, 4, 4));
     expect(read.map((r) => [r.text, r.format, r.version, r.ecLevel])).toEqual([["01234567", "QRCode", "1", "M"]]);
+  });
+
+  it("writes Micro QR and rMQR format information where and as microFormatBits and rmqrFormatBits say", async () => {
+    const zx = await zxing();
+    // M2-L is symbol number 1; its four masks are the format's low two bits
+    for (const mask of [0, 3]) {
+      const m = (await zx.write("1A", "MicroQRCode", `version=2,ecLevel=L,dataMask=${mask}`))!;
+      expect([m.width, readBits(m, microFormatPositions())]).toEqual([13, microFormatBits(1, mask)]);
+    }
+    // R11x43 is version 12; the two copies carry different masks and are read least significant bit first
+    const r = (await zx.write("R11", "RMQRCode", "version=12,ecLevel=M"))!;
+    const [left, right] = rmqrFormatPositions(r.width, r.height);
+    expect([r.width, r.height]).toEqual([43, 11]);
+    expect(readBits(r, left, true)).toBe(rmqrFormatBits("M", 12, "left"));
+    expect(readBits(r, right, true)).toBe(rmqrFormatBits("M", 12, "right"));
+    expect(readBits(r, left, true)).not.toBe(readBits(r, right, true));
+  });
+
+  it("reads every block of zxing's M4-L and R11x43-M symbols as a valid Reed-Solomon codeword through placementOrder and deinterleave", async () => {
+    const zx = await zxing();
+    const gf = gf256Qr();
+    const blocksOf = (cw: number[], kind: Kind, version: number, level: Level) => {
+      const s = blockStructure(kind, version, level);
+      expect(cw).toHaveLength(s.total);
+      return deinterleave(s).map((b) => rsDecode(gf, [...b.data.map((i) => cw[i]!), ...b.ec.map((i) => cw[i]!)], s.ecPerBlock));
+    };
+    const micro = (await zx.write("MICRO QR 4", "MicroQRCode", "version=4,ecLevel=L"))!;
+    const format = bchDecode(readBits(micro, microFormatPositions()), 5, 15, 0x537, 0x4445, 0)!;
+    expect(format.data >> 2).toBe(MICRO_SYMBOLS.findIndex((s) => s.version === 4 && s.level === "L"));
+    expect(blocksOf(codewordsOf(micro, "micro", 4, MICRO_MASKS[format.data & 3]!, 24), "micro", 4, "L")).toEqual([{ corrected: 0, erasures: 0 }]);
+    const rmqr = (await zx.write("rMQR R11x43", "RMQRCode", "version=12,ecLevel=M"))!;
+    expect(blocksOf(codewordsOf(rmqr, "rmqr", 12, RMQR_MASK, 31), "rmqr", 12, "M")).toEqual([{ corrected: 0, erasures: 0 }]);
+    // and a symbol with more than one block: R17x139-H has six
+    const big = (await zx.write("rMQR R17x139", "RMQRCode", "version=32,ecLevel=H"))!;
+    expect(blocksOf(codewordsOf(big, "rmqr", 32, RMQR_MASK, 232), "rmqr", 32, "H")).toEqual(Array(6).fill({ corrected: 0, erasures: 0 }));
   });
 });
