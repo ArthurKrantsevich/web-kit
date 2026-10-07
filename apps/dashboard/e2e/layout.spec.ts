@@ -11,6 +11,7 @@ for (const path of [
   "tools/uuid-generator/",
   "tools/password-generator/",
   "tools/hash-generator/",
+  "tools/code-scanner/",
 ]) {
   test(`no horizontal scroll at 390 px: ${path}`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -126,6 +127,7 @@ test("the editors follow the small viewport height, so they do not resize while 
     ["uuid-generator", ".panel > .wk-uuid", "--wk-uuid-height"],
     ["password-generator", ".panel > .wk-password", "--wk-password-height"],
     ["hash-generator", ".panel > .wk-hash", "--wk-hash-height"],
+    ["code-scanner", ".panel > .wk-scanner", "--wk-scanner-height"],
   ] as const) {
     await page.goto(`tools/${tool}/`);
     const value = await page.locator(selector).evaluate((element, name) => getComputedStyle(element).getPropertyValue(name), property);

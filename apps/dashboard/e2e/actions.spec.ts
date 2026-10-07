@@ -15,6 +15,7 @@ const TOOLS: Record<string, { inputStart: ActionId[] | null; toolbarEnd: ActionI
   "uuid-generator": { inputStart: ["paste"], toolbarEnd: ["custom", "more"] },
   "password-generator": { inputStart: null, toolbarEnd: ["custom", "clear", "more"] },
   "hash-generator": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
+  "code-scanner": { inputStart: ["open", "paste"], toolbarEnd: ["sample", "clear", "more"] },
 };
 
 interface Found {

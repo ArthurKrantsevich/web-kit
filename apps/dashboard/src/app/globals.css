@@ -747,6 +747,10 @@ a.card:hover {
 .panel > .wk-hash {
   --wk-hash-height: max(420px, calc(100svh - 310px));
 }
+/* The scanner's image and results fill the rest of the screen under the toolbar, status line included. */
+.panel > .wk-scanner {
+  --wk-scanner-height: max(420px, calc(100svh - 310px));
+}
 /* Text Compare shows its result under the inputs, as tall as they are: the two share what the screen has left. */
 .panel > .wk-compare {
   --wk-compare-height: max(260px, calc((100svh - 380px) / 2));

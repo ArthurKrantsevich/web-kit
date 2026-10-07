@@ -13,6 +13,7 @@ const TOOLS = [
   "uuid-generator",
   "password-generator",
   "hash-generator",
+  "code-scanner",
 ] as const;
 /** The tools whose input is a text field that can take a megabyte. */
 const TEXT_TOOLS = ["json-formatter", "json-convert", "json-diff", "json-schema-validator", "text-compare", "hash-generator"] as const;

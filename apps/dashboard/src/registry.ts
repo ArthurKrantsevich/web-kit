@@ -1,6 +1,5 @@
 import { meta as jsonFormatter } from "./tools/json-formatter/meta";
 // generator:meta-imports
-import { meta as codeScanner } from "./tools/code-scanner/meta";
 import { meta as uuidGenerator } from "./tools/uuid-generator/meta";
 import { meta as passwordGenerator } from "./tools/password-generator/meta";
 import { meta as hashGenerator } from "./tools/hash-generator/meta";
@@ -8,6 +7,7 @@ import { meta as textCompare } from "./tools/text-compare/meta";
 import { meta as jsonSchemaValidator } from "./tools/json-schema-validator/meta";
 import { meta as jsonDiff } from "./tools/json-diff/meta";
 import { meta as jsonConvert } from "./tools/json-convert/meta";
+import { meta as codeScanner } from "./tools/code-scanner/meta";
 
 export type Category = "data" | "generators" | "media";
 
@@ -42,7 +42,6 @@ export interface ToolMeta {
 export const tools: ToolMeta[] = [
   jsonFormatter,
   // generator:metas
-  codeScanner,
   uuidGenerator,
   passwordGenerator,
   hashGenerator,
@@ -50,6 +49,7 @@ export const tools: ToolMeta[] = [
   jsonSchemaValidator,
   jsonDiff,
   jsonConvert,
+  codeScanner,
 ];
 
 /** A planned utility, shown as a "Soon" card: found by search and category, but not a link (it has no page yet). */
