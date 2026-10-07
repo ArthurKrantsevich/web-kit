@@ -1,7 +1,7 @@
 {
   "name": "@web-kit/code-scanner",
   "version": "0.0.0",
-  "description": "Read QR codes from an image: file, drop or paste, decoded on your device.",
+  "description": "Read QR Code, Micro QR and rMQR from an image, with every decoder written in the package: no ZXing, no native BarcodeDetector, no model files.",
   "license": "MIT",
   "repository": {
     "type": "git",

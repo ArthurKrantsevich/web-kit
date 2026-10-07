@@ -26,7 +26,7 @@ The same tools are planned for Flutter in [flutter-kit](https://github.com/Arthu
 
 ## Status
 
-Nine tools are ready: four for JSON, Text Compare, the UUID, password and hash generators, and Code Scanner. They share one interface through `@web-kit/ui`. Six more tools are planned. The packages are not published to npm yet: the scope `@web-kit` is a working name and will be chosen before the first release.
+Nine tools are ready: four for JSON, Text Compare, the UUID, password and hash generators, and Code Scanner. They share one interface through `@web-kit/ui`. Seven more tools are planned. The packages are not published to npm yet: the scope `@web-kit` is a working name and will be chosen before the first release.
 
 ## Utilities
 
@@ -112,7 +112,7 @@ Passwords come only from `crypto.getRandomValues` without modulo bias. They are 
 | rMQR | all 32 sizes, levels M and H |
 
 - the image comes from a file (PNG, JPEG, WebP, GIF, BMP or SVG, up to 25 MB and 50 Mpx), a drop or the clipboard; a built-in sample shows the result at once;
-- every decoder is written here: a gray pyramid, a cascade of binarizations (hybrid, Sauvola, Wolf–Jolion, Otsu, edges, each also inverted), Reed–Solomon with erasures from the modules' confidence, and a piecewise homography that follows alignment patterns, so codes on curved or tilted surfaces still read;
+- every decoder is written here: a gray pyramid, a cascade of binarizations (hybrid, Sauvola, Wolf–Jolion, Otsu, edges, each but edges also inverted), Reed–Solomon with erasures from the modules' confidence, and a piecewise homography that follows alignment patterns, so codes on curved or tilted surfaces still read;
 - Try harder adds the slower binarizations, an upscaled pass for tiny modules, a search of the finer pyramid levels for a small code in a large photo, and wider tolerances; Multiple codes finds every code in the picture;
 - results of the session, newest first, each with its symbology, text, time and Copy; a repeated code counts up instead of repeating; Download saves `scan-results.json`, More actions has `scan-results.csv`;
 - the benchmark harness (`bench/` in the package) runs ZXing's own black-box corpus and a generated stress corpus against zxing-cpp (`zxing-wasm`), both devDependencies only; the report is published with the full tool. Data Matrix, Aztec, PDF417, the linear symbologies, the camera and the parsers of Wi-Fi, vCard and GS1 contents follow in the next sub-iterations.
