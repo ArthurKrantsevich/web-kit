@@ -3,12 +3,23 @@ import { describe, expect, it } from "vitest";
 import { zxing } from "../../test/zxing";
 import { assembleText, countBits, modeOf, parseBitStream, terminatorBits } from "./bitstream";
 import { decodeFamilyMatrix, decodeMicroMatrix, decodeQrMatrix, decodeRmqrMatrix } from "./decode-matrix";
-import { BitMatrix, placementOrder, qrLayout } from "./layout";
-import { MICRO_SYMBOLS, RMQR_HEIGHTS, RMQR_WIDTHS, type Level } from "./tables";
+import { BitMatrix, placementOrder, qrLayout, qrVersionPositions } from "./layout";
+import { MICRO_SYMBOLS, qrVersionBits, RMQR_HEIGHTS, RMQR_WIDTHS, type Level } from "./tables";
 
 const TEXTS = ["01234567", "HELLO", "Ж✓", "点茗", "ab"];
 // zxing-cpp's writer refuses a text that does not fit, so the smallest symbols get the shortest texts
 const fits = (v: number, level: Level): string => (v === 1 && level !== "L" ? "01234567" : TEXTS[(v + level.charCodeAt(0)) % TEXTS.length]!);
+/** A hand-written bit stream ("0"/"1", spaces ignored) as data codewords, zero-padded to whole bytes. */
+const codewords = (bits: string): Uint8Array => {
+  const s = bits.replace(/\s/g, ""), out = new Uint8Array(Math.ceil(s.length / 8));
+  for (let i = 0; i < s.length; i++) if (s[i] === "1") out[i >> 3]! |= 0x80 >> (i & 7);
+  return out;
+};
+/** A seeded xorshift32 in [0, 1). */
+const seeded = (seed: number): (() => number) => {
+  let s = seed;
+  return () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+};
 
 describe("the bit stream", () => {
   it("knows the mode and count lengths of the three symbologies", () => {
@@ -30,7 +41,21 @@ describe("the bit stream", () => {
     expect(parseBitStream("qr", 1, Uint8Array.from([0x10, 0x0f, 0xe8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]), 128)).toBeNull();
   });
 
-  it("assembles text by charset: Kanji as Shift JIS, GS1's % as GS, FNC1 second's indicator in front", () => {
+  it("parses structured append and FNC1 in the second position from hand-built streams, and refuses FNC1 without data", () => {
+    // structured append: index 2 of 4, parity 0xaa; then numeric "123"; terminator
+    const sa = parseBitStream("qr", 1, codewords("0011 0010 0011 10101010 0001 0000000011 0001111011 0000"), 48)!;
+    expect([sa.text, sa.structuredAppend, sa.gs1, sa.fnc1Second]).toEqual(["123", { index: 2, total: 4, parity: 0xaa }, false, null]);
+    // FNC1 second position, application indicator 37 (two digits), then alphanumeric "AB" (10·45 + 11 = 461)
+    const two = parseBitStream("qr", 1, codewords("1001 00100101 0010 000000010 00111001101 0000"), 40)!;
+    expect([two.text, two.fnc1Second, two.gs1, two.segments.length]).toEqual(["37AB", 37, false, 1]);
+    // a letter indicator is its code + 100: 165 → "A"
+    expect(parseBitStream("qr", 1, codewords("1001 10100101 0010 000000010 00111001101 0000"), 40)?.text).toBe("AAB");
+    // FNC1 first position, then the terminator: no data segment, not a message
+    expect(parseBitStream("qr", 1, codewords("0101 0000"), 8)).toBeNull();
+    expect(parseBitStream("qr", 1, codewords("1001 00100101 0000"), 16)).toBeNull();
+  });
+
+  it("assembles text by charset: Kanji as Shift JIS, GS1's % as GS, bytes by ECI or by sniffing", () => {
     const kanji = assembleText([{ mode: "kanji", bytes: Uint8Array.from([0x93, 0x5f, 0xe4, 0xaa]), eci: null }], false);
     expect([kanji.text, kanji.charset]).toEqual(["点茗", "shift_jis"]);
     const gs1 = assembleText([{ mode: "alphanumeric", bytes: new TextEncoder().encode("01%%ABC%12"), eci: null }], true);
@@ -65,7 +90,19 @@ describe("decodeQrMatrix against zxing-cpp's writer", () => {
     expect(decodeFamilyMatrix((await zx.write("12", "RMQRCode", "version=1,ecLevel=M"))!)?.kind).toBe("rmqr");
   });
 
-  it("reads ECI, FNC1 (GS1) and structured append written by zxing", async () => {
+  it("takes the version from the matrix size: a v10 symbol whose first version-information block reads as version 20 still decodes", async () => {
+    const zx = await zxing();
+    const m = (await zx.write("VERSION", "QRCode", "version=10,ecLevel=M"))!;
+    // overwrite the first copy with version 20's codeword: at least 7 modules differ (the BCH(18,6) distance)
+    const [first] = qrVersionPositions(m.width), fake = qrVersionBits(20);
+    let flipped = 0;
+    first.forEach(([x, y], i) => { const bit = ((fake >> (17 - i)) & 1) === 1; if (m.get(x, y) !== bit) flipped++; m.set(x, y, bit); });
+    expect(flipped).toBeGreaterThanOrEqual(7);
+    const r = decodeQrMatrix(m, new Float32Array(m.width * m.height).fill(0.5));
+    expect([r?.text, r?.version, r?.ecc.corrected]).toEqual(["VERSION", 10, 0]);
+  });
+
+  it("reads ECI and FNC1 (GS1) written by zxing", async () => {
     const zx = await zxing();
     const eci = decodeQrMatrix((await zx.write("Ж✓", "QRCode", "version=2,ecLevel=M,eci=26"))!)!;
     expect([eci.text, eci.eci, eci.charset]).toEqual(["Ж✓", 26, "utf-8"]);
@@ -99,8 +136,7 @@ describe("decodeQrMatrix against zxing-cpp's writer", () => {
     // 1-L data for "TEST": alphanumeric, count 4, then the terminator, then 0x4a 0x14… as qrcode-6/15.png has it
     const data = Uint8Array.from([0x20, 0x25, 0x27, 0xa1, 0x20, 0x4a, 0x14, 0x14, 0x14, 0x14, 0x02, 0x14, 0x14, 0x14, 0x0a, 0x14, 0x14, 0x0f, 0x14]);
     expect(parseBitStream("qr", 1, data, 19 * 8)?.text).toBe("TEST");
-    let s = 12345;
-    const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+    const rnd = seeded(12345);
     for (const size of [11, 13, 15, 17, 21, 25, 29, 45, 77, 177]) {
       for (let trial = 0; trial < 20; trial++) {
         const m = new BitMatrix(size, size);
@@ -112,6 +148,25 @@ describe("decodeQrMatrix against zxing-cpp's writer", () => {
       const m = new BitMatrix(RMQR_WIDTHS[v - 1]!, RMQR_HEIGHTS[v - 1]!);
       for (let i = 0; i < m.bits.length; i++) m.bits[i] = rnd() < 0.5 ? 1 : 0;
       expect(decodeRmqrMatrix(m)).toBeNull();
+    }
+  });
+
+  it("refuses a random matrix of every size with low random confidences too, where the erasure hypotheses run", () => {
+    const rnd = seeded(67890);
+    const noise = (w: number, h: number): [BitMatrix, Float32Array] => {
+      const m = new BitMatrix(w, h), conf = new Float32Array(w * h);
+      for (let i = 0; i < m.bits.length; i++) { m.bits[i] = rnd() < 0.5 ? 1 : 0; conf[i] = rnd() * 0.3; }
+      return [m, conf];
+    };
+    for (const size of [11, 13, 15, 17, 21, 25, 29, 45, 77, 177]) {
+      for (let trial = 0; trial < 20; trial++) {
+        const [m, conf] = noise(size, size);
+        expect([size, trial, decodeFamilyMatrix(m, conf)]).toEqual([size, trial, null]);
+      }
+    }
+    for (let v = 1; v <= 32; v++) {
+      const [m, conf] = noise(RMQR_WIDTHS[v - 1]!, RMQR_HEIGHTS[v - 1]!);
+      expect([v, decodeRmqrMatrix(m, conf)]).toEqual([v, null]);
     }
   });
 });

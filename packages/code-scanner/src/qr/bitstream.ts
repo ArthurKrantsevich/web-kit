@@ -105,7 +105,8 @@ export function parseBitStream(kind: Kind, version: number, dataCodewords: Uint8
     }
     segments.push({ mode, bytes: Uint8Array.from(out), eci });
   }
-  if (segments.length === 0 && !gs1 && fnc1Second === null) return null;
+  // FNC1 or structured append alone, with no data segment, is not a message
+  if (segments.length === 0) return null;
   const assembled = assembleText(segments, gs1);
   // FNC1 in the second position: the application indicator (two digits, or a letter as its code + 100) leads the text
   if (fnc1Second !== null) assembled.text = (fnc1Second < 100 ? String(fnc1Second).padStart(2, "0") : String.fromCharCode(fnc1Second - 100)) + assembled.text;

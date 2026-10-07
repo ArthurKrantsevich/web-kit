@@ -84,13 +84,22 @@ export function rmqrLayout(version: number): Layout {
   return { kind: "rmqr", version, width: w, height: h, fn, total: RMQR_TOTAL[version - 1]!, skipColumn: -1, firstColumn: w - 2 };
 }
 
+const layouts = new Map<string, Layout>();
+/** The layout of a symbol, built once per (kind, version) and shared: callers read it only. */
 export function layoutOf(kind: Kind, version: number): Layout {
-  return kind === "qr" ? qrLayout(version) : kind === "micro" ? microLayout(version) : rmqrLayout(version);
+  const key = `${kind}:${version}`;
+  let layout = layouts.get(key);
+  if (!layout) { layout = kind === "qr" ? qrLayout(version) : kind === "micro" ? microLayout(version) : rmqrLayout(version); layouts.set(key, layout); }
+  return layout;
 }
 
-/** The data modules in placement order: two-column strips from the right, zig-zag up and down, function modules skipped. */
+const orders = new WeakMap<Layout, Point[]>();
+/** The data modules in placement order: two-column strips from the right, zig-zag up and down, function modules skipped. Computed once per layout. */
 export function placementOrder(layout: Layout): Point[] {
+  const cached = orders.get(layout);
+  if (cached) return cached;
   const out: Point[] = [];
+  orders.set(layout, out);
   let up = true;
   for (let x = layout.firstColumn; x > 0; x -= 2) {
     if (x === layout.skipColumn) x--;

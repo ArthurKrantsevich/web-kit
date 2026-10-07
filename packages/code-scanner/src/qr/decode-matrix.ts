@@ -3,7 +3,7 @@ import { gf256Qr } from "../core/gf";
 import { rsDecode } from "../core/rs";
 import type { EccInfo, SymbolInfo } from "../core/types";
 import { parseBitStream, type Parsed } from "./bitstream";
-import { BitMatrix, blockStructure, deinterleave, layoutOf, microFormatPositions, placementOrder, qrFormatPositions, qrVersionPositions, rmqrFormatPositions, type BlockStructure, type Kind, type Layout } from "./layout";
+import { BitMatrix, blockStructure, deinterleave, layoutOf, microFormatPositions, placementOrder, qrFormatPositions, rmqrFormatPositions, type BlockStructure, type Kind, type Layout } from "./layout";
 import { MICRO_MASKS, MICRO_SYMBOLS, QR_LEVEL_FROM_BITS, QR_MASKS, RMQR_HEIGHTS, RMQR_MASK, RMQR_WIDTHS, type Level, type MaskFn } from "./tables";
 
 export interface MatrixResult extends Parsed {
@@ -29,16 +29,11 @@ function qrFormats(m: BitMatrix): { level: Level; mask: number }[] {
   return [...seen.entries()].sort((a, b) => a[1] - b[1]).map(([data]) => ({ level: QR_LEVEL_FROM_BITS[data >> 3]!, mask: data & 7 }));
 }
 
-function qrVersion(m: BitMatrix): number {
-  const bySize = (m.width - 17) / 4;
-  if (bySize < 7) return bySize;
-  const [one, two] = qrVersionPositions(m.width);
-  for (const bits of [readBits(m, one), readBits(m, two)]) {
-    const d = bchDecode(bits, 6, 18, 0x1f25, 0, 3);
-    if (d && d.data >= 7 && d.data <= 40) return d.data;
-  }
-  return bySize;
-}
+/**
+ * The version is the matrix size: the version information (v ≥ 7) could only agree or, damaged, mislead. Read against
+ * another size, the layout, the format positions and the confidence array would all be wrong, so it is never consulted.
+ */
+const qrVersion = (m: BitMatrix): number => (m.width - 17) / 4;
 
 /** Codewords (and the least module confidence in each) read in placement order with the mask removed. */
 function readCodewords(layout: Layout, m: BitMatrix, confidence: Float32Array | null, mask: MaskFn, structure: BlockStructure): { codewords: Uint8Array; conf: Float32Array } | null {
