@@ -141,9 +141,11 @@ describe("scan", () => {
     expect(results.length).toBeGreaterThanOrEqual(1);
     expect(results.length).toBeLessThan(4);
     expect(slow.passes.length).toBeLessThan(6);
-    // each pass of this decoder takes about 30 ms: with 70 ms the second pass starts, the third does not
-    const steady = fakeDecoder({ hybrid: [result("A", 0)], sauvola: [result("B", 300)], otsu: [result("C", 600)] }, 30);
-    scan(gray(64, 64), { decoders: [steady], multiple: true, deadlineMs: 70 });
+    // each pass of this decoder takes about 100 ms: with 260 ms the second pass starts (at about 100, predicted to end
+    // at 200), the third does not (at about 200, predicted to end at 300). The slack of 60 and 40 ms on either side
+    // covers the scheduling jitter of a loaded machine, which counts twice: in the clock and in the measured pass.
+    const steady = fakeDecoder({ hybrid: [result("A", 0)], sauvola: [result("B", 300)], otsu: [result("C", 600)] }, 100);
+    scan(gray(64, 64), { decoders: [steady], multiple: true, deadlineMs: 260 });
     expect(steady.passes.length).toBe(2);
   });
 

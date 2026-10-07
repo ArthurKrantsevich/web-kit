@@ -262,7 +262,10 @@ describe("qrFamily on rendered QR codes", () => {
       if (scan({ width: w, height: h, data, format: "gray" }, { decoders: [qrFamily], tryHarder: true, deadlineMs: 300 }).length > 0) positives++;
     }
     expect(positives).toBe(0);
-  }, 120_000);
+    // the bound follows from the budget: 500 scans at a 300 ms deadline are 150 s when every image runs to its deadline,
+    // as on a loaded machine (alone, the cascade's median cost is already over 300 ms on these images, so about half do);
+    // one step may overrun the deadline, and the images take time to generate
+  }, 240_000);
 
   it("samples under the edge pass against a gray threshold, never against the Sobel magnitude", () => {
     // dark 90 would read light against a Sobel-magnitude threshold on a step of 120, so the decode can only succeed on a gray binarization
