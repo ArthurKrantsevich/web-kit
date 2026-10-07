@@ -54,9 +54,9 @@ Open an image (PNG, JPEG, WebP, GIF, BMP or SVG, up to 25 MB and 50 Mpx), drop i
 | Entry | Holds | Brotli |
 |---|---|---|
 | `.` | `CodeScanner`, `useCodeScanner`, the worker runner, and `./core` again | — |
-| `./core` | types, image, binarizers, Reed–Solomon, BCH, geometry, sampling, `scan` | see package.json |
-| `./qr` | the QR family (imports `./core`) | see package.json |
-| `./worker` | the worker script (imports `./qr`; size-limit measures the file alone) | see package.json |
+| `./core` | types, image, binarizers, Reed–Solomon, BCH, geometry, sampling, `scan` | 7 kB |
+| `./qr` | the QR family (imports `./core`) | 13.5 kB |
+| `./worker` | the worker script (imports `./qr`; size-limit measures the file alone) | 0.5 kB |
 | `./styles.css` | the component's styles over `@web-kit/ui`'s | — |
 
 ## License
