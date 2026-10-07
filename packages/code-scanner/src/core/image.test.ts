@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import { xorshift } from "./geometry";
 import { applyLut, bilinear, contrastLut, crop, downsample2, flattenLighting, integral, quarterSpread, toGray, upscale2, type GrayPlane } from "./image";
 
 const plane = (width: number, height: number, fill: (x: number, y: number) => number): GrayPlane => {
@@ -74,6 +75,15 @@ describe("lighting", () => {
     // a label of 0.3 % of the frame, half of it dark: a 1 % tail would have clipped it to black
     const label = plane(400, 300, (x, y) => (x >= 200 && x < 224 && y >= 150 && y < 165 ? ((x + y) % 2 === 0 ? 0 : 255) : 255));
     expect(contrastLut(label)).toBeNull();
+    // the discriminating case: a dark label of 0.5 % of the pixels on a background spread over 248…255 (a photo's paper).
+    // The 0.05 % tail puts the low end at the label (0), so the surroundings stay light; the old 1 % tail put it inside
+    // the background (lo = 248) and mapped the paper around the label to black, indistinguishable from the modules
+    const rnd = xorshift(5), paper = plane(400, 300, (x, y) => (x >= 188 && x < 212 && y >= 138 && y < 163 ? 0 : 248 + Math.floor(rnd() * 8)));
+    const paperLut = contrastLut(paper), out = paperLut ? applyLut(paper, paperLut) : paper;
+    const inLabel = (i: number) => { const x = i % 400, y = Math.floor(i / 400); return x >= 188 && x < 212 && y >= 138 && y < 163; };
+    let darkestPaper = 255, lightestLabel = 0;
+    for (let i = 0; i < out.data.length; i++) { if (inLabel(i)) lightestLabel = Math.max(lightestLabel, out.data[i]!); else darkestPaper = Math.min(darkestPaper, out.data[i]!); }
+    expect([darkestPaper >= 200, lightestLabel]).toEqual([true, 0]);
     // one black pixel in a 64×64 narrow plane (0.02 %, under the tail) neither stops the stretch nor sets its low end
     const speckled = plane(64, 64, (x, y) => (x === 0 && y === 0 ? 0 : 100 + ((x * 7 + y * 3) % 50)));
     expect(contrastLut(speckled)![100]).toBeLessThanOrEqual(2);

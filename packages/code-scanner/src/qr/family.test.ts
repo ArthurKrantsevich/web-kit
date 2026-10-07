@@ -229,6 +229,24 @@ describe("qrFamily on rendered QR codes", () => {
     expect((hard.log as { decode?: string; level?: number; ok?: boolean }[]).filter((e) => e.decode === "qr").map((e) => [e.level, e.ok])).toEqual([[0, true]]);
   }, 20_000);
 
+  it("descends through every level of a large frame without a code under tryHarder, within the deadline, and reports nothing", () => {
+    // 3200×1800 of a text-like texture (start level 2 at 800×450): the descent reaches level 0 and finds nothing anywhere
+    const W = 3200, H = 1800, data = new Uint8Array(W * H);
+    let s = 17;
+    for (let k = 0; k < data.length; k++) {
+      const x = k % W, y = Math.floor(k / W);
+      s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0;
+      data[k] = y % 12 < 2 || x % 9 === 0 ? 40 + (s & 15) : 220 + (s & 31);
+    }
+    const frame = { width: W, height: H, data, format: "gray" } as const;
+    const t0 = performance.now();
+    expect([scan(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 1000 }), performance.now() - t0 < 1100]).toEqual([[], true]);
+    const ctx = new ScanContext(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 1000 });
+    ctx.pass = { id: "hybrid", inverted: false, flat: false };
+    expect([ctx.startLevel, qrFamily.locate(ctx)]).toEqual([2, []]);
+    expect((ctx.log as { level: number; finders: number }[]).filter((e) => e.finders !== undefined).map((e) => [e.level, e.finders])).toEqual([[2, 0], [1, 0], [0, 0]]);
+  }, 20_000);
+
   it("reports nothing on 500 generated images without codes", () => {
     let s = 11;
     const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
