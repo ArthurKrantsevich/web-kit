@@ -102,9 +102,7 @@ export class ScanContext {
    * lighting-corrected, so a `flat` request there shares the plain entry.
    */
   binarize(level: number, id: BinarizerId, inverted: boolean, flat: boolean, moduleHint: number = 5, lazy: boolean = level !== this.startLevel): LevelBinarization {
-    if (level === -1) flat = false;
-    const hint = id === "sauvola" || id === "wolf" ? Math.round(moduleHint) : 0;
-    const key = `${level}:${id}:${inverted}:${flat}:${lazy}:${hint}`;
+    const key = this.keyOf(level, id, inverted, flat, moduleHint, lazy);
     let b = this.cache.get(key);
     if (!b) {
       let gray = level === -1 ? this.upscaled() : this.plane(level, flat);
@@ -117,6 +115,16 @@ export class ScanContext {
       this.cache.set(key, b);
     }
     return b;
+  }
+
+  /** Whether `binarize` with these arguments would return a cached entry, so a caller near the deadline can tell a lookup from a computation. */
+  cached(level: number, id: BinarizerId, inverted: boolean, flat: boolean, moduleHint: number = 5, lazy: boolean = level !== this.startLevel): boolean {
+    return this.cache.has(this.keyOf(level, id, inverted, flat, moduleHint, lazy));
+  }
+
+  private keyOf(level: number, id: BinarizerId, inverted: boolean, flat: boolean, moduleHint: number, lazy: boolean): string {
+    const hint = id === "sauvola" || id === "wolf" ? Math.round(moduleHint) : 0;
+    return `${level}:${id}:${inverted}:${level !== -1 && flat}:${lazy}:${hint}`;
   }
 
   /** Quarter means more than 25 % of the range apart on the start level. */

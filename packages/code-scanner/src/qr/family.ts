@@ -13,37 +13,26 @@ export type QrCandidate = { kind: "triple"; triple: Triple } | { kind: "single";
 
 const SYMBOLOGY: Readonly<Record<MatrixResult["kind"], Symbology>> = { qr: "qr", micro: "micro-qr", rmqr: "rmqr" };
 
-interface Budget {
-  /** `level:id:inverted:flat` of the binarizations this decoder has asked the context for. */
-  seen: Set<string>;
-  /** The largest cost per pixel and unit of `CASCADE_COST` measured on a first-time sampling binarization (0 until one was). */
-  msPerCostPixel: number;
-}
-const budgets = new WeakMap<ScanContext, Budget>();
-const budgetOf = (ctx: ScanContext): Budget => { let b = budgets.get(ctx); if (!b) { b = { seen: new Set(), msPerCostPixel: 0 }; budgets.set(ctx, b); } return b; };
+/** Per context, the milliseconds per pixel and unit of `CASCADE_COST` of every sampling binarization computed on it. */
+const costs = new WeakMap<ScanContext, number[]>();
+const costsOf = (ctx: ScanContext): number[] => { let c = costs.get(ctx); if (!c) { c = []; costs.set(ctx, c); } return c; };
+const median = (xs: readonly number[]): number => { const s = [...xs].sort((a, b) => a - b), h = s.length >> 1; return s.length % 2 === 1 ? s[h]! : (s[h - 1]! + s[h]!) / 2; };
 const pixelsOf = (ctx: ScanContext, level: number): number => { const g = ctx.levels[Math.max(0, level)]!.gray; return g.width * g.height * (level === -1 ? 4 : 1); };
-const keyOf = (level: number, id: BinarizerId, inverted: boolean, flat: boolean): string => `${level}:${id}:${inverted}:${flat}`;
-
-/** The locator's binarization of a level, remembered so `decode` knows it is cached. */
-function binarizeForLocate(ctx: ScanContext, level: number): LevelBinarization {
-  budgetOf(ctx).seen.add(keyOf(level, ctx.pass.id, ctx.pass.inverted, ctx.pass.flat));
-  return ctx.binarize(level, ctx.pass.id, ctx.pass.inverted, ctx.pass.flat, 5, false);
-}
 
 /**
- * The sampling binarization of a level for this pass, or null when it would be the first of its kind and, by the costs
- * measured on this context (per pixel and per unit of the binarizer's `CASCADE_COST`), could not finish before the
- * deadline: the cascade's rule for passes (decision 25) applied to one candidate's plane, which on a large frame is
- * the one step the deadline cannot interrupt. A first-time binarization is timed; the first ever is not predicted,
- * like the cascade's first pass.
+ * The sampling binarization of a level for this pass, or null when the context has not computed it yet and, by the
+ * median cost measured on this context (per pixel and per unit of the binarizer's `CASCADE_COST`), it could not finish
+ * before the deadline: the cascade's rule for passes (decision 25) applied to one candidate's plane, which on a large
+ * frame is the one step the deadline cannot interrupt. A computation is timed; the first ever is not predicted, like
+ * the cascade's first pass.
  */
 function binarizeForSampling(ctx: ScanContext, level: number, id: BinarizerId, hint: number): LevelBinarization | null {
-  const b = budgetOf(ctx), key = keyOf(level, id, ctx.pass.inverted, ctx.pass.flat), work = pixelsOf(ctx, level) * CASCADE_COST[id];
-  if (b.seen.has(key)) return ctx.binarize(level, id, ctx.pass.inverted, ctx.pass.flat, hint);
-  if (performance.now() + b.msPerCostPixel * work > ctx.deadline) return null;
-  const t0 = performance.now(), bin = ctx.binarize(level, id, ctx.pass.inverted, ctx.pass.flat, hint);
-  b.seen.add(key);
-  b.msPerCostPixel = Math.max(b.msPerCostPixel, (performance.now() - t0) / work);
+  const { inverted, flat } = ctx.pass;
+  if (ctx.cached(level, id, inverted, flat, hint)) return ctx.binarize(level, id, inverted, flat, hint);
+  const measured = costsOf(ctx), work = pixelsOf(ctx, level) * CASCADE_COST[id];
+  if (measured.length > 0 && performance.now() + median(measured) * work > ctx.deadline) return null;
+  const t0 = performance.now(), bin = ctx.binarize(level, id, inverted, flat, hint);
+  measured.push((performance.now() - t0) / work);
   return bin;
 }
 
@@ -61,7 +50,7 @@ export const qrFamily: SymbologyDecoder = {
     const out: Candidate[] = [];
     for (const level of levels) {
       if (ctx.expired()) break;
-      const bin = binarizeForLocate(ctx, level);
+      const bin = ctx.binarize(level, ctx.pass.id, ctx.pass.inverted, ctx.pass.flat, 5, false);
       const patterns = findFinderPatterns(bin.plane, { tolerance: ctx.tryHarder ? 0.7 : 0.5, areaTolerance: ctx.tryHarder ? 0.6 : 0.4, totalTolerance: ctx.tryHarder ? 0.6 : 0.4 });
       // tryHarder with few finders: a third one squeezed by perspective may fail the run checks; predict it from each
       // pair and confirm it by its concentric rings (decision 26)

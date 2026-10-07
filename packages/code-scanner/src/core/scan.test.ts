@@ -58,6 +58,18 @@ describe("ScanContext", () => {
     expect(ctx.binarize(-1, "otsu", false, true)).toBe(ctx.binarize(-1, "otsu", false, false));
   });
 
+  it("answers whether a binarization is cached with the same key normalization binarize uses", () => {
+    const ctx = new ScanContext(gray(400, 400), { decoders: [] });
+    expect(ctx.cached(0, "hybrid", false, false)).toBe(false);
+    ctx.binarize(0, "hybrid", false, false, 5, false);
+    // the hint counts only for Sauvola and Wolf, and is rounded; level −1 is never flat; lazy defaults off the start level
+    expect([ctx.cached(0, "hybrid", false, false, 9), ctx.cached(0, "hybrid", true, false), ctx.cached(0, "hybrid", false, true), ctx.cached(0, "hybrid", false, false, 5, true)]).toEqual([true, false, false, false]);
+    ctx.binarize(0, "sauvola", false, false, 5, false);
+    expect([ctx.cached(0, "sauvola", false, false, 5.3), ctx.cached(0, "sauvola", false, false, 7)]).toEqual([true, false]);
+    ctx.binarize(-1, "wolf", false, false, 6);
+    expect([ctx.cached(-1, "wolf", false, true, 6), ctx.cached(-1, "wolf", false, true, 6, false)]).toEqual([true, false]);
+  });
+
   it("crops to the region of interest and remembers its offset", () => {
     const ctx = new ScanContext(gray(400, 300), { decoders: [], roi: { x: 100, y: 50, width: 200, height: 100 } });
     expect([ctx.levels[0]!.gray.width, ctx.levels[0]!.gray.height, ctx.offset]).toEqual([200, 100, [100, 50]]);
