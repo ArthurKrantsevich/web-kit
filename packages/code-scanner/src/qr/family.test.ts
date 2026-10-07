@@ -188,6 +188,25 @@ describe("qrFamily on rendered QR codes", () => {
     expect(times[3]).toBeLessThan(80);
   }, 20_000);
 
+  it("samples a large frame on the coarsest level with modules of 2.5 px or more, and falls back to the next finer level when that fails", () => {
+    // 1920×1080 starts at level 1 (960×540): 6 px modules are 3 px there; blurred and damaged, the level-1 grid misreads and level 0 reads
+    const text = "https://example.com/fallback", r = rasterize(qr(text, 4), { module: 6, width: 1920, height: 1080 });
+    const ctx = new ScanContext(asImage(damage(blur(r, 1.2), r.corners, 0.06, 11)), options());
+    expect(ctx.startLevel).toBe(1);
+    ctx.pass = { id: "hybrid", inverted: false, flat: false };
+    const candidates = qrFamily.locate(ctx);
+    expect(candidates.length).toBeGreaterThanOrEqual(1);
+    expect(qrFamily.decode(ctx, candidates[0]!)?.text).toBe(text);
+    const decodes = ctx.log.filter((e) => (e as { decode?: string }).decode === "qr") as { level: number; ok: boolean }[];
+    expect(decodes.some((e) => e.level === 1 && !e.ok)).toBe(true);
+    expect(decodes.filter((e) => e.ok).map((e) => e.level)).toEqual([0]);
+    // the clean frame reads on level 1 alone
+    const clean = new ScanContext(asImage(r), options());
+    clean.pass = { id: "hybrid", inverted: false, flat: false };
+    expect(qrFamily.decode(clean, qrFamily.locate(clean)[0]!)?.text).toBe(text);
+    expect((clean.log.filter((e) => (e as { decode?: string }).decode === "qr") as { level: number; ok: boolean }[]).map((e) => [e.level, e.ok])).toEqual([[1, true]]);
+  });
+
   it("reports nothing on 500 generated images without codes", () => {
     let s = 11;
     const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };

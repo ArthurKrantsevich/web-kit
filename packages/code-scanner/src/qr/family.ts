@@ -39,7 +39,8 @@ function binarizeForSampling(ctx: ScanContext, level: number, id: BinarizerId, h
 /**
  * The QR family: QR Code through finder triples, Micro QR and rMQR through a single finder. `locate` works on the
  * start level (and, with tryHarder on a small image, the ×2 upscaled plane: decision 12); `decode` samples on the
- * finest level where the module is at least 2.5 px (the upscaled plane under that with tryHarder).
+ * coarsest level where the module is at least 2.5 px (the upscaled plane under that with tryHarder), then the next
+ * finer level once when that fails.
  */
 export const qrFamily: SymbologyDecoder = {
   id: "qr-family",
@@ -90,7 +91,7 @@ export const qrFamily: SymbologyDecoder = {
     let level = candidate.level;
     while (level > 0 && candidate.module * scaleAt(level) < 2.5) level--;
     if (level === 0 && candidate.module * scaleAt(0) < 2.5 && ctx.tryHarder) level = -1;
-    return decodeAt(ctx, candidate, level, scaleAt(level)) ?? (level > 0 ? decodeAt(ctx, candidate, level - 1, scaleAt(level - 1)) : null);
+    return decodeAt(ctx, candidate, level, scaleAt(level)) ?? (level > 0 && !ctx.expired() ? decodeAt(ctx, candidate, level - 1, scaleAt(level - 1)) : null);
   },
 };
 
@@ -111,7 +112,7 @@ function decodeAt(ctx: ScanContext, candidate: Candidate, level: number, k: numb
       const grid = sampleGrid(bin.gray, bin, mapping.map, dim, dim);
       if (!grid) continue;
       const r = decodeQrMatrix(new BitMatrix(dim, dim, grid.bits), grid.confidence);
-      ctx.log.push({ decode: "qr", dim, ok: r !== null, alignments: mapping.alignments, sampled: bin.id });
+      ctx.log.push({ decode: "qr", dim, ok: r !== null, alignments: mapping.alignments, sampled: bin.id, level });
       if (r) return finish(ctx, r, mapping.map, dim, dim, bin.scale, grid, false);
     }
     return null;
@@ -122,7 +123,7 @@ function decodeAt(ctx: ScanContext, candidate: Candidate, level: number, k: numb
   if (!grid) return null;
   const matrix = new BitMatrix(single.width, single.height, grid.bits);
   const r = single.kind === "micro" ? decodeMicroMatrix(matrix, grid.confidence) : decodeRmqrMatrix(matrix, grid.confidence);
-  ctx.log.push({ decode: single.kind, width: single.width, height: single.height, ok: r !== null, sampled: bin.id });
+  ctx.log.push({ decode: single.kind, width: single.width, height: single.height, ok: r !== null, sampled: bin.id, level });
   return r ? finish(ctx, r, single.map, single.width, single.height, bin.scale, grid, single.mirrored) : null;
 }
 
