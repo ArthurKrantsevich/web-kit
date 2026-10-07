@@ -111,6 +111,28 @@ test("from 320 to 1920 px the scanner never scrolls sideways and keeps its contr
   expect(problems).toEqual([]);
 });
 
+test("at 390 px the long status line of a Try harder scan stays one line inside the pane, gives way with an ellipsis, and says it all in its title", async ({ page }) => {
+  await open(page, 390, 844);
+  const status = page.locator(".wk-ui-status"), summary = page.locator(".wk-scanner__summary");
+  const height = (await status.boundingBox())!.height;
+  await page.getByRole("switch", { name: "Try harder" }).click();
+  // exact: the empty state's "Try the sample" button also matches
+  await page.getByRole("button", { name: "Sample", exact: true }).click();
+  await expect(summary).toHaveText(/^QR Code · 33×33 · corrected 0 of \d+ · Try harder on · \d+ ms$/);
+  const report = await summary.evaluate((node) => {
+    const line = node.closest(".wk-ui-status")!.getBoundingClientRect(), own = node.getBoundingClientRect();
+    // the element whose text overflows is the one that must draw the ellipsis: text-overflow works on a block container
+    // with hidden overflow and one line, and not on the flex box that carries the state's dot
+    const clipped = [node, ...node.querySelectorAll("*")].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => {
+      const s = getComputedStyle(el);
+      return [s.display, s.overflowX, s.whiteSpace, s.textOverflow].join(" ");
+    });
+    return { inside: own.left >= line.left - 1 && own.right <= line.right + 1, clipped, title: node.getAttribute("title") === node.textContent };
+  });
+  expect(report).toEqual({ inside: true, clipped: ["block hidden nowrap ellipsis"], title: true });
+  expect((await status.boundingBox())!.height).toBe(height);
+});
+
 test("a share link carries the switches only, and the saved input never holds an image or a result", async ({ page, context }) => {
   await open(page);
   await upload(page, "ticket.png", qrPng("private"));

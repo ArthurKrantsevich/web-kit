@@ -138,7 +138,7 @@ export function CodeScanner(props: CodeScannerProps): ReactElement {
     <div className={["wk-scanner", props.className].filter(Boolean).join(" ")}>
       <EditorShell toolbar={toolbar} status={
         <StatusLine state={status.state === "error" || notice ? "error" : status.state === "found" ? "valid" : "idle"}>
-          <span className="wk-scanner__summary" title={summary}>{summary}</span>
+          <span className="wk-scanner__summary" title={summary}><span className="wk-scanner__summary-text">{summary}</span></span>
           <span className="wk-ui-sr-only" role="status">{heard}</span>
         </StatusLine>
       }>

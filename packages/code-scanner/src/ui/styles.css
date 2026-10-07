@@ -97,7 +97,15 @@
 .wk-scanner__more {
   justify-self: start;
 }
+/* The status line is one line at every width: the summary gives way with an ellipsis, and its title says it all. The
+   text sits in a block of its own because the shared status rule makes the summary a flex box for the state's dot, and
+   text-overflow draws nothing on a flex box: the text would be cut at the pane's edge instead. */
 .wk-scanner__summary {
+  min-width: 0;
+}
+.wk-scanner__summary-text {
+  display: block;
+  min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
