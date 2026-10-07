@@ -1,4 +1,24 @@
 "use client";
 
 export * from "./core/index";
-export { CodeScanner, useCodeScanner, type UseCodeScanner } from "./ui/Component";
+export {
+  DEFAULT_SETTINGS,
+  describeScan,
+  resultsCsv,
+  resultsJson,
+  resultsText,
+  SYMBOLOGIES,
+  SYMBOLOGY_LABELS,
+  useCodeScanner,
+  type ScanEntry,
+  type ScannerSettings,
+  type ScanSource,
+  type ScanStatus,
+  type UseCodeScanner,
+  type UseCodeScannerOptions,
+} from "./ui/useCodeScanner";
+export { IMAGE_ACCEPT, ImageReadError, MAX_IMAGE_BYTES, MAX_IMAGE_PIXELS, readClipboardImage, readImageFile } from "./ui/image";
+export { SAMPLE_QR, sampleImage } from "./ui/samples";
+export { CodeScanner, type CodeScannerProps } from "./ui/CodeScanner";
+export { createScanJobRunner, createScanWorker, ScanWorkerError, type ScanJobRunner, type ScanOutcome, type ScanWorkerFailure, type WorkerLike } from "./worker-client";
+export { decodersFor, type ScanJob, type ScanRequest, type ScanResponse } from "./job";

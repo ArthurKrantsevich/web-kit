@@ -9,4 +9,3 @@ export { sampleGrid, SoftGrid } from "./sample";
 export { CASCADE, ScanContext, type Level, type LevelBinarization } from "./context";
 export { confidenceOf, geometryOf, iou, scan } from "./scan";
 export { charsetOf, decodeBytes, ECI_CHARSETS } from "./text";
-export { codeScanner, type Result } from "./placeholder";
