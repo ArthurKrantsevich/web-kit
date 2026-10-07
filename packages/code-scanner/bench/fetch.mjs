@@ -3,7 +3,7 @@
 // Usage: pnpm --filter @web-kit/code-scanner bench:fetch
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,7 +30,7 @@ if (sha256 !== lock.sha256) {
 writeFileSync(zip, bytes);
 rmSync(target, { recursive: true, force: true });
 execFileSync("unzip", ["-q", "-o", zip, `${lock.root}/${lock.path}/*`, "-d", out], { stdio: "inherit" });
-execFileSync("mv", [join(out, lock.root, lock.path), target]);
+renameSync(join(out, lock.root, lock.path), target);
 rmSync(join(out, lock.root), { recursive: true, force: true });
 rmSync(zip);
 console.log(`corpus extracted to ${target}`);

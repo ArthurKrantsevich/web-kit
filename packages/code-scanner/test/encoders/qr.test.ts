@@ -87,7 +87,7 @@ describe("the encoder against zxing-cpp's writer", () => {
     ];
     for (const { segments, text, check } of cases) {
       const enc = encodeSymbol("qr", 3, "M", [...segments])!;
-      const read = await zx.read(rgbaFromMatrix(enc.matrix, 4, 4));
+      const read = await zx.read(rgbaFromMatrix(enc.matrix, 4, 4), { textMode: "HRI" }); // HRI: GS1 AIs in parentheses
       expect([segments[0].mode, read.length, read[0]?.text, read[0] ? check(read[0]) : null]).toEqual([segments[0].mode, 1, text, true]);
       const ours = decodeQrMatrix(enc.matrix)!;
       expect(ours.text.replace(/\u001d/g, "")).toBe(segments[0].mode === "fnc1-first" ? "0104912345678904" : text);

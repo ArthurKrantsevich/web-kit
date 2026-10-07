@@ -1,16 +1,27 @@
 // zxing-wasm (zxing-cpp) in Node, for cross-checks and the benchmark: the wasm file is read from node_modules.
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { prepareZXingModule, readBarcodes, writeBarcode, type BarcodeSymbol, type ReadInputBarcodeFormat, type ReadResult, type WriteInputBarcodeFormat } from "zxing-wasm/full";
+import { prepareZXingModule, readBarcodes, writeBarcode, type BarcodeSymbol, type ReadInputBarcodeFormat, type ReadResult, type TextMode, type WriteInputBarcodeFormat } from "zxing-wasm/full";
 import type { ScanImage } from "../src/core/types";
 import { BitMatrix } from "../src/qr/layout";
 
 let prepared = false;
 
+/** zxing-cpp at full effort: the same for every read, so the benchmark's rival is never handicapped. */
+export const RIVAL_OPTIONS = { tryHarder: true, tryInvert: true, tryRotate: true, tryDenoise: true } as const;
+
+export interface ReadOptions {
+  formats?: ReadInputBarcodeFormat[];
+  /** How many codes to return; 1 is the rival's counterpart of our `multiple: false`. Default 255 (all). */
+  maxSymbols?: number;
+  /** Default "Plain": the decoded text itself. "HRI" renders control characters as `<GS>` and GS1 AIs in parentheses. */
+  textMode?: TextMode;
+}
+
 export interface Zxing {
   /** The module matrix zxing-cpp writes for a text (null when it cannot, e.g. the text does not fit the version). */
   write(text: string, format: WriteInputBarcodeFormat, options?: string): Promise<BitMatrix | null>;
-  read(image: ScanImage, formats?: ReadInputBarcodeFormat[]): Promise<ReadResult[]>;
+  read(image: ScanImage, options?: ReadOptions): Promise<ReadResult[]>;
 }
 
 export async function zxing(): Promise<Zxing> {
@@ -25,9 +36,9 @@ export async function zxing(): Promise<Zxing> {
       const result = await writeBarcode(text, { format, options, addQuietZones: false, scale: 1 });
       return result.error ? null : matrixFromSymbol(result.symbol);
     },
-    async read(image, formats = ["QRCode"]) {
+    async read(image, { formats = ["QRCode"], maxSymbols = 255, textMode = "Plain" }: ReadOptions = {}) {
       if (image.format !== "rgba") throw new Error("zxing-wasm reads RGBA");
-      return readBarcodes({ data: image.data as Uint8ClampedArray<ArrayBuffer>, width: image.width, height: image.height, colorSpace: "srgb" }, { formats, tryHarder: true, tryInvert: true, tryRotate: true });
+      return readBarcodes({ data: image.data as Uint8ClampedArray<ArrayBuffer>, width: image.width, height: image.height, colorSpace: "srgb" }, { ...RIVAL_OPTIONS, formats, maxNumberOfSymbols: maxSymbols, textMode });
     },
   };
 }
