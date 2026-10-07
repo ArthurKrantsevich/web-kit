@@ -33,9 +33,9 @@ const qrImage = (text: string): ScanImage => asImage(rasterize(encodeSymbol("qr"
 function fakeRunner() {
   const jobs: { job: ScanJob; resolve: (o: ScanOutcome) => void; reject: (e: Error) => void }[] = [];
   const runner: ScanJobRunner = { run: (job) => new Promise((resolve, reject) => jobs.push({ job, resolve, reject })), cancel: () => {}, dispose: () => {} };
-  const finish = async () => {
-    const { job, resolve } = jobs.at(-1)!;
-    // The page's job carries no deadline; scan's 40 ms default is for camera frames and is flaky under full-suite load.
+  /** Answers a job (the newest by default) with a real scan; the page's 500 ms deadline is lifted, since a loaded test machine may be slower. */
+  const finish = async (index = jobs.length - 1) => {
+    const { job, resolve } = jobs[index]!;
     await act(async () => answerScanJob({ id: 1, job: { ...job, deadlineMs: 5000 } }, (r) => { if ("results" in r) resolve({ results: r.results, ms: r.ms }); }));
   };
   return { runner, jobs, finish };
@@ -58,7 +58,7 @@ describe("CodeScanner", () => {
     expect(screen.getByText("Open an image with a code")).toBeTruthy();
     drop(file("a.png"));
     await waitFor(() => expect(jobs).toHaveLength(1));
-    expect(jobs[0]!.job.symbologies).toEqual(["qr", "micro-qr", "rmqr"]);
+    expect([jobs[0]!.job.symbologies, jobs[0]!.job.deadlineMs]).toEqual([["qr", "micro-qr", "rmqr"], 500]);
     expect(status()).toBe("Scanning…");
     await finish();
     expect(entries()).toHaveLength(1);
@@ -104,6 +104,43 @@ describe("CodeScanner", () => {
     expect(entries()).toHaveLength(0);
     expect(screen.getByText("Open an image with a code")).toBeTruthy();
     expect(screen.queryByAltText("blank.png")).toBeNull();
+  });
+
+  it("lets the newest image win: an older scan's answer adds nothing, and nothing arrives after Clear", async () => {
+    const { runner, jobs, finish } = fakeRunner();
+    render(<CodeScanner createRunner={() => runner} readImage={reader({ "a.png": qrImage("A"), "b.png": qrImage("B") })} />);
+    drop(file("a.png"));
+    await waitFor(() => expect(jobs).toHaveLength(1));
+    drop(file("b.png"));
+    await waitFor(() => expect(jobs).toHaveLength(2));
+    await finish(0);
+    expect(entries()).toHaveLength(0);
+    expect(status()).toBe("Scanning…");
+    await finish(1);
+    expect(entries()).toHaveLength(1);
+    expect(within(entries()[0]!).getByText("B")).toBeTruthy();
+    drop(file("a.png"));
+    await waitFor(() => expect(jobs).toHaveLength(3));
+    fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+    await finish(2);
+    expect(entries()).toHaveLength(0);
+    expect(status()).toBe("Open an image, paste one or try the sample");
+    expect(document.querySelector(".wk-scanner__stage")!.getAttribute("aria-busy")).toBe("false");
+  });
+
+  it("keeps scanning the image already read when a later file is refused, and lists its result", async () => {
+    const { runner, jobs, finish } = fakeRunner();
+    render(<CodeScanner createRunner={() => runner} readImage={reader({ "a.png": qrImage("A") })} />);
+    drop(file("a.png"));
+    await waitFor(() => expect(jobs).toHaveLength(1));
+    drop(file("notes.png"));
+    await waitFor(() => expect(status()).toBe("notes.png is not an image"));
+    expect(document.querySelector(".wk-scanner__stage")!.getAttribute("aria-busy")).toBe("true");
+    await finish();
+    expect(entries()).toHaveLength(1);
+    expect(within(entries()[0]!).getByText("A")).toBeTruthy();
+    expect(document.querySelector(".wk-scanner__stage")!.getAttribute("aria-busy")).toBe("false");
+    expect(screen.getByAltText("a.png")).toBeTruthy();
   });
 
   it("refuses a file that is not an image, one over 25 MB and one over 50 Mpx, and says when the clipboard holds no image", async () => {
@@ -155,7 +192,8 @@ describe("CodeScanner", () => {
   it("restores Try harder and Multiple codes from a link, ignores other fields, and never puts results or images into the link, storage or the console", async () => {
     history.replaceState(null, "", `/tools/code-scanner/#code-scanner=${await compressText(JSON.stringify({ v: 1, state: { tryHarder: true, multiple: "yes", results: [{ text: "smuggled" }], image: "data:x" } }))}`);
     const { runner, jobs, finish } = fakeRunner();
-    const log = vi.spyOn(console, "log"), error = vi.spyOn(console, "error");
+    const methods = ["log", "info", "warn", "error", "debug", "trace", "dir", "table"] as const;
+    const spies = methods.map((method) => vi.spyOn(console, method));
     render(<CodeScanner createRunner={() => runner} readImage={reader({ "a.png": qrImage("secret") })} />);
     await waitFor(() => expect((screen.getByRole("switch", { name: "Try harder" }) as HTMLInputElement).checked).toBe(true));
     expect((screen.getByRole("switch", { name: "Multiple codes" }) as HTMLInputElement).checked).toBe(false);
@@ -169,6 +207,6 @@ describe("CodeScanner", () => {
     await waitFor(() => expect(Object.keys(localStorage).some((k) => k.startsWith("wk:code-scanner"))).toBe(true));
     const stored = Object.keys(localStorage).map((k) => localStorage.getItem(k) ?? "").join("\n");
     expect([stored.includes("secret"), stored.includes("blob:"), location.hash.includes("secret")]).toEqual([false, false, false]);
-    expect([log.mock.calls, error.mock.calls]).toEqual([[], []]);
+    expect(spies.map((spy) => spy.mock.calls)).toEqual(methods.map(() => []));
   });
 });

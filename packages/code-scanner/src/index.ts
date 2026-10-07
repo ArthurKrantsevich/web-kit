@@ -4,6 +4,7 @@ export * from "./core/index";
 export {
   DEFAULT_SETTINGS,
   describeScan,
+  IMAGE_DEADLINE_MS,
   resultsCsv,
   resultsJson,
   resultsText,

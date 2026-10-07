@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScanImage, ScanResult, Symbology } from "../core/types";
 import { createScanJobRunner, ScanWorkerError, type ScanJobRunner } from "../worker-client";
-import { ImageReadError, MAX_IMAGE_BYTES, readImageFile } from "./image";
+import { MAX_IMAGE_BYTES, readImageFile } from "./image";
 import { sampleImage, SAMPLE_QR } from "./samples";
 
 /** What a share link carries and "Save input" keeps: the two switches, never an image or a result. */
@@ -88,13 +88,22 @@ export function resultsJson(entries: readonly ScanEntry[]): string {
     2,
   );
 }
-const csvCell = (v: string): string => (/[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+/**
+ * One CSV cell: a text a spreadsheet would run as a formula (one starting with =, +, -, @, a tab or a CR) gets a
+ * leading apostrophe, and a text with a quote, a comma or a line break is quoted.
+ */
+const csvCell = (text: string): string => {
+  const v = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+};
 export function resultsCsv(entries: readonly ScanEntry[]): string {
   return ["symbology,text,bytes,time,confidence", ...entries.map(({ result: r, time }) => [r.symbology, csvCell(r.text), hex(r.bytes), time.toISOString(), r.confidence.toFixed(3)].join(","))].join("\n") + "\n";
 }
 export const resultsText = (entries: readonly ScanEntry[]): string => entries.map((e) => e.result.text).join("\n");
 
 const IDLE_TEXT = "Open an image, paste one or try the sample";
+/** A still image may take this long in either mode (spec §6: 40 ms is the camera frame's budget, 500 ms a photo's). */
+export const IMAGE_DEADLINE_MS = 500;
 
 /** The scanner's state without markup: one image at a time, scanned in the worker, results folded by symbology and bytes. */
 export function useCodeScanner(options: UseCodeScannerOptions = {}): UseCodeScanner {
@@ -106,12 +115,22 @@ export function useCodeScanner(options: UseCodeScannerOptions = {}): UseCodeScan
   const [notice, setNotice] = useState("");
   const runner = useRef<ScanJobRunner | null>(null);
   const image = useRef<ScanImage | null>(null);
+  /** The scan whose answer counts: a newer scan, or Clear, supersedes it. */
   const scanId = useRef(0);
+  /** The file read whose pixels count: a newer open, the sample or Clear supersedes it; a scan does not. */
+  const openId = useRef(0);
+  const mounted = useRef(true);
   // The options are read through a ref, so the callbacks below stay the same across renders however they are passed.
   const latest = useRef({ settings, options });
   latest.current = { settings, options };
 
-  useEffect(() => () => runner.current?.dispose(), []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      runner.current?.dispose();
+    };
+  }, []);
   const url = source?.url ?? null;
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
@@ -122,7 +141,7 @@ export function useCodeScanner(options: UseCodeScannerOptions = {}): UseCodeScan
     setStatus({ state: "scanning", text: "Scanning…" });
     // the worker takes the buffer: keep a copy for a rescan
     const copy = img.data.slice();
-    runner.current.run({ image: { ...img, data: copy }, symbologies: [...SYMBOLOGIES], tryHarder, multiple }).then(
+    runner.current.run({ image: { ...img, data: copy }, symbologies: [...SYMBOLOGIES], tryHarder, multiple, deadlineMs: IMAGE_DEADLINE_MS }).then(
       ({ results, ms }) => {
         if (id !== scanId.current) return;
         setBusy(false);
@@ -150,23 +169,25 @@ export function useCodeScanner(options: UseCodeScannerOptions = {}): UseCodeScan
   const openFile = useCallback((file: File) => {
     setNotice("");
     if (file.size > MAX_IMAGE_BYTES) { setNotice(`File is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB`); return; }
-    const id = ++scanId.current;
+    // The running scan goes on until this file's pixels arrive: a refused file leaves it, and its answer, alone.
+    const id = ++openId.current;
     (latest.current.options.readImage ?? readImageFile)(file).then(
       (img) => {
-        if (id !== scanId.current) return;
+        if (!mounted.current || id !== openId.current) return;
         image.current = img;
         setSource({ name: file.name, url: URL.createObjectURL(file), width: img.width, height: img.height });
         scanImage(img, latest.current.settings.tryHarder, latest.current.settings.multiple);
       },
       (failure: unknown) => {
-        if (id !== scanId.current) return;
-        setNotice(failure instanceof ImageReadError || failure instanceof Error ? failure.message : `${file.name} could not be read`);
+        if (!mounted.current || id !== openId.current) return;
+        setNotice(failure instanceof Error ? failure.message : `${file.name} could not be read`);
       },
     );
   }, [scanImage]);
 
   const openSample = useCallback(() => {
     setNotice("");
+    openId.current++;
     const img = sampleImage();
     image.current = img;
     setSource({ name: `Sample: ${SAMPLE_QR.text}`, url: null, width: img.width, height: img.height });
@@ -186,6 +207,7 @@ export function useCodeScanner(options: UseCodeScannerOptions = {}): UseCodeScan
 
   const clear = useCallback(() => {
     scanId.current++;
+    openId.current++;
     runner.current?.cancel();
     image.current = null;
     setSource(null);

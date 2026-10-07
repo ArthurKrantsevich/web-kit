@@ -52,9 +52,10 @@ export async function readImageFile(file: File): Promise<ScanImage> {
         element.onerror = () => reject(new ImageReadError("decode", `${file.name} could not be read as an image`));
         element.src = url;
       });
-      const natural = Math.max(img.naturalWidth || 0, img.naturalHeight || 0) || SVG_RASTER_SIZE;
-      const scale = Math.max(SVG_RASTER_SIZE, natural) / Math.max(1, Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
-      const width = Math.max(1, Math.round((img.naturalWidth || SVG_RASTER_SIZE) * scale)), height = Math.max(1, Math.round((img.naturalHeight || SVG_RASTER_SIZE) * scale));
+      // An SVG without an intrinsic size (a viewBox only: Firefox reports 0 × 0) is taken as 1024 px square.
+      const nw = img.naturalWidth || SVG_RASTER_SIZE, nh = img.naturalHeight || SVG_RASTER_SIZE;
+      const scale = Math.max(SVG_RASTER_SIZE, nw, nh) / Math.max(nw, nh);
+      const width = Math.max(1, Math.round(nw * scale)), height = Math.max(1, Math.round(nh * scale));
       if (width * height > MAX_IMAGE_PIXELS) throw new ImageReadError("pixels", `${file.name} has ${pixelsOf(width, height)}; images up to ${MAX_IMAGE_PIXELS / 1e6} Mpx can be scanned`);
       return pixelsFrom(img, width, height);
     } finally {
@@ -75,7 +76,10 @@ export async function readImageFile(file: File): Promise<ScanImage> {
   }
 }
 
-/** The first image on the clipboard as a File, or null when there is none (or the clipboard cannot be read). */
+/**
+ * The first image on the clipboard as a File, or null when the clipboard holds no image or this browser cannot read
+ * the clipboard at all. A denied permission rejects, as `navigator.clipboard.read()` does.
+ */
 export async function readClipboardImage(): Promise<File | null> {
   if (typeof navigator === "undefined" || typeof navigator.clipboard?.read !== "function") return null;
   const items = await navigator.clipboard.read();
