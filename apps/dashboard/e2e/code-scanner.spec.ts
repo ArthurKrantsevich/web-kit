@@ -10,6 +10,8 @@ const sheetPng = (): Buffer => {
   const b = rasterize(encodeSymbol("qr", 3, "Q", segmentsFor("right label"))!.matrix, { module: 5 });
   return Buffer.from(encodePng(compose(700, 320, [{ plane: a, x: 20, y: 40 }, { plane: b, x: 380, y: 20 }])));
 };
+/** A white image without a code. */
+const blankPng = (): Buffer => Buffer.from(encodePng(compose(240, 180, [])));
 type Boxes = Record<string, number[]>;
 
 async function open(page: Page, width = 1280, height = 900): Promise<void> {
@@ -87,6 +89,18 @@ for (const [width, height] of [[1280, 800], [390, 844]] as const) {
     await upload(page, "ticket.png", qrPng("steady"));
     await expect(page.locator(".wk-scanner__entry")).toHaveCount(1);
     expectSame(before, await boxes(page), "after a scan");
+    // the first result sits at the top of the results pane's body, and a scan without a code (its note appears as a
+    // bar at the bottom of the body) leaves the result where it was and uncovered
+    const rect = (selector: string) => page.locator(selector).evaluate((el) => { const b = el.getBoundingClientRect(); return [b.x, b.y, b.width, b.height, b.bottom].map((v) => Math.round(v)); });
+    const entryBefore = await rect(".wk-scanner__entry"), body = await rect(".wk-scanner__results");
+    expect([entryBefore[1], body[1]]).toEqual([body[1], body[1]]);
+    await upload(page, "blank.png", blankPng());
+    await expect(page.locator(".wk-scanner__summary")).toHaveText(/^No code found/);
+    await expect(page.locator(".wk-scanner__note")).toBeVisible();
+    expect(await rect(".wk-scanner__entry")).toEqual(entryBefore);
+    expectSame(before, await boxes(page), "after a scan without a code");
+    const note = await rect(".wk-scanner__note");
+    expect([note[4], note[1] >= entryBefore[4]]).toEqual([body[4], true]);
     await page.getByRole("button", { name: "Clear" }).click();
     await expect(page.locator(".wk-scanner__entry")).toHaveCount(0);
     expectSame(before, await boxes(page), "after Clear");

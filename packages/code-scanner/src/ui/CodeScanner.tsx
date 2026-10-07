@@ -188,11 +188,11 @@ export function CodeScanner(props: CodeScannerProps): ReactElement {
                 </EmptyState>
               ) : (
                 <>
-                  {/* The note keeps its line above the list in every state, so a scan without a code moves no entry. */}
+                  <ul className="wk-scanner__list" aria-label="Results">{entries.map(entry)}</ul>
+                  {/* The note is a bar at the bottom of the body, out of flow (styles.css): a scan without a code moves no entry. */}
                   <p className="wk-scanner__note" data-hidden={status.state !== "none"} aria-hidden={status.state !== "none" || undefined}>
                     {NO_CODE}
                   </p>
-                  <ul className="wk-scanner__list" aria-label="Results">{entries.map(entry)}</ul>
                 </>
               )}
             </div>

@@ -2,6 +2,8 @@
    built into the start of this file. Colors come from @web-kit/tokens when present. */
 .wk-scanner {
   --wk-editor-height: var(--wk-scanner-height, max(420px, 70vh));
+  /* the height of the "No code found" bar at the bottom of the results, which the list leaves free */
+  --wk-scanner-note-height: 2.5rem;
 }
 /* Sample, Clear and More actions wrap as one group, never apart. */
 .wk-scanner__actions {
@@ -27,29 +29,44 @@
   object-fit: contain;
   background: #fff;
 }
+/* The results body holds the list, which scrolls, and the note of a scan without a code: a bar at the body's bottom,
+   out of flow, so showing it moves no entry; the list leaves the bar's height free at its end, so it covers no entry. */
 .wk-scanner__results {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
+}
+.wk-scanner__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 var(--wk-scanner-note-height);
+  list-style: none;
   overflow: auto;
 }
-/* The note's line is always there above the list; its text shows only after a scan without a code. */
+/* One line, vertically centred by its line height (a block, not a flex box: text-overflow draws nothing on a flex box). */
 .wk-scanner__note {
+  position: absolute;
+  inset: auto 0 0 0;
+  box-sizing: border-box;
+  height: var(--wk-scanner-note-height);
   margin: 0;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+  padding: 0 16px;
+  border-top: 1px solid var(--wk-border, rgba(31, 30, 29, 0.15));
+  background: var(--wk-surface, #ffffff);
   color: var(--wk-muted, #5e5d59);
   font-size: 0.8125rem;
+  line-height: calc(var(--wk-scanner-note-height) - 1px);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .wk-scanner__note[data-hidden="true"] {
   visibility: hidden;
-}
-.wk-scanner__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  opacity: 0;
 }
 .wk-scanner__entry {
   display: grid;
