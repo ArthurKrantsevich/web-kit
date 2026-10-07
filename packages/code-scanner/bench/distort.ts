@@ -15,7 +15,7 @@ export interface RasterOptions {
   module?: number;
   /** Quiet zone in modules. */
   quiet?: number;
-  /** Degrees, counter-clockwise on screen. */
+  /** Degrees, clockwise on screen (y points down), the same sense as `ScanResult.orientation`. */
   rotate?: number;
   /** 0…1: how much the right edge is shortened (a vertical axis tilted away from the camera). */
   tilt?: number;
@@ -103,7 +103,10 @@ export function invert(plane: GrayPlane): GrayPlane {
   return { ...plane, data: out };
 }
 
-/** The image wrapped on a vertical cylinder of radius `radius` px, seen orthographically: x' = R·sin(x/R) about the centre. */
+/**
+ * The image wrapped on a vertical cylinder of radius `radius` px, seen orthographically: x' = R·sin(x/R) about the centre;
+ * columns farther than the radius from the centre are white. A warp, so a Raster's corners are not carried over.
+ */
 export function cylinder(plane: GrayPlane, radius: number): GrayPlane {
   const w = plane.width, h = plane.height, out = new Uint8Array(w * h).fill(255), cx = w / 2;
   for (let y = 0; y < h; y++) {
@@ -113,27 +116,41 @@ export function cylinder(plane: GrayPlane, radius: number): GrayPlane {
       out[y * w + x] = clamp(bilinear(plane, radius * Math.asin(xo / radius) + cx, y + 0.5));
     }
   }
-  return { ...plane, data: out };
+  return { width: w, height: h, data: out };
 }
 
-/** Covers `share` of the symbol's bounding box with light and dark blotches (seeded). */
+/**
+ * Covers `share` of the symbol's bounding box with light and dark blotches (seeded). Coverage counts each painted pixel
+ * once, so it reaches `share` of the box exactly, give or take the last blotch. Blotches stop after 100 000 in any case
+ * (a box mostly outside the plane could never reach its share).
+ */
 export function damage(plane: GrayPlane, corners: readonly Point[], share: number, seed: number = 3): GrayPlane {
-  const rnd = xorshift(seed), out = new Uint8Array(plane.data);
+  const rnd = xorshift(seed), out = new Uint8Array(plane.data), painted = new Uint8Array(plane.data.length);
   const xs = corners.map((c) => c[0]), ys = corners.map((c) => c[1]);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), area = (x1 - x0) * (y1 - y0);
   let covered = 0;
-  while (covered < area * share) {
+  for (let blotches = 0; covered < area * share && blotches < 100_000; blotches++) {
     const r = 4 + rnd() * Math.sqrt(area) * 0.08, px = x0 + rnd() * (x1 - x0), py = y0 + rnd() * (y1 - y0), v = rnd() < 0.5 ? 0 : 255;
-    for (let y = Math.max(0, Math.floor(py - r)); y < Math.min(plane.height, py + r); y++) for (let x = Math.max(0, Math.floor(px - r)); x < Math.min(plane.width, px + r); x++) if (Math.hypot(x - px, y - py) <= r) out[y * plane.width + x] = v;
-    covered += Math.PI * r * r;
+    for (let y = Math.max(0, Math.floor(py - r)); y < Math.min(plane.height, py + r); y++) {
+      for (let x = Math.max(0, Math.floor(px - r)); x < Math.min(plane.width, px + r); x++) {
+        if (Math.hypot(x - px, y - py) > r) continue;
+        const i = y * plane.width + x;
+        out[i] = v;
+        if (!painted[i]) { painted[i] = 1; covered++; }
+      }
+    }
   }
   return { ...plane, data: out };
 }
 
-/** Several planes on one white canvas (a sheet of labels): darkest wins, or an `opaque` piece covers what is under it. */
+/**
+ * Several planes on one white canvas (a sheet of labels): darkest wins, or an `opaque` piece covers what is under it.
+ * Offsets are rounded to whole pixels.
+ */
 export function compose(width: number, height: number, pieces: readonly { plane: GrayPlane; x: number; y: number; opaque?: boolean }[]): GrayPlane {
   const data = new Uint8Array(width * height).fill(255);
-  for (const { plane, x: ox, y: oy, opaque = false } of pieces) {
+  for (const { plane, x, y: y0, opaque = false } of pieces) {
+    const ox = Math.round(x), oy = Math.round(y0);
     for (let y = 0; y < plane.height; y++) {
       if (oy + y < 0 || oy + y >= height) continue;
       for (let x = 0; x < plane.width; x++) {

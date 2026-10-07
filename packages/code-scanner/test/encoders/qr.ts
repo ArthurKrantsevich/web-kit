@@ -2,7 +2,7 @@
 // shipped (spec §12: the generator is another tool); the future qr-generator will start from this file.
 import { gf256Qr, rsEncode } from "../../src/core/gf";
 import { countBits, modeBits, terminatorBits } from "../../src/qr/bitstream";
-import { BitMatrix, blockStructure, interleave, layoutOf, microFormatPositions, placementOrder, qrFormatPositions, qrVersionPositions, rmqrFormatPositions, type Kind, type Layout } from "../../src/qr/layout";
+import { BitMatrix, blockStructure, interleave, layoutOf, microFormatPositions, placementOrder, qrFormatPositions, qrVersionPositions, rmqrFormatPositions, type Kind } from "../../src/qr/layout";
 import { ALPHANUMERIC, MICRO_MASKS, MICRO_SYMBOLS, microFormatBits, QR_MASKS, qrAlignmentPositions, qrFormatBits, qrVersionBits, RMQR_ALIGN_COLUMNS, RMQR_MASK, rmqrFormatBits, type Level, type MaskFn } from "../../src/qr/tables";
 import { BitWriter } from "./bits";
 
@@ -140,7 +140,7 @@ export interface Encoded {
   level: Level;
 }
 
-function drawFunctionPatterns(kind: Kind, version: number, layout: Layout, m: BitMatrix): void {
+function drawFunctionPatterns(kind: Kind, version: number, m: BitMatrix): void {
   const finder = (x0: number, y0: number): void => {
     for (let y = -1; y <= 7; y++) for (let x = -1; x <= 7; x++) {
       const xx = x0 + x, yy = y0 + y;
@@ -176,7 +176,6 @@ function drawFunctionPatterns(kind: Kind, version: number, layout: Layout, m: Bi
       for (let d = -1; d <= 1; d++) for (let r = 0; r < 3; r++) { const dark = !(d === 0 && r === 1); m.set(ax + d, r, dark); m.set(ax + d, h - 1 - r, dark); }
     }
   }
-  void layout;
 }
 
 function drawFormat(kind: Kind, version: number, level: Level, mask: number, m: BitMatrix): void {
@@ -236,7 +235,7 @@ export function encodeSymbol(kind: Kind, version: number, level: Level, segments
   for (const n of s.sizes) { const d = [...data.subarray(offset, offset + n)]; offset += n; blocks.push({ data: d, ec: rsEncode(gf256Qr(), d, s.ecPerBlock).slice(n) }); }
   const stream = interleave(blocks), layout = layoutOf(kind, version), order = placementOrder(layout);
   const base = new BitMatrix(layout.width, layout.height);
-  drawFunctionPatterns(kind, version, layout, base);
+  drawFunctionPatterns(kind, version, base);
   const bits: number[] = [];
   for (const cw of stream) for (let i = 7; i >= 0; i--) bits.push((cw >> i) & 1);
   // M1 and M3: the 4-bit final data codeword contributes its top nibble only
