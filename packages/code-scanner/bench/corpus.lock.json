@@ -1,0 +1,10 @@
+{
+  "repository": "zxing/zxing",
+  "ref": "zxing-3.5.3",
+  "url": "https://github.com/zxing/zxing/archive/refs/tags/zxing-3.5.3.zip",
+  "sha256": "19bbfd16ce6d069550e87a542fef49a0d8d3f3adfc7b15aad58a2730de66ca22",
+  "bytes": 135108076,
+  "root": "zxing-zxing-3.5.3",
+  "path": "core/src/test/resources/blackbox",
+  "checked": "2026-10-07"
+}
