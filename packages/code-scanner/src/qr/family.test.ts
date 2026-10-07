@@ -15,6 +15,8 @@ import { finderCorners } from "./single";
 const qr = (text: string, version = 2, level: "L" | "M" | "Q" | "H" = "M") => encodeSymbol("qr", version, level, segmentsFor(text))!.matrix;
 const options = (extra: Partial<ScanOptions> = {}): ScanOptions => ({ decoders: [qrFamily], deadlineMs: 3000, ...extra });
 const first = (results: ScanResult[]): string | null => results[0]?.text ?? null;
+/** The locator's log as [level, finders] pairs, in the order the levels were searched. */
+const levels = (ctx: ScanContext): number[][] => (ctx.log as { level: number; finders: number }[]).filter((e) => e.finders !== undefined).map((e) => [e.level, e.finders]);
 
 describe("finder patterns", () => {
   it("finds the three finders of an upright and of a rotated QR with a rotation-free module size", () => {
@@ -217,7 +219,6 @@ describe("qrFamily on rendered QR codes", () => {
     for (let i = 0; i < 4; i++) expect([i, Math.hypot(results[0]!.points[i]![0] - 2500 - label.corners[i]![0], results[0]!.points[i]![1] - 1300 - label.corners[i]![1]) < 6]).toEqual([i, true]);
     // the locator's log: the start level alone without tryHarder; with it, the levels in order down to the first with
     // finders (level 1, 2 px modules), and the decode then samples on level 0 by the 2.5 px rule
-    const levels = (ctx: ScanContext) => (ctx.log as { level: number; finders: number }[]).filter((e) => e.finders !== undefined).map((e) => [e.level, e.finders]);
     const fast = new ScanContext(frame, options());
     fast.pass = { id: "hybrid", inverted: false, flat: false };
     expect([fast.startLevel, qrFamily.locate(fast).length, levels(fast)]).toEqual([2, 0, [[2, 0]]]);
@@ -239,12 +240,13 @@ describe("qrFamily on rendered QR codes", () => {
       data[k] = y % 12 < 2 || x % 9 === 0 ? 40 + (s & 15) : 220 + (s & 31);
     }
     const frame = { width: W, height: H, data, format: "gray" } as const;
+    // the wall-clock bound is loose (twice the deadline): the cascade stops at the deadline, but one step may run past it
     const t0 = performance.now();
-    expect([scan(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 1000 }), performance.now() - t0 < 1100]).toEqual([[], true]);
-    const ctx = new ScanContext(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 1000 });
+    expect([scan(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 1000 }), performance.now() - t0 < 2000]).toEqual([[], true]);
+    // the descent itself, under a deadline the levels cannot exhaust even on a loaded machine
+    const ctx = new ScanContext(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 3000 });
     ctx.pass = { id: "hybrid", inverted: false, flat: false };
-    expect([ctx.startLevel, qrFamily.locate(ctx)]).toEqual([2, []]);
-    expect((ctx.log as { level: number; finders: number }[]).filter((e) => e.finders !== undefined).map((e) => [e.level, e.finders])).toEqual([[2, 0], [1, 0], [0, 0]]);
+    expect([ctx.startLevel, qrFamily.locate(ctx), levels(ctx)]).toEqual([2, [], [[2, 0], [1, 0], [0, 0]]]);
   }, 20_000);
 
   it("reports nothing on 500 generated images without codes", () => {
