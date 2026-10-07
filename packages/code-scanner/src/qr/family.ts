@@ -83,41 +83,48 @@ export const qrFamily: SymbologyDecoder = {
     return out;
   },
   decode(ctx: ScanContext, candidate: Candidate): ScanResult | null {
-    const detail = candidate.detail as QrCandidate;
     const scaleOf = (level: number): number => (level === -1 ? 0.5 : ctx.levels[level]!.scale);
     const scaleAt = (level: number): number => scaleOf(candidate.level) / scaleOf(level);
+    // the coarsest level where the module is at least 2.5 px (the upscaled plane under that with tryHarder); when the
+    // decode fails there, the next finer level once
     let level = candidate.level;
-    while (level > 0 && candidate.module * scaleAt(level - 1) >= 2.5) level--;
+    while (level > 0 && candidate.module * scaleAt(level) < 2.5) level--;
     if (level === 0 && candidate.module * scaleAt(0) < 2.5 && ctx.tryHarder) level = -1;
-    // the edge pass's plane is an edge map and its threshold a Sobel magnitude: the grid, the alignment patterns and
-    // the timing walks are read on a gray binarization of the same level instead
-    const k = scaleAt(level), bin = binarizeForSampling(ctx, level, ctx.pass.id === "edge" ? "hybrid" : ctx.pass.id, candidate.module * k);
-    if (!bin) return null;
-    const scaled = (p: FinderPattern): FinderPattern => ({ ...p, x: p.x * k, y: p.y * k, module: p.module * k });
-    if (detail.kind === "triple") {
-      const t = detail.triple, triple: Triple = { tl: scaled(t.tl), tr: scaled(t.tr), bl: scaled(t.bl), module: t.module * k, legModules: t.legModules };
-      for (const dim of dimensionCandidates(triple)) {
-        if (ctx.expired()) return null;
-        const mapping = buildQrMapping(bin.plane, triple, dim);
-        if (!mapping) continue;
-        const grid = sampleGrid(bin.gray, bin, mapping.map, dim, dim);
-        if (!grid) continue;
-        const r = decodeQrMatrix(new BitMatrix(dim, dim, grid.bits), grid.confidence);
-        ctx.log.push({ decode: "qr", dim, ok: r !== null, alignments: mapping.alignments, sampled: bin.id });
-        if (r) return finish(ctx, r, mapping.map, dim, dim, bin.scale, grid, false);
-      }
-      return null;
-    }
-    const single = locateSingle(bin, scaled(detail.pattern), ctx);
-    if (!single) return null;
-    const grid = sampleGrid(bin.gray, bin, single.map, single.width, single.height);
-    if (!grid) return null;
-    const matrix = new BitMatrix(single.width, single.height, grid.bits);
-    const r = single.kind === "micro" ? decodeMicroMatrix(matrix, grid.confidence) : decodeRmqrMatrix(matrix, grid.confidence);
-    ctx.log.push({ decode: single.kind, width: single.width, height: single.height, ok: r !== null, sampled: bin.id });
-    return r ? finish(ctx, r, single.map, single.width, single.height, bin.scale, grid, single.mirrored) : null;
+    return decodeAt(ctx, candidate, level, scaleAt(level)) ?? (level > 0 ? decodeAt(ctx, candidate, level - 1, scaleAt(level - 1)) : null);
   },
 };
+
+/** One decode of a candidate on `level`, its geometry scaled by `k` from the candidate's level. */
+function decodeAt(ctx: ScanContext, candidate: Candidate, level: number, k: number): ScanResult | null {
+  const detail = candidate.detail as QrCandidate;
+  // the edge pass's plane is an edge map and its threshold a Sobel magnitude: the grid, the alignment patterns and
+  // the timing walks are read on a gray binarization of the same level instead
+  const bin = binarizeForSampling(ctx, level, ctx.pass.id === "edge" ? "hybrid" : ctx.pass.id, candidate.module * k);
+  if (!bin) return null;
+  const scaled = (p: FinderPattern): FinderPattern => ({ ...p, x: p.x * k, y: p.y * k, module: p.module * k });
+  if (detail.kind === "triple") {
+    const t = detail.triple, triple: Triple = { tl: scaled(t.tl), tr: scaled(t.tr), bl: scaled(t.bl), module: t.module * k, legModules: t.legModules };
+    for (const dim of dimensionCandidates(triple)) {
+      if (ctx.expired()) return null;
+      const mapping = buildQrMapping(bin.plane, triple, dim);
+      if (!mapping) continue;
+      const grid = sampleGrid(bin.gray, bin, mapping.map, dim, dim);
+      if (!grid) continue;
+      const r = decodeQrMatrix(new BitMatrix(dim, dim, grid.bits), grid.confidence);
+      ctx.log.push({ decode: "qr", dim, ok: r !== null, alignments: mapping.alignments, sampled: bin.id });
+      if (r) return finish(ctx, r, mapping.map, dim, dim, bin.scale, grid, false);
+    }
+    return null;
+  }
+  const single = locateSingle(bin, scaled(detail.pattern), ctx);
+  if (!single) return null;
+  const grid = sampleGrid(bin.gray, bin, single.map, single.width, single.height);
+  if (!grid) return null;
+  const matrix = new BitMatrix(single.width, single.height, grid.bits);
+  const r = single.kind === "micro" ? decodeMicroMatrix(matrix, grid.confidence) : decodeRmqrMatrix(matrix, grid.confidence);
+  ctx.log.push({ decode: single.kind, width: single.width, height: single.height, ok: r !== null, sampled: bin.id });
+  return r ? finish(ctx, r, single.map, single.width, single.height, bin.scale, grid, single.mirrored) : null;
+}
 
 /**
  * The result: `points` in the symbol's own frame (top-left, top-right, bottom-right, bottom-left as it is read). A
