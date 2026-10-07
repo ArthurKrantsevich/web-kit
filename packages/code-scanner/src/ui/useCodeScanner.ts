@@ -129,6 +129,9 @@ export function useCodeScanner(options: UseCodeScannerOptions = {}): UseCodeScan
     return () => {
       mounted.current = false;
       runner.current?.dispose();
+      // the effects may run again on the same instance (StrictMode, a hidden Activity shown again): the next scan
+      // starts a fresh worker instead of asking the disposed one, which would answer "unavailable"
+      runner.current = null;
     };
   }, []);
   const url = source?.url ?? null;

@@ -1,11 +1,12 @@
 import { compressText } from "@web-kit/ui";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { Activity } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { asImage, rasterize } from "../../bench/distort";
 import { encodeSymbol, segmentsFor } from "../../test/encoders/qr";
 import type { ScanImage } from "../core/types";
 import { answerScanJob, type ScanJob } from "../job";
-import type { ScanJobRunner, ScanOutcome } from "../worker-client";
+import { ScanWorkerError, type ScanJobRunner, type ScanOutcome } from "../worker-client";
 import { CodeScanner } from "./CodeScanner";
 import { ImageReadError, MAX_IMAGE_BYTES, MAX_IMAGE_PIXELS, readImageFile } from "./image";
 import { SAMPLE_QR } from "./samples";
@@ -29,16 +30,21 @@ afterEach(() => {
 });
 
 const qrImage = (text: string): ScanImage => asImage(rasterize(encodeSymbol("qr", 2, "M", segmentsFor(text))!.matrix, { module: 5 }));
-/** A runner that scans on the page through the real answerScanJob when told to. */
+/** A runner that scans on the page through the real answerScanJob when told to; once disposed, it answers "unavailable" like the real one. */
 function fakeRunner() {
   const jobs: { job: ScanJob; resolve: (o: ScanOutcome) => void; reject: (e: Error) => void }[] = [];
-  const runner: ScanJobRunner = { run: (job) => new Promise((resolve, reject) => jobs.push({ job, resolve, reject })), cancel: () => {}, dispose: () => {} };
+  const state = { disposed: false };
+  const runner: ScanJobRunner = {
+    run: (job) => new Promise((resolve, reject) => { if (state.disposed) reject(new ScanWorkerError("unavailable")); else jobs.push({ job, resolve, reject }); }),
+    cancel: () => {},
+    dispose: () => { state.disposed = true; },
+  };
   /** Answers a job (the newest by default) with a real scan; the page's 500 ms deadline is lifted, since a loaded test machine may be slower. */
   const finish = async (index = jobs.length - 1) => {
     const { job, resolve } = jobs[index]!;
     await act(async () => answerScanJob({ id: 1, job: { ...job, deadlineMs: 5000 } }, (r) => { if ("results" in r) resolve({ results: r.results, ms: r.ms }); }));
   };
-  return { runner, jobs, finish };
+  return { runner, jobs, finish, state };
 }
 /** Files map to images by their name; a name the map lacks is refused as not an image. */
 const reader = (images: Record<string, ScanImage>) => async (file: File): Promise<ScanImage> => {
@@ -85,6 +91,28 @@ describe("CodeScanner", () => {
     // the shortcut is scoped to the editor by ToolMenu
     fireEvent.keyDown(document.querySelector(".wk-ui-editor")!, { key: "Enter", ctrlKey: true });
     await waitFor(() => expect(jobs).toHaveLength(3));
+  });
+
+  it("scans again with a fresh worker after its effects were torn down and set up anew (hidden and shown again), instead of asking the disposed one", async () => {
+    // a hidden Activity runs the effects' cleanup and keeps the state; shown again, the effects run again on the same
+    // instance, as StrictMode does at mount; the runner the cleanup disposed must not serve the next scan
+    const runners: ReturnType<typeof fakeRunner>[] = [];
+    const createRunner = () => { const made = fakeRunner(); runners.push(made); return made.runner; };
+    const view = (mode: "visible" | "hidden") => <Activity mode={mode}><CodeScanner createRunner={createRunner} readImage={reader({})} /></Activity>;
+    const { rerender } = render(view("visible"));
+    fireEvent.click(screen.getByRole("button", { name: "Sample" }));
+    await waitFor(() => expect(runners).toHaveLength(1));
+    await runners[0]!.finish();
+    expect(entries()).toHaveLength(1);
+    await act(async () => rerender(view("hidden")));
+    expect(runners[0]!.state.disposed).toBe(true);
+    await act(async () => rerender(view("visible")));
+    expect(entries()).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Sample" }));
+    await waitFor(() => expect(runners).toHaveLength(2));
+    await runners[1]!.finish();
+    expect(within(entries()[0]!).getByText("×2")).toBeTruthy();
+    expect(status()).toMatch(/^QR Code · 33×33 · corrected 0 of \d+ · \d+ ms$/);
   });
 
   it("says when nothing is found, keeps the earlier results, and Clear empties the list and the image", async () => {
