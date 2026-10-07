@@ -22,4 +22,5 @@ export { IMAGE_ACCEPT, ImageReadError, MAX_IMAGE_BYTES, MAX_IMAGE_PIXELS, readCl
 export { SAMPLE_QR, sampleImage } from "./ui/samples";
 export { CodeScanner, type CodeScannerProps } from "./ui/CodeScanner";
 export { createScanJobRunner, createScanWorker, ScanWorkerError, type ScanJobRunner, type ScanOutcome, type ScanWorkerFailure, type WorkerLike } from "./worker-client";
-export { decodersFor, type ScanJob, type ScanRequest, type ScanResponse } from "./job";
+// Types only: the decoders stay on the worker's side (./worker), the page does not import them (spec §6).
+export type { ScanJob, ScanRequest, ScanResponse } from "./job";

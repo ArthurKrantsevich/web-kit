@@ -51,12 +51,12 @@ Open an image (PNG, JPEG, WebP, GIF, BMP or SVG, up to 25 MB and 50 Mpx), drop i
 
 ## Entries and sizes
 
-| Entry | Holds | Brotli |
+| Entry | Holds | Brotli (measured, limit) |
 |---|---|---|
-| `.` | `CodeScanner`, `useCodeScanner`, the worker runner, and `./core` again | — |
-| `./core` | types, image, binarizers, Reed–Solomon, BCH, geometry, sampling, `scan` | 7 kB |
-| `./qr` | the QR family (imports `./core`) | 13.5 kB |
-| `./worker` | the worker script (imports `./qr`; size-limit measures the file alone) | 0.5 kB |
+| `.` | `CodeScanner`, `useCodeScanner`, `describeScan`, `DEFAULT_SETTINGS`, `SYMBOLOGIES`, `SYMBOLOGY_LABELS`, `IMAGE_DEADLINE_MS`, `resultsText`, `resultsJson`, `resultsCsv`; `readImageFile`, `readClipboardImage`, `ImageReadError`, `IMAGE_ACCEPT`, `MAX_IMAGE_BYTES`, `MAX_IMAGE_PIXELS`; `sampleImage`, `SAMPLE_QR`; `createScanJobRunner`, `createScanWorker`, `ScanWorkerError`; the types `CodeScannerProps`, `ScanEntry`, `ScannerSettings`, `ScanSource`, `ScanStatus`, `UseCodeScanner`, `UseCodeScannerOptions`, `ScanJobRunner`, `ScanOutcome`, `ScanWorkerFailure`, `WorkerLike`, `ScanJob`, `ScanRequest`, `ScanResponse`; and `./core` again. No decoder: the page draws, the worker decodes (`check` fails if `dist/index.js` reaches one) | — |
+| `./core` | types, image, binarizers, Reed–Solomon, BCH, geometry, sampling, `scan` | 6.75 kB, 7.25 kB |
+| `./qr` | the QR family (imports `./core`) | 13.25 kB, 13.75 kB |
+| `./worker` | the worker script: the job's decoder table and `./qr` (size-limit measures the file alone) | 546 B, 1 kB |
 | `./styles.css` | the component's styles over `@web-kit/ui`'s | — |
 
 ## License

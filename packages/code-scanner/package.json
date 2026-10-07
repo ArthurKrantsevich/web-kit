@@ -23,15 +23,15 @@
     "build": "tsdown && node ../../tooling/scripts/build-styles.mjs",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
-    "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit",
+    "check": "node ../../tooling/scripts/check-use-client.mjs && node ../../tooling/scripts/check-page-without-decoders.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit",
     "bench:fetch": "node bench/fetch.mjs",
     "bench": "node --import tsx bench/run.ts",
     "bench:report": "node --import tsx bench/report.ts"
   },
   "size-limit": [
-    { "name": "core", "path": "dist/core.js", "limit": "7 kB" },
-    { "name": "qr", "path": "dist/qr.js", "limit": "13.5 kB" },
-    { "name": "worker (file only)", "path": "dist/worker.js", "limit": "0.5 kB", "rolldown": false }
+    { "name": "core", "path": "dist/core.js", "limit": "7.25 kB" },
+    { "name": "qr", "path": "dist/qr.js", "limit": "13.75 kB" },
+    { "name": "worker (file only)", "path": "dist/worker.js", "limit": "1 kB", "rolldown": false }
   ],
   "peerDependencies": { "react": ">=18" },
   "peerDependenciesMeta": { "react": { "optional": true } },
