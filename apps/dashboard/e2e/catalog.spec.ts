@@ -37,16 +37,14 @@ test.describe("home: empty states and planned tools", () => {
     await expect(page.locator(".wk-ui-empty")).toHaveCount(0);
   });
 
-  test("a category without ready tools says so and keeps its planned cards", async ({ page }) => {
+  test("Media shows Code Scanner ready, then its two planned cards", async ({ page }) => {
     await page.goto("./");
     const planned = upcoming.filter((tool) => tool.category === "media");
     await page.getByRole("group", { name: "Category" }).getByRole("button", { name: CATEGORY_LABELS.media }).click();
-    const empty = page.locator(".wk-ui-empty");
-    await expect(empty).toContainText("No Media tools yet");
-    await expect(empty).toContainText(`${planned.length} are planned — see them below.`);
+    await expect(page.locator(".grid h2")).toHaveText(["Code Scanner", ...planned.map((tool) => tool.title)]);
+    await expect(page.locator(".grid a.card")).toHaveCount(1);
     await expect(soonCards(page)).toHaveCount(planned.length);
-    for (const tool of planned) await expect(soonCards(page).filter({ hasText: tool.title })).toHaveCount(1);
-    await expect(page.locator(".grid a.card")).toHaveCount(0);
+    await expect(page.locator(".wk-ui-empty")).toHaveCount(0);
   });
 
   test("planned tools are listed after the ready ones, found by search, and are not links", async ({ page }) => {

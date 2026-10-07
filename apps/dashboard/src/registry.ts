@@ -1,5 +1,6 @@
 import { meta as jsonFormatter } from "./tools/json-formatter/meta";
 // generator:meta-imports
+import { meta as codeScanner } from "./tools/code-scanner/meta";
 import { meta as uuidGenerator } from "./tools/uuid-generator/meta";
 import { meta as passwordGenerator } from "./tools/password-generator/meta";
 import { meta as hashGenerator } from "./tools/hash-generator/meta";
@@ -41,6 +42,7 @@ export interface ToolMeta {
 export const tools: ToolMeta[] = [
   jsonFormatter,
   // generator:metas
+  codeScanner,
   uuidGenerator,
   passwordGenerator,
   hashGenerator,

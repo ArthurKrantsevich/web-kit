@@ -20,8 +20,8 @@ describe("registry", () => {
     expect(new Set(previews).size).toBe(previews.length);
   });
 
-  it("lists Text Compare and the UUID, password and hash generators as ready, not planned", () => {
-    for (const id of ["text-compare", "uuid-generator", "password-generator", "hash-generator"]) {
+  it("lists Text Compare, the UUID, password and hash generators and Code Scanner as ready, not planned", () => {
+    for (const id of ["text-compare", "uuid-generator", "password-generator", "hash-generator", "code-scanner"]) {
       expect([id, tools.some((tool) => tool.id === id), upcoming.some((tool) => tool.id === id)]).toEqual([id, true, false]);
     }
   });

@@ -1,0 +1,47 @@
+{
+  "name": "@web-kit/code-scanner",
+  "version": "0.0.0",
+  "description": "Read QR codes from an image: file, drop or paste, decoded on your device.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArthurKrantsevich/web-kit.git",
+    "directory": "packages/code-scanner"
+  },
+  "type": "module",
+  "files": ["dist"],
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./core": { "types": "./dist/core.d.ts", "default": "./dist/core.js" },
+    "./qr": { "types": "./dist/qr.d.ts", "default": "./dist/qr.js" },
+    "./worker": { "types": "./dist/worker.d.ts", "default": "./dist/worker.js" },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": ["**/*.css", "./dist/worker.js"],
+  "scripts": {
+    "build": "tsdown && node ../../tooling/scripts/build-styles.mjs",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run",
+    "check": "node ../../tooling/scripts/check-use-client.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit",
+    "bench:fetch": "node bench/fetch.mjs",
+    "bench": "node --import tsx bench/run.ts",
+    "bench:report": "node --import tsx bench/report.ts"
+  },
+  "size-limit": [
+    { "name": "core", "path": "dist/core.js", "limit": "12 kB" },
+    { "name": "qr", "path": "dist/qr.js", "limit": "14 kB" },
+    { "name": "worker", "path": "dist/worker.js", "limit": "4 kB" }
+  ],
+  "peerDependencies": { "react": ">=18" },
+  "peerDependenciesMeta": { "react": { "optional": true } },
+  "dependencies": {
+    "@web-kit/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "sharp": "^0.35.5",
+    "tsx": "^4.21.0",
+    "zxing-wasm": "^3.1.5"
+  }
+}
