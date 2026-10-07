@@ -4,4 +4,6 @@ export { BINARIZERS, BitPlane, CASCADE_COST, edge, hybrid, LazyBitPlane, otsu, o
 export { GenericGF, gf1024, gf16, gf256Dm, gf256Qr, gf4096, gf64, gf929, polyEval, polyMul, rsEncode, rsGenerator } from "./gf";
 export { rsDecode, type RsResult } from "./rs";
 export { bchDecode, bchEncode, type BchMatch } from "./bch";
+export { applyH, homographyFromCorners, homographyFromPairs, invert3, mul3, piecewiseMap, ransacHomography, solveLinear, xorshift, type Homography, type Pair } from "./geometry";
+export { sampleGrid, SoftGrid } from "./sample";
 export { codeScanner, type Result } from "./placeholder";
