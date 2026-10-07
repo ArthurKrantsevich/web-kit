@@ -6,4 +6,7 @@ export { rsDecode, type RsResult } from "./rs";
 export { bchDecode, bchEncode, type BchMatch } from "./bch";
 export { applyH, homographyFromCorners, homographyFromPairs, invert3, mul3, piecewiseMap, ransacHomography, solveLinear, xorshift, type Homography, type Pair } from "./geometry";
 export { sampleGrid, SoftGrid } from "./sample";
+export { CASCADE, ScanContext, type Level, type LevelBinarization } from "./context";
+export { confidenceOf, geometryOf, iou, scan } from "./scan";
+export { charsetOf, decodeBytes, ECI_CHARSETS } from "./text";
 export { codeScanner, type Result } from "./placeholder";
