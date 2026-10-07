@@ -11,19 +11,20 @@ corrected 0 of 10 · 28 ms`,
   category: "media",
   tags: ["qr", "qr code", "micro qr", "rmqr", "barcode", "scanner", "decoder", "reader", "image"],
   pkg: "@web-kit/code-scanner",
-  usage: `import { CodeScanner } from "@web-kit/code-scanner";
+  usage: [
+    `import { CodeScanner } from "@web-kit/code-scanner";
 import "@web-kit/code-scanner/styles.css";
 
 export function Page() {
   return <CodeScanner />;
-}
-
-// Logic only, no React (a browser, a worker or Node):
+}`,
+    `// Logic only, no React (a browser, a worker or Node):
 import { scan } from "@web-kit/code-scanner/core";
 import { qrFamily } from "@web-kit/code-scanner/qr";
 
 const results = scan({ width, height, data, format: "rgba" }, { decoders: [qrFamily], tryHarder: true });
 results[0]?.text; // "https://example.com/t/42"`,
+  ],
   api: [
     {
       name: "scan",

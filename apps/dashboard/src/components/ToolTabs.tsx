@@ -71,7 +71,7 @@ function Usage({ tool }: { tool: ToolMeta }) {
       <p className="note">Not published to npm yet. These commands will work after the first release.</p>
       <CodeBlock label="npm" code={`npm i ${tool.pkg}`} />
       <CodeBlock label="pnpm" code={`pnpm add ${tool.pkg}`} />
-      <CodeBlock label="Usage" code={tool.usage} />
+      {[tool.usage].flat().map((code, i) => <CodeBlock key={i} label={i === 0 ? "Usage" : "Logic only"} code={code} />)}
     </div>
   );
 }

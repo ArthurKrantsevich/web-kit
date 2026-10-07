@@ -35,7 +35,8 @@ export interface ToolMeta {
   category: Category;
   tags: string[];
   pkg: string;
-  usage: string;
+  /** One snippet, or several shown one under the other: the component first, then logic-only use (each a file of its own). */
+  usage: string | string[];
   api: ApiEntry[];
 }
 
