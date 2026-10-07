@@ -123,6 +123,15 @@ describe("qrFamily on rendered QR codes", () => {
     expect([first(mirrored), mirrored[0]?.mirrored]).toEqual(["mirror", true]);
   });
 
+  it("reports a transposed QR's points in the symbol's own frame, counter-clockwise in the image, with the orientation of its own top edge", () => {
+    const r = rasterize(qr("mirror").transposed(), { module: 5, rotate: 20 }), result = scan(asImage(r), options())[0]!;
+    expect([result.text, result.mirrored]).toEqual(["mirror", true]);
+    // the symbol's u axis runs down the image's left edge: its top-right is the image's bottom-left corner
+    const expected = [r.corners[0]!, r.corners[3]!, r.corners[2]!, r.corners[1]!];
+    for (let i = 0; i < 4; i++) expect([i, Math.hypot(result.points[i]![0] - expected[i]![0], result.points[i]![1] - expected[i]![1]) < 6]).toEqual([i, true]);
+    expect(Math.abs(result.orientation - 110)).toBeLessThanOrEqual(2);
+  });
+
   it("reads a code on a cylinder of 1.5 widths through the piecewise grid, and 10 % of damage through erasures", () => {
     for (const v of [10, 20]) {
       const text = `cyl${v}` + "x".repeat(v * 3), m = qr(text, v), p = rasterize(m, { module: 4, quiet: 6 });
@@ -189,13 +198,11 @@ describe("qrFamily on rendered QR codes", () => {
     const ctx = new ScanContext(asImage(r), options({ tryHarder: true }));
     const edge = { id: "edge", inverted: false, flat: false } as const;
     ctx.pass = edge;
-    let candidates = qrFamily.locate(ctx);
-    if (candidates.length === 0) {
-      // the edge map holds outlines, not 1:1:3:1:1 runs: take the candidate from the hybrid pass and decode it under the edge pass
-      ctx.pass = { id: "hybrid", inverted: false, flat: false };
-      candidates = qrFamily.locate(ctx);
-      ctx.pass = edge;
-    }
+    // the edge map holds outlines, not 1:1:3:1:1 runs: the candidate comes from the hybrid pass and is decoded under the edge pass
+    expect(qrFamily.locate(ctx)).toHaveLength(0);
+    ctx.pass = { id: "hybrid", inverted: false, flat: false };
+    const candidates = qrFamily.locate(ctx);
+    ctx.pass = edge;
     expect(candidates.length).toBeGreaterThanOrEqual(1);
     expect(qrFamily.decode(ctx, candidates[0]!)?.text).toBe("edge");
     expect(ctx.binarize(0, "edge", false, false).thresholdAt(0, 0)).toBeLessThan(90);
@@ -227,9 +234,16 @@ describe("qrFamily on Micro QR and rMQR", () => {
       return { width: p.width, height: p.height, data };
     };
     const m = encodeSymbol("rmqr", 12, "H", segmentsFor("RMQR"))!.matrix, r = rasterize(m, { module: 5, rotate: 10 });
-    const upright = scan(asImage(r), options())[0], mirrored = scan(asImage(flipH(r)), options())[0];
+    const upright = scan(asImage(r), options())[0], mirrored = scan(asImage(flipH(r)), options())[0]!;
     expect([upright?.text, upright?.mirrored]).toEqual(["RMQR", false]);
-    expect([mirrored?.text, mirrored?.symbology, mirrored?.mirrored, mirrored?.symbol.cols, mirrored?.symbol.rows]).toEqual(["RMQR", "rmqr", true, m.width, m.height]);
+    expect([mirrored.text, mirrored.symbology, mirrored.mirrored, mirrored.symbol.cols, mirrored.symbol.rows]).toEqual(["RMQR", "rmqr", true, m.width, m.height]);
+    // the points stay in the symbol's frame: its top-left is the flipped finder's corner, so they run counter-clockwise in the image
+    for (let i = 0; i < 4; i++) {
+      const [ex, ey] = r.corners[i]!;
+      expect([i, Math.hypot(mirrored.points[i]![0] - (r.width - ex), mirrored.points[i]![1] - ey) < 6]).toEqual([i, true]);
+    }
+    expect(Math.abs(upright!.orientation - 10)).toBeLessThanOrEqual(2);
+    expect(Math.abs(mirrored.orientation - 170)).toBeLessThanOrEqual(2);
   });
 
   it("logs its passes in the context for tests", () => {

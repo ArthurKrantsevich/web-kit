@@ -72,21 +72,38 @@ function crossCheck(plane: Plane, x: number, y: number, dx: number, dy: number, 
   return { centre: before + 1 + c[0]! + c[1]! + c[2]! / 2, module: m, counts: c };
 }
 
+interface Scratch {
+  stamp: Uint8Array;
+  gen: number;
+}
+const scratches = new WeakMap<Plane, Scratch>();
+
+/**
+ * The flood fills' visited marks for a plane: one byte per pixel allocated once per plane, stamped with a generation
+ * that every call advances (the array is cleared when the generation wraps), so a fill in a hot loop allocates nothing.
+ */
+function scratchOf(plane: Plane): { stamp: Uint8Array; gen: number } {
+  let s = scratches.get(plane);
+  if (!s) { s = { stamp: new Uint8Array(plane.width * plane.height), gen: 0 }; scratches.set(plane, s); }
+  if (++s.gen === 256) { s.stamp.fill(0); s.gen = 1; }
+  return { stamp: s.stamp, gen: s.gen };
+}
+
 /** Area of the dark 4-connected component through (x, y), or −1 past `cap`; 0 when (x, y) is light or outside. */
 export function componentArea(plane: Plane, x: number, y: number, cap: number): number {
   const w = plane.width, h = plane.height;
   if (x < 0 || y < 0 || x >= w || y >= h || !plane.get(x, y)) return 0;
-  const seen = new Uint8Array(w * h), stack = [y * w + x];
-  seen[y * w + x] = 1;
+  const { stamp, gen } = scratchOf(plane), stack = [y * w + x];
+  stamp[y * w + x] = gen;
   let area = 0;
   while (stack.length > 0) {
     const i = stack.pop()!;
     if (++area > cap) return -1;
     const px = i % w, py = (i - px) / w;
-    if (px + 1 < w && !seen[i + 1] && plane.get(px + 1, py)) { seen[i + 1] = 1; stack.push(i + 1); }
-    if (px > 0 && !seen[i - 1] && plane.get(px - 1, py)) { seen[i - 1] = 1; stack.push(i - 1); }
-    if (py + 1 < h && !seen[i + w] && plane.get(px, py + 1)) { seen[i + w] = 1; stack.push(i + w); }
-    if (py > 0 && !seen[i - w] && plane.get(px, py - 1)) { seen[i - w] = 1; stack.push(i - w); }
+    if (px + 1 < w && stamp[i + 1] !== gen && plane.get(px + 1, py)) { stamp[i + 1] = gen; stack.push(i + 1); }
+    if (px > 0 && stamp[i - 1] !== gen && plane.get(px - 1, py)) { stamp[i - 1] = gen; stack.push(i - 1); }
+    if (py + 1 < h && stamp[i + w] !== gen && plane.get(px, py + 1)) { stamp[i + w] = gen; stack.push(i + w); }
+    if (py > 0 && stamp[i - w] !== gen && plane.get(px, py - 1)) { stamp[i - w] = gen; stack.push(i - w); }
   }
   return area;
 }
@@ -154,16 +171,16 @@ export function findFinderPatterns(plane: Plane, { tolerance, areaTolerance, tot
 export function findAlignmentPattern(plane: Plane, x: number, y: number, radius: number, m: number, axes: readonly [Point, Point]): Point | null {
   const w = plane.width, h = plane.height;
   const x0 = Math.max(0, Math.floor(x - radius)), x1 = Math.min(w - 1, Math.ceil(x + radius)), y0 = Math.max(0, Math.floor(y - radius)), y1 = Math.min(h - 1, Math.ceil(y + radius));
-  const seen = new Uint8Array(w * h);
+  const { stamp, gen } = scratchOf(plane);
   const dark = (px: number, py: number): boolean => { const xi = Math.round(px), yi = Math.round(py); return xi >= 0 && yi >= 0 && xi < w && yi < h && plane.get(xi, yi); };
   let best: Point | null = null, bestScore = Infinity;
   const [ax, ay] = axes;
   for (let yy = y0; yy <= y1; yy++) {
     for (let xx = x0; xx <= x1; xx++) {
       const i = yy * w + xx;
-      if (seen[i] || !plane.get(xx, yy)) continue;
+      if (stamp[i] === gen || !plane.get(xx, yy)) continue;
       const cap = Math.max(4, 2.5 * m * m), stack = [i];
-      seen[i] = 1;
+      stamp[i] = gen;
       let n = 0, sx = 0, sy = 0, minX = xx, maxX = xx, minY = yy, maxY = yy, over = false;
       while (stack.length > 0) {
         const k = stack.pop()!;
@@ -171,12 +188,13 @@ export function findAlignmentPattern(plane: Plane, x: number, y: number, radius:
         const px = k % w, py = (k - px) / w;
         sx += px; sy += py;
         if (px < minX) minX = px; if (px > maxX) maxX = px; if (py < minY) minY = py; if (py > maxY) maxY = py;
-        if (px + 1 < w && !seen[k + 1] && plane.get(px + 1, py)) { seen[k + 1] = 1; stack.push(k + 1); }
-        if (px > 0 && !seen[k - 1] && plane.get(px - 1, py)) { seen[k - 1] = 1; stack.push(k - 1); }
-        if (py + 1 < h && !seen[k + w] && plane.get(px, py + 1)) { seen[k + w] = 1; stack.push(k + w); }
-        if (py > 0 && !seen[k - w] && plane.get(px, py - 1)) { seen[k - w] = 1; stack.push(k - w); }
+        if (px + 1 < w && stamp[k + 1] !== gen && plane.get(px + 1, py)) { stamp[k + 1] = gen; stack.push(k + 1); }
+        if (px > 0 && stamp[k - 1] !== gen && plane.get(px - 1, py)) { stamp[k - 1] = gen; stack.push(k - 1); }
+        if (py + 1 < h && stamp[k + w] !== gen && plane.get(px, py + 1)) { stamp[k + w] = gen; stack.push(k + w); }
+        if (py > 0 && stamp[k - w] !== gen && plane.get(px, py - 1)) { stamp[k - w] = gen; stack.push(k - w); }
       }
-      if (over) { for (const k of stack) seen[k] = 1; continue; }
+      // what is still on the stack was stamped when it was pushed: the oversized component is never entered again
+      if (over) continue;
       if (n < 0.3 * m * m || maxX - minX + 1 > 1.8 * m || maxY - minY + 1 > 1.8 * m) continue;
       const cx = sx / n + 0.5, cy = sy / n + 0.5;
       let matches = 0;
@@ -221,15 +239,15 @@ export function confirmFinder(plane: Plane, x: number, y: number, m: number): Fi
   const island = componentArea(plane, xi, yi, 9 * module * module * 2.5);
   if (island <= 0 || Math.abs(island - 9 * module * module) > 9 * module * module * 0.6) return null;
   let sx = 0, sy = 0, n = 0;
-  const seen = new Uint8Array(w * h), stack = [yi * w + xi];
-  seen[yi * w + xi] = 1;
+  const { stamp, gen } = scratchOf(plane), stack = [yi * w + xi];
+  stamp[yi * w + xi] = gen;
   while (stack.length > 0) {
     const i = stack.pop()!, px = i % w, py = (i - px) / w;
     sx += px; sy += py; n++;
-    if (px + 1 < w && !seen[i + 1] && plane.get(px + 1, py)) { seen[i + 1] = 1; stack.push(i + 1); }
-    if (px > 0 && !seen[i - 1] && plane.get(px - 1, py)) { seen[i - 1] = 1; stack.push(i - 1); }
-    if (py + 1 < h && !seen[i + w] && plane.get(px, py + 1)) { seen[i + w] = 1; stack.push(i + w); }
-    if (py > 0 && !seen[i - w] && plane.get(px, py - 1)) { seen[i - w] = 1; stack.push(i - w); }
+    if (px + 1 < w && stamp[i + 1] !== gen && plane.get(px + 1, py)) { stamp[i + 1] = gen; stack.push(i + 1); }
+    if (px > 0 && stamp[i - 1] !== gen && plane.get(px - 1, py)) { stamp[i - 1] = gen; stack.push(i - 1); }
+    if (py + 1 < h && stamp[i + w] !== gen && plane.get(px, py + 1)) { stamp[i + w] = gen; stack.push(i + w); }
+    if (py > 0 && stamp[i - w] !== gen && plane.get(px, py - 1)) { stamp[i - w] = gen; stack.push(i - w); }
   }
   return { x: sx / n + 0.5, y: sy / n + 0.5, module, count: 1 };
 }

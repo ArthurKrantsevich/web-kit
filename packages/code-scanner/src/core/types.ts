@@ -53,9 +53,13 @@ export interface ScanResult {
   /** FNC1 in the first position. */
   gs1: boolean;
   structuredAppend: StructuredAppend | null;
-  /** The symbol's corners clockwise from its own top-left, in input-image coordinates. */
+  /**
+   * The symbol's corners in input-image coordinates, in the symbol's own frame: top-left, top-right, bottom-right,
+   * bottom-left as the symbol is meant to be read. Clockwise in the image for an upright symbol; a mirrored symbol's
+   * points run counter-clockwise in the image.
+   */
   points: [Point, Point, Point, Point];
-  /** Degrees 0–359: the angle of the symbol's top edge in the image. */
+  /** Degrees 0–359 (y down, so a quarter turn clockwise is 90): the angle of the image vector from the symbol's top-left to its top-right. */
   orientation: number;
   mirrored: boolean;
   inverted: boolean;
