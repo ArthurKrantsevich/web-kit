@@ -70,7 +70,13 @@ describe("integral images", () => {
 });
 
 describe("lighting", () => {
-  it("stretches between the 1st and 99th percentiles, and leaves a full-range plane alone", () => {
+  it("stretches a narrow histogram past a few outliers, and leaves alone a full-range plane and a small code on a plain background", () => {
+    // a label of 0.3 % of the frame, half of it dark: a 1 % tail would have clipped it to black
+    const label = plane(400, 300, (x, y) => (x >= 200 && x < 224 && y >= 150 && y < 165 ? ((x + y) % 2 === 0 ? 0 : 255) : 255));
+    expect(contrastLut(label)).toBeNull();
+    // one black pixel in a 64×64 narrow plane (0.02 %, under the tail) neither stops the stretch nor sets its low end
+    const speckled = plane(64, 64, (x, y) => (x === 0 && y === 0 ? 0 : 100 + ((x * 7 + y * 3) % 50)));
+    expect(contrastLut(speckled)![100]).toBeLessThanOrEqual(2);
     const narrow = plane(64, 64, (x, y) => 100 + ((x * 7 + y * 3) % 50));
     const lut = contrastLut(narrow)!;
     expect(lut).not.toBeNull();

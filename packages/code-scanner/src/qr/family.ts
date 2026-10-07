@@ -28,10 +28,12 @@ const pixelsOf = (ctx: ScanContext, level: number): number => { const g = ctx.le
  */
 function binarizeForSampling(ctx: ScanContext, level: number, id: BinarizerId, hint: number): LevelBinarization | null {
   const { inverted, flat } = ctx.pass;
-  if (ctx.cached(level, id, inverted, flat, hint)) return ctx.binarize(level, id, inverted, flat, hint);
+  // a plane the locator binarized in full is reused; otherwise the lazy one off the start level
+  const lazy = level !== ctx.startLevel && !ctx.cached(level, id, inverted, flat, hint, false);
+  if (ctx.cached(level, id, inverted, flat, hint, lazy)) return ctx.binarize(level, id, inverted, flat, hint, lazy);
   const measured = costsOf(ctx), work = pixelsOf(ctx, level) * CASCADE_COST[id];
   if (measured.length > 0 && performance.now() + median(measured) * work > ctx.deadline) return null;
-  const t0 = performance.now(), bin = ctx.binarize(level, id, inverted, flat, hint);
+  const t0 = performance.now(), bin = ctx.binarize(level, id, inverted, flat, hint, lazy);
   measured.push((performance.now() - t0) / work);
   return bin;
 }
@@ -46,11 +48,13 @@ export const qrFamily: SymbologyDecoder = {
   id: "qr-family",
   family: "2d",
   locate(ctx: ScanContext): Candidate[] {
-    const levels = [ctx.startLevel];
-    if (ctx.tryHarder && ctx.startLevel === 0 && Math.max(ctx.levels[0]!.gray.width, ctx.levels[0]!.gray.height) <= 400) levels.push(-1);
-    const out: Candidate[] = [];
-    for (const level of levels) {
+    const out: Candidate[] = [], small = ctx.startLevel === 0 && Math.max(ctx.levels[0]!.gray.width, ctx.levels[0]!.gray.height) <= 400;
+    // the start level; with tryHarder, the finer levels in order while nothing is found (a small code in a large
+    // photo), each only when the cost measured on the level before, per pixel, fits before the deadline; on a small
+    // image the ×2 upscaled plane last (decision 12)
+    for (let level = ctx.startLevel; ; ) {
       if (ctx.expired()) break;
+      const t0 = performance.now();
       const bin = ctx.binarize(level, ctx.pass.id, ctx.pass.inverted, ctx.pass.flat, 5, false);
       const patterns = findFinderPatterns(bin.plane, { tolerance: ctx.tryHarder ? 0.7 : 0.5, areaTolerance: ctx.tryHarder ? 0.6 : 0.4, totalTolerance: ctx.tryHarder ? 0.6 : 0.4 });
       // tryHarder with few finders: a third one squeezed by perspective may fail the run checks; predict it from each
@@ -80,6 +84,10 @@ export const qrFamily: SymbologyDecoder = {
         const detail: QrCandidate = { kind: "single", pattern };
         out.push({ level, module: pattern.module, corners: [[pattern.x, pattern.y]], detail });
       }
+      if (!ctx.tryHarder) break;
+      const next = level === 0 && small ? -1 : level > 0 && out.length === 0 ? level - 1 : null;
+      if (next === null || performance.now() + ((performance.now() - t0) / pixelsOf(ctx, level)) * pixelsOf(ctx, next) > ctx.deadline) break;
+      level = next;
     }
     return out;
   },

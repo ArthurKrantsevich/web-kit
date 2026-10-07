@@ -101,18 +101,23 @@ export function integral(plane: GrayPlane): Integral {
   return { width: w, height: h, sum: (x0, y0, x1, y1) => box(sum, x0, y0, x1, y1), sumSq: (x0, y0, x1, y1) => box(sq, x0, y0, x1, y1) };
 }
 
+/** The histogram tail the contrast stretch clips: 0.05 %, so a code covering 0.1 % of the frame keeps its dark modules. */
+const CONTRAST_TAIL = 0.0005;
+
 /**
- * A 256-entry lookup table that stretches the 1st…99th percentiles to 0…255, or null when the plane already spans
- * 8…247 (nothing to gain). The histogram is sampled on large planes.
+ * A 256-entry lookup table that stretches the 0.05th…99.95th percentiles to 0…255, or null when the plane already
+ * spans 8…247 (nothing to gain). The tails are this small because a small code on a plain background (a label in a
+ * photo) is under a percent of the pixels, and a 1 % tail would clip its modules away. The histogram is sampled on
+ * large planes.
  */
 export function contrastLut(plane: GrayPlane): Uint8Array | null {
   const hist = new Uint32Array(256), step = Math.max(1, Math.floor(plane.data.length / 262144));
   let n = 0;
   for (let i = 0; i < plane.data.length; i += step) { hist[plane.data[i]!]!++; n++; }
   let lo = 0, hi = 255, acc = 0;
-  for (let v = 0; v < 256; v++) { acc += hist[v]!; if (acc >= n * 0.01) { lo = v; break; } }
+  for (let v = 0; v < 256; v++) { acc += hist[v]!; if (acc >= n * CONTRAST_TAIL) { lo = v; break; } }
   acc = 0;
-  for (let v = 255; v >= 0; v--) { acc += hist[v]!; if (acc >= n * 0.01) { hi = v; break; } }
+  for (let v = 255; v >= 0; v--) { acc += hist[v]!; if (acc >= n * CONTRAST_TAIL) { hi = v; break; } }
   if (hi - lo < 1 || (lo <= 8 && hi >= 247)) return null;
   const lut = new Uint8Array(256), scale = 255 / (hi - lo);
   for (let v = 0; v < 256; v++) lut[v] = Math.max(0, Math.min(255, Math.round((v - lo) * scale)));

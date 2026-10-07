@@ -189,8 +189,8 @@ describe("qrFamily on rendered QR codes", () => {
   }, 20_000);
 
   it("samples a large frame on the coarsest level with modules of 2.5 px or more, and falls back to the next finer level when that fails", () => {
-    // 1920×1080 starts at level 1 (960×540): 6 px modules are 3 px there; blurred and damaged, the level-1 grid misreads and level 0 reads
-    const text = "https://example.com/fallback", r = rasterize(qr(text, 4), { module: 6, width: 1920, height: 1080 });
+    // 1920×1080 starts at level 1 (960×540): 5.5 px modules are 2.75 px there; blurred and damaged, the level-1 grid misreads and level 0 reads
+    const text = "https://example.com/fallback", r = rasterize(qr(text, 4), { module: 5.5, width: 1920, height: 1080 });
     const ctx = new ScanContext(asImage(damage(blur(r, 1.2), r.corners, 0.06, 11)), options());
     expect(ctx.startLevel).toBe(1);
     ctx.pass = { id: "hybrid", inverted: false, flat: false };
@@ -206,6 +206,28 @@ describe("qrFamily on rendered QR codes", () => {
     expect(qrFamily.decode(clean, qrFamily.locate(clean)[0]!)?.text).toBe(text);
     expect((clean.log.filter((e) => (e as { decode?: string }).decode === "qr") as { level: number; ok: boolean }[]).map((e) => [e.level, e.ok])).toEqual([[1, true]]);
   });
+
+  it("finds a small code in a large photo with tryHarder by searching the finer levels when the start level holds nothing, and not without", () => {
+    // a 4 px-module label in a 3840×2160 frame: 1 px modules on the start level (960×540), 2 px on level 1, 4 px on level 0
+    const text = "https://example.com/shelf-label", label = rasterize(qr(text, 3), { module: 4 });
+    const frame = asImage(compose(3840, 2160, [{ plane: label, x: 2500, y: 1300 }]));
+    expect(scan(frame, options())).toEqual([]);
+    const results = scan(frame, options({ tryHarder: true }));
+    expect(first(results)).toBe(text);
+    for (let i = 0; i < 4; i++) expect([i, Math.hypot(results[0]!.points[i]![0] - 2500 - label.corners[i]![0], results[0]!.points[i]![1] - 1300 - label.corners[i]![1]) < 6]).toEqual([i, true]);
+    // the locator's log: the start level alone without tryHarder; with it, the levels in order down to the first with
+    // finders (level 1, 2 px modules), and the decode then samples on level 0 by the 2.5 px rule
+    const levels = (ctx: ScanContext) => (ctx.log as { level: number; finders: number }[]).filter((e) => e.finders !== undefined).map((e) => [e.level, e.finders]);
+    const fast = new ScanContext(frame, options());
+    fast.pass = { id: "hybrid", inverted: false, flat: false };
+    expect([fast.startLevel, qrFamily.locate(fast).length, levels(fast)]).toEqual([2, 0, [[2, 0]]]);
+    const hard = new ScanContext(frame, options({ tryHarder: true }));
+    hard.pass = { id: "hybrid", inverted: false, flat: false };
+    const candidates = qrFamily.locate(hard);
+    expect([candidates.length, candidates[0]!.level, levels(hard)]).toEqual([1, 1, [[2, 0], [1, 3]]]);
+    expect(qrFamily.decode(hard, candidates[0]!)?.text).toBe(text);
+    expect((hard.log as { decode?: string; level?: number; ok?: boolean }[]).filter((e) => e.decode === "qr").map((e) => [e.level, e.ok])).toEqual([[0, true]]);
+  }, 20_000);
 
   it("reports nothing on 500 generated images without codes", () => {
     let s = 11;
