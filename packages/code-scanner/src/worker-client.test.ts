@@ -11,15 +11,27 @@ class FakeWorker implements WorkerLike {
   static all: FakeWorker[] = [];
   requests: ScanRequest[] = [];
   terminated = false;
+  /** The next postMessage throws, as a real worker does for a detached buffer. */
+  throwOnce = false;
   private onMessage: ((event: { data: ScanResponse }) => void)[] = [];
   private onError: (() => void)[] = [];
+  private onMessageError: (() => void)[] = [];
   constructor() { FakeWorker.all.push(this); }
-  postMessage(message: ScanRequest): void { this.requests.push(message); }
+  postMessage(message: ScanRequest): void {
+    if (this.throwOnce) { this.throwOnce = false; throw new Error("detached"); }
+    this.requests.push(message);
+  }
   terminate(): void { this.terminated = true; }
-  addEventListener(type: "message" | "error", listener: never): void { if (type === "message") this.onMessage.push(listener); else this.onError.push(listener); }
-  answer(): void { answerScanJob(this.requests.at(-1)!, (data) => { for (const l of this.onMessage) l({ data }); }); }
+  addEventListener(type: "message" | "error" | "messageerror", listener: never): void {
+    if (type === "message") this.onMessage.push(listener); else if (type === "error") this.onError.push(listener); else this.onMessageError.push(listener);
+  }
+  /** Answers a request (the last one by default) through the real answerScanJob. */
+  answer(index: number = this.requests.length - 1): void { answerScanJob(this.requests[index]!, (data) => { for (const l of this.onMessage) l({ data }); }); }
   fail(): void { for (const l of this.onError) l(); }
+  corrupt(): void { for (const l of this.onMessageError) l(); }
 }
+/** Whether a promise has settled, after the microtasks drain. */
+const settled = async (p: Promise<unknown>): Promise<boolean> => { let done = false; p.then(() => { done = true; }, () => { done = true; }); await new Promise((r) => setTimeout(r, 0)); return done; };
 const image = (text: string) => asImage(rasterize(encodeSymbol("qr", 2, "M", segmentsFor(text))!.matrix, { module: 5 }));
 // A generous deadline: the default 40 ms expires under the whole suite's load on a slow machine, and these tests check the queue, not the clock.
 const job = (text: string): ScanJob => ({ image: image(text), symbologies: ["qr", "micro-qr", "rmqr"], tryHarder: false, multiple: false, deadlineMs: 5000 });
@@ -75,12 +87,62 @@ describe("createScanJobRunner", () => {
     expect(await reason(runner.run(job("d")))).toBe("unavailable");
   });
 
+  it("ignores an answer to a cancelled frame while a newer one runs: the newer frame stays pending until its own answer", async () => {
+    const runner = createScanJobRunner(() => new FakeWorker());
+    const a = runner.run(job("a"));
+    runner.cancel();
+    expect(await reason(a)).toBe("cancelled");
+    const c = runner.run(job("c"));
+    expect(FakeWorker.all[0]!.requests).toHaveLength(2);
+    FakeWorker.all[0]!.answer(0); // the late answer to "a"
+    expect(await settled(c)).toBe(false);
+    FakeWorker.all[0]!.answer(1);
+    expect((await c).results.map((r) => r.text)).toEqual(["c"]);
+  });
+
+  it("a frame whose post throws fails at once with the message, and the runner goes on with the next frame", async () => {
+    const runner = createScanJobRunner(() => new FakeWorker());
+    const w = () => FakeWorker.all[0]!;
+    const a = runner.run(job("a")), b = runner.run(job("b"));
+    w().throwOnce = true;
+    w().answer(); // "a" comes back; "b" goes out and its post throws, inside the message listener
+    expect((await a).results.map((r) => r.text)).toEqual(["a"]);
+    expect(await reason(b)).toBe("failed");
+    expect(await b.catch((e: Error) => e.message)).toBe("detached");
+    expect(w().requests).toHaveLength(1); // "b" never reached the worker
+    const c = runner.run(job("c"));
+    expect(w().requests).toHaveLength(2);
+    w().answer();
+    expect((await c).results.map((r) => r.text)).toEqual(["c"]);
+    // a throw with a pending frame behind it: the pending frame goes out
+    w().throwOnce = true;
+    const d = runner.run(job("d")), e = runner.run(job("e"));
+    expect(await reason(d)).toBe("failed");
+    w().answer();
+    expect((await e).results.map((r) => r.text)).toEqual(["e"]);
+  });
+
+  it("an answer that cannot be read (messageerror) fails the running frame only, and the waiting frame goes out", async () => {
+    const runner = createScanJobRunner(() => new FakeWorker());
+    const a = runner.run(job("a")), b = runner.run(job("b"));
+    FakeWorker.all[0]!.corrupt();
+    expect(await reason(a)).toBe("failed");
+    expect(FakeWorker.all[0]!.requests).toHaveLength(2);
+    FakeWorker.all[0]!.answer();
+    expect((await b).results.map((r) => r.text)).toEqual(["b"]);
+    expect(FakeWorker.all[0]!.terminated).toBe(false);
+  });
+
   it("rejects as unavailable when no worker can start or when it crashes, and as failed with the worker's message", async () => {
     expect(await reason(createScanJobRunner(() => null).run(job("x")))).toBe("unavailable");
     const crashing = createScanJobRunner(() => new FakeWorker());
     const p = crashing.run(job("x"));
     FakeWorker.all.at(-1)!.fail();
     expect(await reason(p)).toBe("unavailable");
+    // the crashed worker is terminated and not started again on this page
+    expect(FakeWorker.all.at(-1)!.terminated).toBe(true);
+    expect(await reason(crashing.run(job("y")))).toBe("unavailable");
+    expect(FakeWorker.all).toHaveLength(1);
     const failing = createScanJobRunner(() => new FakeWorker());
     const q = failing.run({ ...job("x"), image: { width: 1, height: 1, data: new Uint8Array(0), format: "gray" } });
     FakeWorker.all.at(-1)!.answer();

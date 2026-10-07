@@ -31,7 +31,7 @@
   "size-limit": [
     { "name": "core", "path": "dist/core.js", "limit": "12 kB" },
     { "name": "qr", "path": "dist/qr.js", "limit": "14 kB" },
-    { "name": "worker", "path": "dist/worker.js", "limit": "4 kB", "rolldown": false }
+    { "name": "worker (file only)", "path": "dist/worker.js", "limit": "4 kB", "rolldown": false }
   ],
   "peerDependencies": { "react": ">=18" },
   "peerDependenciesMeta": { "react": { "optional": true } },

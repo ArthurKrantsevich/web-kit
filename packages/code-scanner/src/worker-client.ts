@@ -7,6 +7,7 @@ export interface WorkerLike {
   terminate(): void;
   addEventListener(type: "message", listener: (event: { data: ScanResponse }) => void): void;
   addEventListener(type: "error", listener: () => void): void;
+  addEventListener(type: "messageerror", listener: () => void): void;
 }
 
 /**
@@ -43,8 +44,12 @@ export interface ScanOutcome {
 export interface ScanJobRunner {
   /**
    * Scans a frame in the worker. One frame runs at a time; a frame given while one runs waits as the single pending
-   * frame, and a newer one replaces it (the replaced promise rejects with reason "dropped"). The frame's buffer is
-   * transferred, not copied.
+   * frame, and a newer one replaces it (the replaced promise rejects with reason "dropped").
+   *
+   * The frame's buffer is transferred, not copied: once the frame is sent, `job.image.data` is detached (its length
+   * is 0) and cannot be read or sent again. A caller that needs the pixels afterwards copies them first
+   * (`image.data.slice()`). A frame whose post fails (for example a buffer that was already detached) rejects with
+   * reason "failed".
    */
   run(job: ScanJob): Promise<ScanOutcome>;
   /** Rejects the running and the waiting frame with "cancelled"; the worker stays for the next frame. */
@@ -66,8 +71,21 @@ export function createScanJobRunner(create: () => WorkerLike | null = createScan
   function send(w: Waiting): void {
     const id = ++nextId;
     running = { ...w, id };
-    const data = w.job.image.data;
-    worker!.postMessage({ id, job: w.job }, [data.buffer as ArrayBuffer]);
+    try {
+      worker!.postMessage({ id, job: w.job }, [w.job.image.data.buffer as ArrayBuffer]);
+    } catch (error) {
+      // A post that throws (a detached buffer, an unserializable frame) fails this frame only; the next one still goes.
+      running = null;
+      w.reject(new ScanWorkerError("failed", error instanceof Error ? error.message : "Could not send the frame"));
+      next();
+    }
+  }
+  /** Settles the running frame and sends the waiting one. */
+  function settle(outcome: (r: Waiting) => void): void {
+    const r = running;
+    running = null;
+    if (r !== null) outcome(r);
+    next();
   }
   function next(): void {
     if (pending === null || worker === null) return;
@@ -91,13 +109,14 @@ export function createScanJobRunner(create: () => WorkerLike | null = createScan
     worker.addEventListener("message", (event) => {
       const data = event.data;
       if (running === null || data.id !== running.id) return; // a cancelled frame's late answer
-      const r = running;
-      running = null;
-      if ("results" in data) r.resolve({ results: data.results, ms: data.ms }); else r.reject(new ScanWorkerError("failed", data.error));
-      next();
+      settle((r) => { if ("results" in data) r.resolve({ results: data.results, ms: data.ms }); else r.reject(new ScanWorkerError("failed", data.error)); });
     });
+    // The answer could not be deserialized: this frame failed, the worker is still fine.
+    worker.addEventListener("messageerror", () => settle((r) => r.reject(new ScanWorkerError("failed", "The worker's answer could not be read"))));
     worker.addEventListener("error", () => {
+      // The script did not load or the worker crashed: do not try again on this page.
       unavailable = true;
+      worker?.terminate();
       worker = null;
       fail("unavailable");
     });

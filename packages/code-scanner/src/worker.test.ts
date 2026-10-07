@@ -10,11 +10,11 @@ afterEach(() => { delete scope.onmessage; delete scope.postMessage; vi.restoreAl
 it("the worker script answers each message with the results, and logs nothing", async () => {
   const posted: ScanResponse[] = [];
   scope.postMessage = (message) => posted.push(message);
-  const log = vi.spyOn(console, "log"), error = vi.spyOn(console, "error");
+  const spies = (["log", "info", "warn", "error", "debug"] as const).map((m) => vi.spyOn(console, m));
   await import("./worker");
   const image = asImage(rasterize(encodeSymbol("qr", 1, "M", segmentsFor("worker"))!.matrix, { module: 5 }));
   scope.onmessage!({ data: { id: 1, job: { image, symbologies: ["qr"], tryHarder: false, multiple: false, deadlineMs: 5000 } } });
   expect(posted).toHaveLength(1);
   expect("results" in posted[0]! && posted[0].results.map((r) => r.text)).toEqual(["worker"]);
-  expect([log.mock.calls, error.mock.calls]).toEqual([[], []]);
+  expect(spies.map((s) => s.mock.calls)).toEqual([[], [], [], [], []]);
 });
