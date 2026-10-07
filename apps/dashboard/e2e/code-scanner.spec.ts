@@ -135,16 +135,33 @@ test("at 390 px the long status line of a Try harder scan stays one line inside 
   await expect(summary).toHaveText(/^QR Code · 33×33 · corrected 0 of \d+ · Try harder on · \d+ ms$/);
   const report = await summary.evaluate((node) => {
     const line = node.closest(".wk-ui-status")!.getBoundingClientRect(), own = node.getBoundingClientRect();
-    // the element whose text overflows is the one that must draw the ellipsis: text-overflow works on a block container
-    // with hidden overflow and one line, and not on the flex box that carries the state's dot
-    const clipped = [node, ...node.querySelectorAll("*")].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => {
+    // an element whose text overflows must draw the ellipsis: text-overflow works on a block container with hidden
+    // overflow and one line, and not on the flex box that carries the state's dot. Whether the text overflows depends
+    // on the digits of the time, so only the elements that do overflow are judged
+    const clippedWithoutEllipsis = [node, ...node.querySelectorAll("*")].filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => {
       const s = getComputedStyle(el);
       return [s.display, s.overflowX, s.whiteSpace, s.textOverflow].join(" ");
-    });
-    return { inside: own.left >= line.left - 1 && own.right <= line.right + 1, clipped, title: node.getAttribute("title") === node.textContent };
+    }).filter((style) => style !== "block hidden nowrap ellipsis");
+    return { inside: own.left >= line.left - 1 && own.right <= line.right + 1, clippedWithoutEllipsis, title: node.getAttribute("title") === node.textContent };
   });
-  expect(report).toEqual({ inside: true, clipped: ["block hidden nowrap ellipsis"], title: true });
+  expect(report).toEqual({ inside: true, clippedWithoutEllipsis: [], title: true });
   expect((await status.boundingBox())!.height).toBe(height);
+});
+
+test("the page loads no decoder: none of its scripts holds one before a scan, and the worker a scan starts loads it", async ({ page }) => {
+  // the decoder's id names it in whichever chunk it was bundled into
+  const scripts = new Map<string, Promise<boolean>>();
+  page.context().on("response", (response) => {
+    if (response.url().endsWith(".js") && !scripts.has(response.url())) scripts.set(response.url(), response.text().then((body) => body.includes('"qr-family"'), () => false));
+  });
+  await open(page);
+  const before = new Set(scripts.keys());
+  const withDecoder = async (urls: Iterable<string>) => { const out: string[] = []; for (const url of urls) if (await scripts.get(url)!) out.push(url.replace(/^.*\/_next\//, "_next/")); return out; };
+  expect(before.size).toBeGreaterThan(0);
+  expect(await withDecoder(before)).toEqual([]);
+  await page.getByRole("button", { name: "Sample", exact: true }).click();
+  await expect(page.locator(".wk-scanner__entry")).toHaveCount(1);
+  await expect.poll(async () => (await withDecoder([...scripts.keys()].filter((url) => !before.has(url)))).length).toBe(1);
 });
 
 test("a share link carries the switches only, and the saved input never holds an image or a result", async ({ page, context }) => {
