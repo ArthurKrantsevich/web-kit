@@ -26,7 +26,7 @@
 
 ## Статус
 
-Готовы восемь инструментов: четыре для JSON, Text Compare и генераторы UUID, паролей и хэшей. У них общий интерфейс из `@web-kit/ui`. Ещё семь в планах. Пакеты пока не опубликованы в npm: `@web-kit` — рабочее имя, scope выберем перед первым релизом.
+Готовы девять инструментов: четыре для JSON, Text Compare, генераторы UUID, паролей и хэшей и Code Scanner. У них общий интерфейс из `@web-kit/ui`. Ещё шесть в планах. Пакеты пока не опубликованы в npm: `@web-kit` — рабочее имя, scope выберем перед первым релизом.
 
 ## Утилиты
 
@@ -42,6 +42,7 @@
 | [UUID Generator](https://arthurkrantsevich.github.io/web-kit/tools/uuid-generator/) | `@web-kit/uuid-generator` | UUID v1, v3, v4, v5, v6 и v7, Nil и Max, ULID и NanoID, до 1 000 за раз, строками или JSON; Inspect читает версию, variant и время любого UUID или ULID. Описан ниже. |
 | [Password Generator](https://arthurkrantsevich.github.io/web-kit/tools/password-generator/) | `@web-kit/password-generator` | Пароли из символов, фразы из словаря EFF, произносимые пароли и PIN с точной энтропией, силой и временем перебора; никогда не сохраняются и не попадают в ссылки. Описан ниже. |
 | [Hash Generator](https://arthurkrantsevich.github.io/web-kit/tools/hash-generator/) | `@web-kit/hash-generator` | MD5, SHA-1, SHA-2, SHA-3, BLAKE2, BLAKE3, RIPEMD-160, CRC32 и CRC32C текста или файла до 512 МБ, HMAC и Verify для контрольной суммы. Описан ниже. |
+| [Code Scanner](https://arthurkrantsevich.github.io/web-kit/tools/code-scanner/) | `@web-kit/code-scanner` | QR Code, Micro QR и rMQR из открытого, перетащенного или вставленного изображения, декодирование в Web Worker на вашем устройстве; свои декодеры, без ZXing и без нативного `BarcodeDetector`. Описан ниже. |
 
 Общие пакеты: `@web-kit/json-core` (JSON-парсер и AST без потерь, исправления, пути, точное сравнение чисел, воркер для больших данных) и `@web-kit/ui` (раскладка редактора, кнопки, меню, диалоги и удобства ниже).
 
@@ -100,20 +101,36 @@
 - Verify: вставьте контрольную сумму (hex, Base64, с префиксом `sha256:` или SRI `sha256-`, или целую строку `sha256sum` либо BSD, как в `hashes.txt`) — совпавшая строка подсвечивается; если не совпало ничего, но в More algorithms есть алгоритм такой длины, он предлагает их посчитать;
 - файлы до 512 МБ (и тексты больше 1 МБ) читаются частями по 4 МБ сразу несколькими Web Worker с прогрессом; новый файл или Clear отменяют работу. Каждый алгоритм проходит свои официальные тестовые векторы.
 
+#### Code Scanner
+
+[`code-scanner`](https://arthurkrantsevich.github.io/web-kit/tools/code-scanner/) в категории media читает коды с изображения:
+
+| Символика | Объём |
+|---|---|
+| QR Code | версии 1–40, уровни L/M/Q/H, режимы Numeric, Alphanumeric, Byte, Kanji, ECI, FNC1 (GS1 и AIM), Structured Append, зеркальные и инвертированные символы |
+| Micro QR | M1–M4, все уровни |
+| rMQR | все 32 размера, уровни M и H |
+
+- изображение берётся из файла (PNG, JPEG, WebP, GIF, BMP или SVG до 25 МБ и 50 Мпкс), перетаскиванием или из буфера обмена; встроенный пример сразу показывает результат;
+- все декодеры написаны здесь: пирамида яркости, каскад бинаризаций (hybrid, Sauvola, Wolf–Jolion, Оцу, контуры, каждая ещё и с инверсией), Рид–Соломон со стираниями по уверенности модулей и кусочная гомография по выравнивающим шаблонам, так что читаются и коды на изогнутых или наклонённых поверхностях;
+- Try harder добавляет медленные бинаризации, проход по увеличенному изображению для мелких модулей, поиск по более мелким уровням пирамиды для небольшого кода на большой фотографии и более широкие допуски; Multiple codes находит все коды на картинке;
+- результаты сессии, новые сверху, у каждого символика, текст, время и Copy; повторно считанный код не дублируется, а растёт счётчик; Download сохраняет `scan-results.json`, в More actions — `scan-results.csv`;
+- каркас бенчмарка (`bench/` в пакете) прогоняет собственный blackbox-корпус ZXing и сгенерированный стресс-корпус против zxing-cpp (`zxing-wasm`), оба только devDependencies; отчёт публикуется вместе с полным инструментом. Data Matrix, Aztec, PDF417, линейные символики, камера и разборы Wi-Fi, vCard и GS1 — в следующих подытерациях.
+
 ## Удобства во всех инструментах
 
-- **Файлы.** Open file или перетаскивание файла на поле ввода (UTF-8, BOM убирается, до 10 МБ) и Download результата с подходящим именем (`formatted.json`, `converted.yaml`, `patch.json`, `schema.json`, `compare.patch`, `uuids.txt`, `passwords.txt`, `hashes.txt`). Hash Generator открывает любой файл до 512 МБ.
+- **Файлы.** Open file или перетаскивание файла на поле ввода (UTF-8, BOM убирается, до 10 МБ) и Download результата с подходящим именем (`formatted.json`, `converted.yaml`, `patch.json`, `schema.json`, `compare.patch`, `uuids.txt`, `passwords.txt`, `hashes.txt`, `scan-results.json`). Hash Generator открывает любой файл до 512 МБ; Code Scanner открывает изображения до 25 МБ и читает их из буфера обмена.
 - **Загрузка по URL.** Браузер запрашивает адрес сам: только `http:` и `https:`, без cookies, до 10 МБ. Сервер должен разрешать чтение с других сайтов (CORS); прокси нет.
 - **Ссылка для обмена.** Ввод и опции сжимаются в часть ссылки после `#`, которую браузер никогда не отправляет на сервер. Данные видит любой, у кого есть ссылка; инструмент предупреждает, если ссылка длиннее, чем обычно пропускают мессенджеры.
 - **Сохранение ввода.** По умолчанию выключено. Если включить, ввод хранится в этом браузере для этого инструмента, пока вы не выключите или не очистите его.
 - **Горячие клавиши.** Ctrl+Enter (⌘+Enter на Mac) форматирует в форматтере, меняет направление в конвертере (JSON → CSV и CSV → JSON), меняет местами Left и Right в JSON Diff и Text Compare и строит схему по данным в валидаторе; у форматтера ещё Ctrl+Shift+M (минификация) и Ctrl+Shift+F (исправить всё), у Text Compare — F7/Shift+F7 и, вне полей ввода, Alt+↓/Alt+↑ (следующее и предыдущее изменение); Ctrl+Z в поле не отменяет обмен сторон в Text Compare; в генераторах UUID и паролей Ctrl+Enter делает новые. `?` показывает список. Сочетания браузера не перехватываются.
-- **Большие данные.** Форматтер обрабатывает ввод больше 1 МБ, а Text Compare — тексты больше 1 МБ вместе, в Web Worker: страница не зависает, а инструмент пишет, что работает. Hash Generator читает файлы частями сразу в нескольких воркерах и показывает прогресс.
+- **Большие данные.** Форматтер обрабатывает ввод больше 1 МБ, а Text Compare — тексты больше 1 МБ вместе, в Web Worker: страница не зависает, а инструмент пишет, что работает. Hash Generator читает файлы частями сразу в нескольких воркерах и показывает прогресс. Code Scanner декодирует каждое изображение в воркере.
 - **Один интерфейс.** Одинаковые действия выглядят одинаково во всех инструментах: Open file и Paste в шапке каждого окна ввода, Download и Copy в шапке вывода, Sample, Clear и «More actions» на панели. У каждой кнопки есть подсказка о том, что она сделает, и ничего не сдвигается, когда меняется подпись или страница догружается.
 - **Светлая и тёмная темы**, по системной настройке, пока вы не выберете сами.
 
 ## Приватность
 
-Нет бэкенда, аккаунтов и аналитики. Сайт — статические файлы на GitHub Pages. Текст и файлы обрабатываются в вашем браузере. Сгенерированные пароли, ID и ключи HMAC никогда не сохраняются, не попадают в ссылки и в журнал консоли. Сетевые запросы с вашими данными — только те, о которых вы просите: загрузка по URL идёт из вашего браузера по этому адресу, без cookies. Ссылка для обмена хранит данные в самой ссылке.
+Нет бэкенда, аккаунтов и аналитики. Сайт — статические файлы на GitHub Pages. Текст и файлы обрабатываются в вашем браузере. Сгенерированные пароли, ID и ключи HMAC никогда не сохраняются, не попадают в ссылки и в журнал консоли; как и изображения, которые читает Code Scanner, и найденные в них коды. Сетевые запросы с вашими данными — только те, о которых вы просите: загрузка по URL идёт из вашего браузера по этому адресу, без cookies. Ссылка для обмена хранит данные в самой ссылке.
 
 ## Как пользоваться пакетами
 
@@ -133,7 +150,7 @@ import "@web-kit/json-formatter/styles.css";
 - Один CSS-файл на инструмент, на CSS-переменных (`--wk-*` из `@web-kit/tokens`), которые можно переопределить. Общие стили лежат в каскадном слое `wk-ui`, поэтому ваши правила побеждают.
 - React UI работает в Next.js App Router: точка входа UI сохраняет директиву `"use client"`.
 
-API каждого пакета описан в его README: [json-core](packages/json-core), [json-formatter](packages/json-formatter), [json-convert](packages/json-convert), [json-diff](packages/json-diff), [json-schema-validator](packages/json-schema-validator), [text-compare](packages/text-compare), [uuid-generator](packages/uuid-generator), [password-generator](packages/password-generator), [hash-generator](packages/hash-generator), [ui](packages/ui).
+API каждого пакета описан в его README: [json-core](packages/json-core), [json-formatter](packages/json-formatter), [json-convert](packages/json-convert), [json-diff](packages/json-diff), [json-schema-validator](packages/json-schema-validator), [text-compare](packages/text-compare), [uuid-generator](packages/uuid-generator), [password-generator](packages/password-generator), [hash-generator](packages/hash-generator), [code-scanner](packages/code-scanner), [ui](packages/ui).
 
 ## Структура репозитория
 
@@ -152,6 +169,7 @@ packages/
   uuid-generator/
   password-generator/ ещё вход wordlist (большой словарь EFF)
   hash-generator/     ещё входы extra (дополнительные алгоритмы) и worker
+  code-scanner/       ещё вход qr (декодеры семейства QR), вход worker и bench/ (бенчмарк против zxing-wasm)
 tooling/scripts/      сборка и проверки пакетов
 turbo/generators/     шаблон `pnpm turbo gen utility`
 .github/workflows/    сборка, проверки, деплой

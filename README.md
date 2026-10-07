@@ -26,7 +26,7 @@ The same tools are planned for Flutter in [flutter-kit](https://github.com/Arthu
 
 ## Status
 
-Eight tools are ready: four for JSON, Text Compare, and the UUID, password and hash generators. They share one interface through `@web-kit/ui`. Seven more tools are planned. The packages are not published to npm yet: the scope `@web-kit` is a working name and will be chosen before the first release.
+Nine tools are ready: four for JSON, Text Compare, the UUID, password and hash generators, and Code Scanner. They share one interface through `@web-kit/ui`. Six more tools are planned. The packages are not published to npm yet: the scope `@web-kit` is a working name and will be chosen before the first release.
 
 ## Utilities
 
@@ -42,6 +42,7 @@ Eight tools are ready: four for JSON, Text Compare, and the UUID, password and h
 | [UUID Generator](https://arthurkrantsevich.github.io/web-kit/tools/uuid-generator/) | `@web-kit/uuid-generator` | UUID v1, v3, v4, v5, v6 and v7, Nil and Max, ULID and NanoID, up to 1,000 at a time, as lines or JSON; Inspect reads the version, variant and time of any UUID or ULID. Described below. |
 | [Password Generator](https://arthurkrantsevich.github.io/web-kit/tools/password-generator/) | `@web-kit/password-generator` | Passwords of characters, passphrases from the EFF word list, pronounceable passwords and PINs, with their exact entropy, strength and time to crack; never saved or shared. Described below. |
 | [Hash Generator](https://arthurkrantsevich.github.io/web-kit/tools/hash-generator/) | `@web-kit/hash-generator` | MD5, SHA-1, SHA-2, SHA-3, BLAKE2, BLAKE3, RIPEMD-160, CRC32 and CRC32C of a text or a file up to 512 MB, HMAC, and Verify for a checksum you were given. Described below. |
+| [Code Scanner](https://arthurkrantsevich.github.io/web-kit/tools/code-scanner/) | `@web-kit/code-scanner` | QR Code, Micro QR and rMQR read from an opened, dropped or pasted image, decoded in a Web Worker on your device; its own decoders, no ZXing and no native `BarcodeDetector`. Described below. |
 
 Shared packages: `@web-kit/json-core` (a lossless JSON parser and AST, fixes, paths, exact number comparison, a worker for large inputs) and `@web-kit/ui` (the editor layout, buttons, menus, dialogs and the convenience features below).
 
@@ -100,20 +101,36 @@ Passwords come only from `crypto.getRandomValues` without modulo bias. They are 
 - Verify: paste a checksum (hex, Base64, with a `sha256:` or SRI `sha256-` prefix, or a whole `sha256sum` or BSD line, as in `hashes.txt`) and the matching row lights up; when none matches but More algorithms has one of that length, it offers to check them;
 - files up to 512 MB (and texts over 1 MB) are read in 4 MB parts by a few Web Workers at once, with progress; a new file or Clear cancels the work. Every algorithm passes its official test vectors.
 
+#### Code Scanner
+
+[`code-scanner`](https://arthurkrantsevich.github.io/web-kit/tools/code-scanner/), in the media category, reads codes from an image:
+
+| Symbology | Scope |
+|---|---|
+| QR Code | versions 1–40, levels L/M/Q/H, Numeric, Alphanumeric, Byte, Kanji, ECI, FNC1 (GS1 and AIM), Structured Append, mirrored and inverted symbols |
+| Micro QR | M1–M4, every level |
+| rMQR | all 32 sizes, levels M and H |
+
+- the image comes from a file (PNG, JPEG, WebP, GIF, BMP or SVG, up to 25 MB and 50 Mpx), a drop or the clipboard; a built-in sample shows the result at once;
+- every decoder is written here: a gray pyramid, a cascade of binarizations (hybrid, Sauvola, Wolf–Jolion, Otsu, edges, each also inverted), Reed–Solomon with erasures from the modules' confidence, and a piecewise homography that follows alignment patterns, so codes on curved or tilted surfaces still read;
+- Try harder adds the slower binarizations, an upscaled pass for tiny modules, a search of the finer pyramid levels for a small code in a large photo, and wider tolerances; Multiple codes finds every code in the picture;
+- results of the session, newest first, each with its symbology, text, time and Copy; a repeated code counts up instead of repeating; Download saves `scan-results.json`, More actions has `scan-results.csv`;
+- the benchmark harness (`bench/` in the package) runs ZXing's own black-box corpus and a generated stress corpus against zxing-cpp (`zxing-wasm`), both devDependencies only; the report is published with the full tool. Data Matrix, Aztec, PDF417, the linear symbologies, the camera and the parsers of Wi-Fi, vCard and GS1 contents follow in the next sub-iterations.
+
 ## Convenience in every tool
 
-- **Files.** Open file or drop a file on an input (UTF-8, byte order mark removed, up to 10 MB), and Download the result with a name that fits it (`formatted.json`, `converted.yaml`, `patch.json`, `schema.json`, `compare.patch`, `uuids.txt`, `passwords.txt`, `hashes.txt`). Hash Generator opens any file up to 512 MB.
+- **Files.** Open file or drop a file on an input (UTF-8, byte order mark removed, up to 10 MB), and Download the result with a name that fits it (`formatted.json`, `converted.yaml`, `patch.json`, `schema.json`, `compare.patch`, `uuids.txt`, `passwords.txt`, `hashes.txt`, `scan-results.json`). Hash Generator opens any file up to 512 MB; Code Scanner opens images up to 25 MB and reads one from the clipboard.
 - **Load from URL.** The browser fetches the address directly: `http:` and `https:` only, no cookies, up to 10 MB. The server must allow reading from other sites (CORS); nothing goes through a proxy.
 - **Share link.** The input and the options are compressed into the part of the link after `#`, which browsers never send to a server. Anyone with the link can see the data; the tool warns when a link is longer than messengers usually keep.
 - **Saved input.** Off by default. Turned on, the input is kept in this browser's storage for that tool until you turn it off or clear it.
 - **Keyboard shortcuts.** Ctrl+Enter (⌘+Enter on a Mac) formats in the formatter, swaps direction in the converter (JSON → CSV and CSV → JSON), swaps Left and Right in the diff and in Text Compare, and generates a schema from the data in the validator; the formatter also has Ctrl+Shift+M (minify) and Ctrl+Shift+F (fix all), and Text Compare F7/Shift+F7 and, outside the text fields, Alt+↓/Alt+↑ (next and previous change); Ctrl+Z in a field does not undo Text Compare's swap. In the UUID and password generators Ctrl+Enter makes new ones. `?` shows the list. Browser shortcuts are left alone.
-- **Large inputs.** The formatter works on inputs over 1 MB, and Text Compare on texts over 1 MB together, in a Web Worker, so the page stays responsive, and each says so while it works. Hash Generator reads files in parts in several workers at once and shows its progress.
+- **Large inputs.** The formatter works on inputs over 1 MB, and Text Compare on texts over 1 MB together, in a Web Worker, so the page stays responsive, and each says so while it works. Hash Generator reads files in parts in several workers at once and shows its progress. Code Scanner decodes every image in a worker.
 - **One interface.** The same actions look the same in every tool: Open file and Paste in the header of each input, Download and Copy in the header of the output, Sample, Clear and "More actions" in the toolbar. Every button has a tooltip that says what it will do, and nothing moves when a label changes or the page finishes loading.
 - **Light and dark themes**, following the system until you choose.
 
 ## Privacy
 
-There is no backend, no account and no analytics. The site is static files on GitHub Pages. Your text and files are processed in your browser. Generated passwords, IDs and HMAC keys are never saved, put into a link or logged. The only network requests with your data are the ones you ask for: Load from URL fetches that address from your browser, without cookies. A share link keeps the data in the link itself.
+There is no backend, no account and no analytics. The site is static files on GitHub Pages. Your text and files are processed in your browser. Generated passwords, IDs and HMAC keys are never saved, put into a link or logged; nor are the images Code Scanner reads or the codes it finds. The only network requests with your data are the ones you ask for: Load from URL fetches that address from your browser, without cookies. A share link keeps the data in the link itself.
 
 ## Using the packages
 
@@ -133,7 +150,7 @@ import "@web-kit/json-formatter/styles.css";
 - One CSS file per tool, built on CSS variables (`--wk-*` from `@web-kit/tokens`) that you can override. The shared styles sit in the `wk-ui` cascade layer, so your own rules win.
 - The React UI works in the Next.js App Router: the UI entry keeps its `"use client"` directive.
 
-See each package's README for its API: [json-core](packages/json-core), [json-formatter](packages/json-formatter), [json-convert](packages/json-convert), [json-diff](packages/json-diff), [json-schema-validator](packages/json-schema-validator), [text-compare](packages/text-compare), [uuid-generator](packages/uuid-generator), [password-generator](packages/password-generator), [hash-generator](packages/hash-generator), [ui](packages/ui).
+See each package's README for its API: [json-core](packages/json-core), [json-formatter](packages/json-formatter), [json-convert](packages/json-convert), [json-diff](packages/json-diff), [json-schema-validator](packages/json-schema-validator), [text-compare](packages/text-compare), [uuid-generator](packages/uuid-generator), [password-generator](packages/password-generator), [hash-generator](packages/hash-generator), [code-scanner](packages/code-scanner), [ui](packages/ui).
 
 ## Repository layout
 
@@ -152,6 +169,7 @@ packages/
   uuid-generator/
   password-generator/ also a wordlist entry (the EFF large wordlist)
   hash-generator/     also an extra entry (more algorithms) and a worker entry
+  code-scanner/       also a qr entry (the QR family decoders), a worker entry, and bench/ (the benchmark against zxing-wasm)
 tooling/scripts/      build and package checks
 turbo/generators/     the template of `pnpm turbo gen utility`
 .github/workflows/    build, check and deploy
