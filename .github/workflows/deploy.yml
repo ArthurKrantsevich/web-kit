@@ -21,7 +21,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @web-kit/dashboard exec playwright install --with-deps chromium
-      - run: pnpm verify
+      - run: pnpm verify --concurrency=2
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         if: github.ref == 'refs/heads/main'
         with:
