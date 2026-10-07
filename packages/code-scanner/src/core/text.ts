@@ -1,4 +1,7 @@
-/** ECI designators → TextDecoder labels (ISO/IEC 18004 Annex, AIM ECI). */
+/**
+ * ECI designators → TextDecoder labels (ISO/IEC 18004 Annex, AIM ECI). ECI 0 and 2 are CP437, which TextDecoder does
+ * not know: windows-1252 is a deliberate fallback that reads the ASCII half right and the rest approximately.
+ */
 export const ECI_CHARSETS: Readonly<Record<number, string>> = {
   0: "windows-1252", 1: "iso-8859-1", 2: "windows-1252", 3: "iso-8859-1", 4: "iso-8859-2", 5: "iso-8859-3", 6: "iso-8859-4", 7: "iso-8859-5",
   8: "iso-8859-6", 9: "iso-8859-7", 10: "iso-8859-8", 11: "iso-8859-9", 12: "iso-8859-10", 13: "iso-8859-11", 15: "iso-8859-13", 16: "iso-8859-14",

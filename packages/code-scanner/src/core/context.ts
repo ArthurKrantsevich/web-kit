@@ -97,10 +97,14 @@ export class ScanContext {
 
   /**
    * A binarization of a level (−1 = the upscaled original) for a binarizer and polarity, cached. `lazy` (the default
-   * off the start level) compares on demand instead of making a bits array.
+   * off the start level) compares on demand instead of making a bits array. The module hint is part of the key only
+   * for Sauvola and Wolf, whose window depends on it; the others are built once per level. Level −1 is never
+   * lighting-corrected, so a `flat` request there shares the plain entry.
    */
   binarize(level: number, id: BinarizerId, inverted: boolean, flat: boolean, moduleHint: number = 5, lazy: boolean = level !== this.startLevel): LevelBinarization {
-    const key = `${level}:${id}:${inverted}:${flat}:${lazy}`;
+    if (level === -1) flat = false;
+    const hint = id === "sauvola" || id === "wolf" ? Math.round(moduleHint) : 0;
+    const key = `${level}:${id}:${inverted}:${flat}:${lazy}:${hint}`;
     let b = this.cache.get(key);
     if (!b) {
       let gray = level === -1 ? this.upscaled() : this.plane(level, flat);

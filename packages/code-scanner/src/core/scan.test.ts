@@ -49,6 +49,15 @@ describe("ScanContext", () => {
     expect(ctx.binarize(-1, "otsu", false, false).scale).toBe(0.5);
   });
 
+  it("caches by module hint only for the binarizers whose window depends on it, and shares the upscaled level between flat and plain", () => {
+    const ctx = new ScanContext(gray(400, 400), { decoders: [] });
+    expect(ctx.binarize(1, "sauvola", false, false, 5)).not.toBe(ctx.binarize(1, "sauvola", false, false, 15));
+    expect(ctx.binarize(1, "wolf", false, false, 5)).not.toBe(ctx.binarize(1, "wolf", false, false, 15));
+    expect(ctx.binarize(1, "hybrid", false, false, 5)).toBe(ctx.binarize(1, "hybrid", false, false, 15));
+    expect(ctx.binarize(1, "otsu", false, false, 5)).toBe(ctx.binarize(1, "otsu", false, false, 15));
+    expect(ctx.binarize(-1, "otsu", false, true)).toBe(ctx.binarize(-1, "otsu", false, false));
+  });
+
   it("crops to the region of interest and remembers its offset", () => {
     const ctx = new ScanContext(gray(400, 300), { decoders: [], roi: { x: 100, y: 50, width: 200, height: 100 } });
     expect([ctx.levels[0]!.gray.width, ctx.levels[0]!.gray.height, ctx.offset]).toEqual([200, 100, [100, 50]]);
