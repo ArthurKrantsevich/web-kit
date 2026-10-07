@@ -47,7 +47,7 @@ Open an image (PNG, JPEG, WebP, GIF, BMP or SVG, up to 25 MB and 50 Mpx), drop i
 
 ## Benchmark
 
-`pnpm bench:fetch` downloads ZXing's black-box corpus (Apache-2.0, tag `zxing-3.5.3`, checked by SHA-256) into `bench/.corpus/` (never committed); `pnpm bench` runs its QR categories at four rotations and the generated stress corpus against zxing-cpp (`zxing-wasm`), both sides in the same mode, and `pnpm bench:report` writes `docs/bench/code-scanner.md`. With the corpus cached, `pnpm test` runs a shortened benchmark as a test. `zxing-wasm` and `sharp` are devDependencies of the benchmark and the tests only.
+`pnpm bench:fetch` downloads ZXing's black-box corpus (Apache-2.0, tag `zxing-3.5.3`, checked by SHA-256) into `bench/.corpus/` (never committed); `pnpm bench` runs its QR categories at four rotations and the generated stress corpus against zxing-cpp (`zxing-wasm`), both sides in the same mode, and `pnpm bench:report` writes `docs/bench/code-scanner.md`. With the corpus cached, `pnpm test` runs a shortened benchmark as a test. The false-positive test on generated images (noise, stripes, checkerboards, text-like textures; `src/qr/family.test.ts`) runs the full cascade on the first 100 of its 500 images in `pnpm test`; `pnpm test:full` (`CODE_SCANNER_FULL=1`) runs all 500, same seeds, about three minutes. `zxing-wasm` and `sharp` are devDependencies of the benchmark and the tests only.
 
 ## Entries and sizes
 

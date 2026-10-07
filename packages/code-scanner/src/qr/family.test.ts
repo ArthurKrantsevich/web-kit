@@ -174,8 +174,11 @@ describe("qrFamily on rendered QR codes", () => {
     const W = 4000, H = 3000, data = new Uint8Array(W * H);
     let s = 5;
     for (let i = 0; i < data.length; i++) { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; data[i] = s & 255; }
-    const t0 = performance.now(), results = scan({ width: W, height: H, data, format: "gray" }, { decoders: [qrFamily], tryHarder: true });
-    expect([results, performance.now() - t0 < 550]).toEqual([[], true]);
+    // the bound is the deadline plus one step's overrun, not a wall clock: the cascade stops at the deadline, but the
+    // step under way may run past it
+    const deadlineMs = 500, t0 = performance.now(), results = scan({ width: W, height: H, data, format: "gray" }, { decoders: [qrFamily], tryHarder: true, deadlineMs });
+    const elapsed = performance.now() - t0;
+    expect([results, elapsed < deadlineMs + 300, elapsed]).toEqual([[], true, elapsed]);
   }, 20_000);
 
   it("decodes a 1080p frame with one clean QR within the budget's guard (median under 80 ms)", () => {
@@ -240,32 +243,35 @@ describe("qrFamily on rendered QR codes", () => {
       data[k] = y % 12 < 2 || x % 9 === 0 ? 40 + (s & 15) : 220 + (s & 31);
     }
     const frame = { width: W, height: H, data, format: "gray" } as const;
-    // the wall-clock bound is loose (twice the deadline): the cascade stops at the deadline, but one step may run past it
-    const t0 = performance.now();
-    expect([scan(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 1000 }), performance.now() - t0 < 2000]).toEqual([[], true]);
+    // the bound is the deadline plus one step's overrun: the cascade stops at the deadline, but the step under way may run past it
+    const deadlineMs = 1000, t0 = performance.now(), results = scan(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs });
+    const elapsed = performance.now() - t0;
+    expect([results, elapsed < deadlineMs + 300, elapsed]).toEqual([[], true, elapsed]);
     // the descent itself, under a deadline the levels cannot exhaust even on a loaded machine
     const ctx = new ScanContext(frame, { decoders: [qrFamily], tryHarder: true, deadlineMs: 3000 });
     ctx.pass = { id: "hybrid", inverted: false, flat: false };
     expect([ctx.startLevel, qrFamily.locate(ctx), levels(ctx)]).toEqual([2, [], [[2, 0], [1, 0], [0, 0]]]);
   }, 20_000);
 
-  it("reports nothing on 500 generated images without codes", () => {
+  // The first 100 of 500 generated images always (noise, stripes, checkerboards, a text-like texture, gray noise); all
+  // 500 with CODE_SCANNER_FULL=1 (`pnpm test:full`). The seeds are the same, so the 100 are a prefix of the 500.
+  const NO_CODE_IMAGES = process.env.CODE_SCANNER_FULL ? 500 : 100;
+  it(`reports nothing on ${NO_CODE_IMAGES} generated images without codes, with every pass of the cascade run`, () => {
     let s = 11;
     const rnd = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
     let positives = 0;
-    for (let i = 0; i < 500; i++) {
+    for (let i = 0; i < NO_CODE_IMAGES; i++) {
       const w = 160 + Math.floor(rnd() * 200), h = 120 + Math.floor(rnd() * 160), data = new Uint8Array(w * h), kind = i % 5;
       for (let k = 0; k < data.length; k++) {
         const x = k % w, y = Math.floor(k / w);
         data[k] = kind === 0 ? (rnd() < 0.5 ? 0 : 255) : kind === 1 ? ((x >> 3) % 2 === 0 ? 30 : 220) : kind === 2 ? (((x >> 4) + (y >> 4)) % 2 === 0 ? 20 : 230) : kind === 3 ? (y % 12 < 2 || x % 9 === 0 ? 40 : 235) : Math.floor(rnd() * 256);
       }
-      if (scan({ width: w, height: h, data, format: "gray" }, { decoders: [qrFamily], tryHarder: true, deadlineMs: 300 }).length > 0) positives++;
+      // a deadline the whole cascade fits in (its worst image alone takes about 1.5 s), even on a loaded machine
+      if (scan({ width: w, height: h, data, format: "gray" }, { decoders: [qrFamily], tryHarder: true, deadlineMs: 5000 }).length > 0) positives++;
     }
     expect(positives).toBe(0);
-    // the bound follows from the budget: 500 scans at a 300 ms deadline are 150 s when every image runs to its deadline,
-    // as on a loaded machine (alone, the cascade's median cost is already over 300 ms on these images, so about half do);
-    // one step may overrun the deadline, and the images take time to generate
-  }, 240_000);
+    // the bound follows from the budget: every image may run to its deadline plus one step's overrun
+  }, NO_CODE_IMAGES * 5_500);
 
   it("samples under the edge pass against a gray threshold, never against the Sobel magnitude", () => {
     // dark 90 would read light against a Sobel-magnitude threshold on a step of 120, so the decode can only succeed on a gray binarization

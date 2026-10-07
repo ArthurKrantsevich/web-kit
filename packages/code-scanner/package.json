@@ -23,6 +23,7 @@
     "build": "tsdown && node ../../tooling/scripts/build-styles.mjs",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
+    "test:full": "CODE_SCANNER_FULL=1 vitest run",
     "check": "node ../../tooling/scripts/check-use-client.mjs && node ../../tooling/scripts/check-page-without-decoders.mjs && publint --strict && attw --pack . --profile esm-only --exclude-entrypoints styles.css && size-limit",
     "bench:fetch": "node bench/fetch.mjs",
     "bench": "node --import tsx bench/run.ts",
