@@ -85,6 +85,9 @@ export const qrFamily: SymbologyDecoder = {
         out.push({ level, module: pattern.module, corners: [[pattern.x, pattern.y]], detail });
       }
       if (!ctx.tryHarder) break;
+      // on a small image the ×2 plane is searched even when level 0 holds candidates: a tiny or damaged code found on
+      // level 0 may decode only from the upscaled plane's finders (gating it on `out.length === 0` cost reads of the
+      // benchmark's qrcode-3, stress/damage and stress/tiny)
       const next = level === 0 && small ? -1 : level > 0 && out.length === 0 ? level - 1 : null;
       if (next === null || performance.now() + ((performance.now() - t0) / pixelsOf(ctx, level)) * pixelsOf(ctx, next) > ctx.deadline) break;
       level = next;
