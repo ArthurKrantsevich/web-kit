@@ -1,2 +1,2 @@
-/** The QR family decoders arrive in Task 7; this keeps the `./qr` entry building until then. */
-export const QR_PLACEHOLDER: true = true;
+export * from "./tables";
+export { BitMatrix, blockStructure, deinterleave, interleave, layoutOf, microFormatPositions, microLayout, placementOrder, qrFormatPositions, qrLayout, qrVersionPositions, rmqrFormatPositions, rmqrLayout, type BlockStructure, type Kind, type Layout } from "./layout";
